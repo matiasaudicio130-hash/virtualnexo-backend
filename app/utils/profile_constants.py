@@ -3,12 +3,16 @@ Constantes de tipos de perfil y atracción.
 Módulo independiente para evitar imports circulares entre servicios.
 """
 
-SOLO_TYPES: set[str] = {"solo_h", "solo_m", "trans_m", "trans_f", "nb"}
+VALID_PROFILE_TYPES: set[str] = {"solo_h", "solo_m", "id_div", "pareja", "trio_grupo"}
+
+SOLO_TYPES: set[str] = {"solo_h", "solo_m", "id_div"}
+
+VALID_CATEGORIES: set[str] = {"hombres", "mujeres", "id_div", "parejas", "grupos"}
 
 ATTRACTION_MAP: dict[str, set[str]] = {
-    "hombres": {"solo_h", "trans_m"},
-    "mujeres": {"solo_m", "trans_f"},
-    "nb":      {"nb"},
+    "hombres": {"solo_h"},
+    "mujeres": {"solo_m"},
+    "id_div":  {"id_div"},
     "parejas": {"pareja"},
     "grupos":  {"trio_grupo"},
 }

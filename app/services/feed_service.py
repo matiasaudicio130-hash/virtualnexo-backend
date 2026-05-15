@@ -12,6 +12,7 @@ from typing import Optional
 
 from app.db.supabase import get_supabase
 from app.services.notifications_service import create_notification
+from app.utils.profile_constants import SOLO_TYPES, resolve_interested_types
 
 
 def _haversine_km(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
@@ -23,22 +24,8 @@ def _haversine_km(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
     return R * 2 * math.asin(math.sqrt(a))
 
 
-SOLO_TYPES: set[str] = {"solo_h", "solo_m", "trans_m", "trans_f", "nb"}
-
-ATTRACTION_MAP: dict[str, set[str]] = {
-    "hombres": {"solo_h", "trans_m"},
-    "mujeres": {"solo_m", "trans_f"},
-    "nb":      {"nb"},
-    "parejas": {"pareja"},
-    "grupos":  {"trio_grupo"},
-}
-
-
 def _resolve_interested_types(interested_in: list[str]) -> set[str]:
-    types: set[str] = set()
-    for cat in interested_in:
-        types |= ATTRACTION_MAP.get(cat, set())
-    return types
+    return resolve_interested_types(interested_in)
 
 
 class FeedService:

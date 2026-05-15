@@ -15,6 +15,8 @@ class UpdateProfileTypeBody(BaseModel):
     bio: Optional[str] = None
     province: Optional[str] = None
     city: Optional[str] = None
+    identity_description: Optional[str] = None
+    profile_extended: Optional[dict] = None
 
 from app.core.limiter import limiter
 
@@ -248,7 +250,9 @@ async def me(request: Request):
     result = db.table("users").select(
         "id,email,first_name,last_name,role,status,membership_type,membership_expires_at,"
         "profile_photo_url,bio,province,city,"
-        "profile_type,hide_from_solos,no_messages_from_solos"
+        "profile_type,sexual_orientation,interested_in,visible_to,no_messages_from,"
+        "identity_description,profile_extended,"
+        "hide_from_solos,no_messages_from_solos"
     ).eq("id", payload["sub"]).execute()
     if not result.data:
         raise HTTPException(404, "Usuario no encontrado")
@@ -267,16 +271,16 @@ async def update_profile_type(body: UpdateProfileTypeBody, request: Request):
             update_data["visible_to"] = ["parejas", "grupos"]
 
     if "profile_type" in update_data:
-        valid = {"solo_h", "solo_m", "trans_m", "trans_f", "nb", "pareja", "trio_grupo"}
-        if update_data["profile_type"] not in valid:
-            raise HTTPException(400, f"profile_type debe ser uno de: {', '.join(sorted(valid))}")
+        from app.utils.profile_constants import VALID_PROFILE_TYPES
+        if update_data["profile_type"] not in VALID_PROFILE_TYPES:
+            raise HTTPException(400, f"profile_type debe ser uno de: {', '.join(sorted(VALID_PROFILE_TYPES))}")
 
     if "sexual_orientation" in update_data:
         valid_o = {"hetero", "gay", "bi", "pan", "flexible", "na"}
         if update_data["sexual_orientation"] not in valid_o:
             raise HTTPException(400, "sexual_orientation inválida")
 
-    VALID_CATEGORIES = {"hombres", "mujeres", "nb", "parejas", "grupos"}
+    from app.utils.profile_constants import VALID_CATEGORIES
     for field in ("interested_in", "visible_to", "no_messages_from"):
         if field in update_data and update_data[field] is not None:
             bad = set(update_data[field]) - VALID_CATEGORIES
