@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, Request, Query, UploadFile, File
-from typing import Optional
+from typing import Optional, Literal
 from pydantic import BaseModel
 
 from app.core.security import decode_access_token
@@ -17,6 +17,11 @@ def _require_auth(request: Request) -> dict:
     if not payload:
         raise HTTPException(401, "Token inválido")
     return payload
+
+
+class ReactionBody(BaseModel):
+    type: Literal["fire", "heart", "star"]
+
 
 
 class CreatePostBody(BaseModel):
@@ -125,13 +130,10 @@ async def create_photo_post(
 
 
 @router.post("/posts/{post_id}/react")
-async def react_to_post(post_id: str, body: dict, request: Request):
+async def react_to_post(post_id: str, body: ReactionBody, request: Request):
     """Toggle reacción (fire|heart|star). Si ya existe, la quita."""
     payload = _require_auth(request)
-    reaction_type = body.get("type", "fire")
-    if reaction_type not in {"fire", "heart", "star"}:
-        raise HTTPException(400, "Tipo debe ser fire, heart o star")
-    return feed_service.toggle_reaction(post_id, payload["sub"], reaction_type)
+    return feed_service.toggle_reaction(post_id, payload["sub"], body.type)
 
 
 @router.post("/posts/{post_id}/view")

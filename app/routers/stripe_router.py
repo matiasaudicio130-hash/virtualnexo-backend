@@ -16,6 +16,10 @@ class CheckoutRequest(BaseModel):
     currency: str = "ARS"
 
 
+class SimulateSuccessBody(BaseModel):
+    session_id: str
+
+
 def _require_auth(request: Request) -> dict:
     auth = request.headers.get("Authorization", "")
     if not auth.startswith("Bearer "):
@@ -76,7 +80,7 @@ async def create_checkout(body: CheckoutRequest, request: Request):
 
 
 @router.post("/simulate-success")
-async def simulate_success(body: dict, request: Request):
+async def simulate_success(body: SimulateSuccessBody, request: Request):
     """
     DEV ONLY: simula que Stripe confirmó el pago.
     Solo disponible cuando STRIPE_SECRET_KEY está vacío.
@@ -85,9 +89,7 @@ async def simulate_success(body: dict, request: Request):
         raise HTTPException(403, "Solo disponible en modo simulación")
 
     payload = _require_auth(request)
-    session_id = body.get("session_id")
-    if not session_id:
-        raise HTTPException(400, "session_id requerido")
+    session_id = body.session_id
 
     # Verificar que la session pertenece al usuario autenticado
     from app.db.supabase import get_supabase
@@ -125,7 +127,9 @@ async def stripe_webhook(
     try:
         result = await stripe_service.handle_webhook(payload, stripe_signature)
     except Exception as e:
-        raise HTTPException(400, f"Webhook error: {e}")
+        import logging
+        logging.getLogger(__name__).error(f"Stripe webhook error: {e}", exc_info=True)
+        raise HTTPException(400, "Webhook inválido o firma incorrecta")
 
     return result
 

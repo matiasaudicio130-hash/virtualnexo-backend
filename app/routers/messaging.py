@@ -18,6 +18,10 @@ def _require_auth(request: Request) -> dict:
     return payload
 
 
+class ConversationStartBody(BaseModel):
+    recipient_id: str
+
+
 class SendMessageBody(BaseModel):
     recipient_id: str
     content: str
@@ -33,16 +37,13 @@ async def list_conversations(request: Request):
 
 
 @router.post("/conversations/start")
-async def start_conversation(body: dict, request: Request):
+async def start_conversation(body: ConversationStartBody, request: Request):
     """Obtiene o inicia una conversación con otro usuario."""
     payload = _require_auth(request)
-    recipient_id = body.get("recipient_id")
-    if not recipient_id:
-        raise HTTPException(400, "recipient_id requerido")
-    if recipient_id == payload["sub"]:
+    if body.recipient_id == payload["sub"]:
         raise HTTPException(400, "No podés chatear con vos mismo")
     try:
-        conv = messaging_service.get_or_create_conversation(payload["sub"], recipient_id)
+        conv = messaging_service.get_or_create_conversation(payload["sub"], body.recipient_id)
         return conv
     except PermissionError as e:
         raise HTTPException(403, str(e))

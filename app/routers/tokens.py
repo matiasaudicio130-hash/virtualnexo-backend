@@ -7,9 +7,14 @@ ESTADO ACTUAL: Código completo pero deshabilitado por feature flag.
 Para activarlo: admin debe togglear `feature_tokens_enabled` en /admin/settings.
 """
 from fastapi import APIRouter, HTTPException, Request
+from pydantic import BaseModel
 
 from app.core.security import decode_access_token
 from app.db.supabase import get_supabase
+
+
+class SendGiftBody(BaseModel):
+    gift_id: str
 
 router = APIRouter(prefix="/tokens", tags=["tokens"])
 
@@ -66,12 +71,12 @@ async def gifts_catalog(request: Request):
 
 
 @router.post("/gifts/send/{recipient_id}")
-async def send_gift(recipient_id: str, body: dict, request: Request):
+async def send_gift(recipient_id: str, body: SendGiftBody, request: Request):
     """Envía un regalo virtual a otro usuario (debita tokens)."""
     _require_tokens_feature()
     payload = _require_auth(request)
     sender_id = payload["sub"]
-    gift_id = body.get("gift_id")
+    gift_id = body.gift_id
 
     db = get_supabase()
     gift_r = db.table("gift_catalog").select("*").eq("id", gift_id).eq("is_active", True).execute()

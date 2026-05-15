@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, Request, Query
-from typing import Optional
+from typing import Literal, Optional
 from pydantic import BaseModel
 
 from app.core.security import decode_access_token
@@ -47,28 +47,43 @@ async def feed_ads(
 
 
 @router.post("/{ad_id}/event")
-async def record_ad_event(ad_id: str, body: dict, request: Request):
+async def record_ad_event(ad_id: str, body: AdEventBody, request: Request):
     """
     Registra un evento (impression | click | overlay_open | overlay_close).
     El frontend llama este endpoint cuando el usuario interactúa con un anuncio.
     """
     payload = _require_auth(request)
-    action = body.get("action", "click")
-    if action not in {"impression", "click", "overlay_open", "overlay_close"}:
-        raise HTTPException(400, "Acción inválida")
-
-    province = body.get("province") or _get_user_province(payload["sub"])
+    province = body.province or _get_user_province(payload["sub"])
     ads_service.record_event(
         ad_id=ad_id,
-        action=action,
+        action=body.action,
         user_id=payload["sub"],
         user_province=province,
-        session_id=body.get("session_id"),
+        session_id=body.session_id,
     )
     return {"recorded": True}
 
 
 # ── Endpoints admin ────────────────────────────────────────────
+
+class AdEventBody(BaseModel):
+    action: Literal["impression", "click", "overlay_open", "overlay_close"] = "click"
+    province: Optional[str] = None
+    session_id: Optional[str] = None
+
+
+class AdUpdateBody(BaseModel):
+    type: Optional[str] = None
+    title: Optional[str] = None
+    description: Optional[str] = None
+    image_url: Optional[str] = None
+    target_url: Optional[str] = None
+    cta_text: Optional[str] = None
+    provinces: Optional[list] = None
+    priority: Optional[int] = None
+    ends_at: Optional[str] = None
+    is_active: Optional[bool] = None
+
 
 class AdvertiserBody(BaseModel):
     name: str
@@ -118,9 +133,9 @@ async def create_ad(body: AdBody, request: Request):
 
 
 @router.put("/admin/ads/{ad_id}")
-async def update_ad(ad_id: str, body: dict, request: Request):
+async def update_ad(ad_id: str, body: AdUpdateBody, request: Request):
     _require_admin(request)
-    return ads_service.update_ad(ad_id, body)
+    return ads_service.update_ad(ad_id, body.model_dump(exclude_none=True))
 
 
 @router.get("/admin/stats")

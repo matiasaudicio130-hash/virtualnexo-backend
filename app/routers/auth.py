@@ -1,5 +1,22 @@
 from fastapi import APIRouter, HTTPException, Request
 from datetime import datetime, timezone, timedelta
+from typing import Optional
+from pydantic import BaseModel
+
+
+class UpdateProfileTypeBody(BaseModel):
+    profile_type: Optional[str] = None
+    sexual_orientation: Optional[str] = None
+    interested_in: Optional[list] = None
+    visible_to: Optional[list] = None
+    no_messages_from: Optional[list] = None
+    hide_from_solos: Optional[bool] = None
+    no_messages_from_solos: Optional[bool] = None
+    bio: Optional[str] = None
+    province: Optional[str] = None
+    city: Optional[str] = None
+
+from app.core.limiter import limiter
 
 from app.schemas.auth import (
     RegisterRequest, LoginRequest, RefreshRequest,
@@ -30,7 +47,8 @@ def _get_current_user(request: Request) -> dict:
 
 
 @router.post("/register", response_model=MessageResponse, status_code=201)
-async def register(body: RegisterRequest):
+@limiter.limit("5/minute;20/hour")
+async def register(request: Request, body: RegisterRequest):
     db = get_supabase()
 
     # Verificar email duplicado
@@ -127,7 +145,8 @@ async def verify_email(body: VerifyEmailRequest):
 
 
 @router.post("/login", response_model=TokenResponse)
-async def login(body: LoginRequest, request: Request):
+@limiter.limit("10/minute;50/hour")
+async def login(request: Request, body: LoginRequest):
     db = get_supabase()
 
     result = db.table("users").select("*").eq("email", body.email).execute()
@@ -237,27 +256,12 @@ async def me(request: Request):
 
 
 @router.patch("/me/profile-type")
-async def update_profile_type(body: dict, request: Request):
-    """
-    Actualiza el tipo de perfil y las preferencias de visibilidad hacia solos.
-    body puede incluir: profile_type, hide_from_solos, no_messages_from_solos
-    """
+async def update_profile_type(body: UpdateProfileTypeBody, request: Request):
     payload = _get_current_user(request)
     db = get_supabase()
 
-    allowed_fields = {
-        "profile_type", "sexual_orientation",
-        "interested_in",       # qué quiero ver
-        "visible_to",          # quién puede verme (granular)
-        "no_messages_from",    # quién puede escribirme (granular, para mensajería)
-        "hide_from_solos",     # deprecated → se convierte a visible_to
-        "no_messages_from_solos",  # deprecated
-        "bio", "province", "city",
-    }
-    update_data = {k: v for k, v in body.items() if k in allowed_fields}
+    update_data = body.model_dump(exclude_unset=True)
 
-    # Compatibilidad: si viene hide_from_solos=true y no hay visible_to,
-    # convertir automáticamente a visible_to = ['parejas', 'grupos']
     if update_data.pop("hide_from_solos", None) is True:
         if "visible_to" not in update_data:
             update_data["visible_to"] = ["parejas", "grupos"]
@@ -270,16 +274,14 @@ async def update_profile_type(body: dict, request: Request):
     if "sexual_orientation" in update_data:
         valid_o = {"hetero", "gay", "bi", "pan", "flexible", "na"}
         if update_data["sexual_orientation"] not in valid_o:
-            raise HTTPException(400, f"sexual_orientation inválida")
+            raise HTTPException(400, "sexual_orientation inválida")
 
     VALID_CATEGORIES = {"hombres", "mujeres", "nb", "parejas", "grupos"}
-
     for field in ("interested_in", "visible_to", "no_messages_from"):
         if field in update_data and update_data[field] is not None:
             bad = set(update_data[field]) - VALID_CATEGORIES
             if bad:
                 raise HTTPException(400, f"{field} contiene valores inválidos: {bad}")
-            # Lista vacía → None (sin filtro)
             if len(update_data[field]) == 0:
                 update_data[field] = None
 
