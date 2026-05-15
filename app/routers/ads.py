@@ -9,6 +9,25 @@ from app.db.supabase import get_supabase
 router = APIRouter(prefix="/ads", tags=["ads"])
 
 
+class AdEventBody(BaseModel):
+    action: Literal["impression", "click", "overlay_open", "overlay_close"] = "click"
+    province: Optional[str] = None
+    session_id: Optional[str] = None
+
+
+class AdUpdateBody(BaseModel):
+    type: Optional[str] = None
+    title: Optional[str] = None
+    description: Optional[str] = None
+    image_url: Optional[str] = None
+    target_url: Optional[str] = None
+    cta_text: Optional[str] = None
+    provinces: Optional[list] = None
+    priority: Optional[int] = None
+    ends_at: Optional[str] = None
+    is_active: Optional[bool] = None
+
+
 def _require_auth(request: Request) -> dict:
     auth = request.headers.get("Authorization", "")
     if not auth.startswith("Bearer "):
@@ -65,25 +84,6 @@ async def record_ad_event(ad_id: str, body: AdEventBody, request: Request):
 
 
 # ── Endpoints admin ────────────────────────────────────────────
-
-class AdEventBody(BaseModel):
-    action: Literal["impression", "click", "overlay_open", "overlay_close"] = "click"
-    province: Optional[str] = None
-    session_id: Optional[str] = None
-
-
-class AdUpdateBody(BaseModel):
-    type: Optional[str] = None
-    title: Optional[str] = None
-    description: Optional[str] = None
-    image_url: Optional[str] = None
-    target_url: Optional[str] = None
-    cta_text: Optional[str] = None
-    provinces: Optional[list] = None
-    priority: Optional[int] = None
-    ends_at: Optional[str] = None
-    is_active: Optional[bool] = None
-
 
 class AdvertiserBody(BaseModel):
     name: str
