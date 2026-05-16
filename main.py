@@ -8,7 +8,7 @@ from app.core.limiter import limiter
 from app.core.config import get_settings
 from app.core.branding import APP_NAME, APP_VERSION
 from app.routers import auth, kyc, admin, exchange, payments, settings as settings_router, tokens, pricing
-from app.routers import stripe_router, reports, payouts, media, feed, reviews, ads, travel, messaging, notifications
+from app.routers import stripe_router, reports, payouts, media, feed, reviews, ads, travel, messaging, notifications, profiles
 
 settings = get_settings()
 
@@ -49,6 +49,7 @@ app.include_router(ads.router, prefix="/api/v1")
 app.include_router(travel.router, prefix="/api/v1")
 app.include_router(messaging.router, prefix="/api/v1")
 app.include_router(notifications.router, prefix="/api/v1")
+app.include_router(profiles.router, prefix="/api/v1")
 
 
 @app.get("/health")
