@@ -1,6 +1,7 @@
-from fastapi import APIRouter, HTTPException, Request, Query
+from fastapi import APIRouter, HTTPException, Request, Query, UploadFile, File
 from typing import Literal, Optional
 from pydantic import BaseModel
+import uuid
 
 from app.core.security import decode_access_token
 from app.services.ads_service import ads_service
@@ -124,6 +125,24 @@ async def create_advertiser(body: AdvertiserBody, request: Request):
 async def list_ads(request: Request, active_only: bool = Query(False)):
     _require_admin(request)
     return ads_service.list_ads(active_only=active_only)
+
+
+@router.post("/admin/upload-image")
+async def upload_ad_image(request: Request, file: UploadFile = File(...)):
+    """Sube una imagen al bucket público 'ads' y devuelve la URL pública."""
+    _require_admin(request)
+    if file.content_type not in {"image/jpeg", "image/jpg", "image/png", "image/webp"}:
+        raise HTTPException(400, "Solo JPEG / PNG / WebP")
+    data = await file.read()
+    if len(data) > 5 * 1024 * 1024:
+        raise HTTPException(413, "Maximo 5 MB")
+    from app.db.supabase import get_supabase
+    db = get_supabase()
+    ext  = (file.filename or "img").rsplit(".", 1)[-1].lower() or "jpg"
+    path = f"{uuid.uuid4().hex}.{ext}"
+    db.storage.from_("ads").upload(path, data, {"content-type": file.content_type, "upsert": "true"})
+    url = db.storage.from_("ads").get_public_url(path)
+    return {"url": url, "path": path}
 
 
 @router.post("/admin/ads", status_code=201)
