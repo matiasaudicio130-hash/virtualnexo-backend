@@ -156,6 +156,8 @@ class FeedService:
             p["viewer_reaction"] = viewer_reactions.get(p["id"])
             p["reactions"] = reaction_counts.get(p["id"], {})
 
+        self._refresh_signed_urls(posts, db)
+
         return {
             "posts":  posts,
             "total":  len(posts),
@@ -168,7 +170,7 @@ class FeedService:
         cutoff = (datetime.now(timezone.utc) - timedelta(hours=24)).isoformat()
 
         q = db.table("posts").select(
-            "id,user_id,media_url,created_at,expires_at,"
+            "id,user_id,media_url,storage_path,created_at,expires_at,"
             "users!posts_user_id_fkey(id,first_name,last_name,profile_photo_url,is_shadow_banned)"
         ).eq("type", "story").eq("status", "active").gt("created_at", cutoff).order("created_at", desc=True)
 
@@ -194,12 +196,35 @@ class FeedService:
                     "stories": [],
                 }
             stories_by_user[uid]["stories"].append({
-                "id":         p["id"],
-                "media_url":  p["media_url"],
-                "created_at": p["created_at"],
+                "id":           p["id"],
+                "media_url":    p["media_url"],
+                "storage_path": p.get("storage_path"),
+                "created_at":   p["created_at"],
             })
 
+        # Refresh signed URLs para stories
+        all_story_items = [s for u in stories_by_user.values() for s in u["stories"]]
+        self._refresh_signed_urls(all_story_items, db)
+
         return list(stories_by_user.values())
+
+    def _refresh_signed_urls(self, items: list, db) -> None:
+        """Genera signed URLs frescas (24h) para items con storage_path."""
+        paths = [item["storage_path"] for item in items if item.get("storage_path")]
+        if not paths:
+            return
+        try:
+            signed = db.storage.from_("media").create_signed_urls(paths, 86400)
+            url_map = {
+                r.get("path", "").lstrip("/"): (r.get("signedUrl") or r.get("signedURL", ""))
+                for r in (signed or [])
+            }
+            for item in items:
+                sp = item.get("storage_path", "")
+                if sp and url_map.get(sp):
+                    item["media_url"] = url_map[sp]
+        except Exception:
+            pass
 
     def create_post(
         self,
