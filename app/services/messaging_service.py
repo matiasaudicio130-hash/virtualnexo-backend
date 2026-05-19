@@ -98,6 +98,8 @@ class MessagingService:
         content: str,
         msg_type: str = "text",
         media_url: Optional[str] = None,
+        reply_to_id: Optional[str] = None,
+        view_once: bool = False,
     ) -> dict:
         db = get_supabase()
 
@@ -121,6 +123,8 @@ class MessagingService:
             "content":         content,
             "type":            msg_type,
             "media_url":       media_url,
+            "reply_to_id":     reply_to_id,
+            "view_once":       view_once,
         }).execute().data[0]
 
         # Actualizar preview de la conversación
