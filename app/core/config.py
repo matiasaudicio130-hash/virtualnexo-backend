@@ -34,6 +34,10 @@ class Settings(BaseSettings):
     EMAIL_FROM_NAME: str = "VirtualNexo"
     EMAIL_FROM_ADDRESS: str = "noreply@virtualnexo.com"
 
+    VAPID_PRIVATE_KEY: str = ""
+    VAPID_PUBLIC_KEY:  str = ""
+    VAPID_SUBJECT:     str = "mailto:soporte@aurasw.club"
+
     FRONTEND_URL: str = "http://localhost:5173"
     ADMIN_MASTER_EMAIL: str = ""
 
