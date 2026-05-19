@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException, Request, Query, UploadFile, File
-from typing import Optional, Literal
+from typing import Optional, Literal, List
 from pydantic import BaseModel
+import uuid as _uuid
 
 from app.core.security import decode_access_token
 from app.services.feed_service import feed_service
@@ -149,3 +150,130 @@ async def delete_post(post_id: str, request: Request):
     payload = _require_auth(request)
     feed_service.delete_post(post_id, payload["sub"])
     return {"deleted": True}
+
+
+# ── Sprint 2: saves, share, carousel ──────────────────────────
+
+@router.post("/posts/{post_id}/save")
+async def toggle_save(post_id: str, request: Request):
+    """Guarda o quita un post de los guardados."""
+    payload = _require_auth(request)
+    from app.db.supabase import get_supabase
+    db = get_supabase()
+    result = db.rpc("toggle_post_save", {
+        "p_user_id": payload["sub"],
+        "p_post_id": post_id,
+    }).execute()
+    return {"saved": result.data}
+
+
+@router.get("/posts/saved")
+async def get_saved_posts(
+    request: Request,
+    limit: int = Query(30, le=50),
+    offset: int = Query(0, ge=0),
+):
+    """Posts guardados por el usuario."""
+    payload = _require_auth(request)
+    from app.db.supabase import get_supabase
+    db = get_supabase()
+    saves = db.table("post_saves").select(
+        "post_id, posts!post_saves_post_id_fkey("
+        "id,type,caption,media_url,media_urls,storage_path,city,province,"
+        "created_at,views_count,save_count,"
+        "users!posts_user_id_fkey(id,first_name,last_name,profile_photo_url)"
+        ")"
+    ).eq("user_id", payload["sub"]).order("created_at", desc=True).range(
+        offset, offset + limit - 1
+    ).execute()
+    posts = [s["posts"] for s in saves.data if s.get("posts")]
+    return {"posts": posts, "total": len(posts)}
+
+
+@router.post("/posts/{post_id}/share")
+async def share_post(post_id: str, request: Request):
+    """Devuelve los datos del post para compartir por DM."""
+    payload = _require_auth(request)
+    from app.db.supabase import get_supabase
+    db = get_supabase()
+    r = db.table("posts").select(
+        "id,caption,media_url,allow_share,"
+        "users!posts_user_id_fkey(first_name,last_name)"
+    ).eq("id", post_id).eq("status", "active").execute()
+    if not r.data:
+        raise HTTPException(404, "Post no encontrado")
+    post = r.data[0]
+    if not post.get("allow_share", True):
+        raise HTTPException(403, "El autor desactivó el compartir en este post")
+    db.table("posts").update({"share_count": db.table("posts").select(
+        "share_count"
+    ).eq("id", post_id).execute().data[0].get("share_count", 0) + 1}).eq("id", post_id).execute()
+    return {"post_id": post_id, "shareable": True, "preview": post}
+
+
+@router.post("/posts/upload-carousel", status_code=201)
+async def upload_carousel(
+    request: Request,
+    caption: str = "",
+    province: str = "",
+    city: str = "",
+    lat: Optional[float] = None,
+    lng: Optional[float] = None,
+    is_story: bool = False,
+    allow_share: bool = True,
+    files: List[UploadFile] = File(...),
+):
+    """Crea un post con múltiples imágenes (carrusel, hasta 10)."""
+    payload = _require_auth(request)
+    if len(files) > 10:
+        raise HTTPException(400, "Máximo 10 imágenes por carrusel")
+    if len(files) == 0:
+        raise HTTPException(400, "Mínimo 1 imagen")
+
+    from app.db.supabase import get_supabase
+    from app.services.storage_service import storage_service
+    db = get_supabase()
+
+    media_list = []
+    for f in files:
+        if f.content_type not in {"image/jpeg","image/jpg","image/png","image/webp"}:
+            raise HTTPException(400, f"Archivo {f.filename}: solo JPEG/PNG/WebP")
+        data = await f.read()
+        if len(data) > 20 * 1024 * 1024:
+            raise HTTPException(413, "Máximo 20 MB por imagen")
+        result = await storage_service.upload_post_image(
+            image_bytes=data,
+            user_id=payload["sub"],
+            original_name=f.filename or "img",
+        )
+        media_list.append({
+            "url":  result["signed_url"],
+            "path": result["path"],
+            "type": "image",
+        })
+
+    # Primera imagen como media_url principal (compatibilidad)
+    main = media_list[0]
+    from app.services.feed_service import feed_service
+    post = feed_service.create_post(
+        user_id=payload["sub"],
+        post_type="story" if is_story else "photo",
+        caption=caption or None,
+        media_url=main["url"],
+        storage_path=main["path"],
+        lat=lat, lng=lng,
+        city=city or None,
+        province=province or None,
+        is_story=is_story,
+    )
+    # Guardar el array completo si hay más de 1
+    if len(media_list) > 1:
+        db.table("posts").update({
+            "media_urls": media_list,
+            "allow_share": allow_share,
+        }).eq("id", post["id"]).execute()
+        post["media_urls"] = media_list
+    else:
+        db.table("posts").update({"allow_share": allow_share}).eq("id", post["id"]).execute()
+
+    return post
