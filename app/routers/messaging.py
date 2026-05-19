@@ -1,7 +1,8 @@
-from fastapi import APIRouter, HTTPException, Request, Query
+from fastapi import APIRouter, HTTPException, Request, Query, UploadFile, File
 from pydantic import BaseModel
 from typing import Literal, Optional
 from datetime import datetime, timezone
+import uuid
 
 from app.core.security import decode_access_token
 from app.services.messaging_service import messaging_service
@@ -264,3 +265,82 @@ async def run_cleanup(request: Request):
     from app.db.supabase import get_supabase
     result = get_supabase().rpc("cleanup_expired_messages").execute()
     return {"deleted": result.data}
+
+
+@router.post("/upload-media")
+async def upload_chat_media(
+    request: Request,
+    file: UploadFile = File(...),
+):
+    """Sube un archivo (imagen/video/audio/gif) al bucket chat y devuelve signed URL."""
+    payload = _require_auth(request)
+
+    ALLOWED = {
+        "image/jpeg", "image/jpg", "image/png", "image/webp", "image/gif",
+        "video/mp4", "video/webm", "video/quicktime",
+        "audio/webm", "audio/mp4", "audio/ogg", "audio/mpeg",
+    }
+    if file.content_type not in ALLOWED:
+        raise HTTPException(400, "Tipo de archivo no permitido")
+
+    MAX_SIZES = {
+        "image": 10 * 1024 * 1024,   # 10 MB
+        "video": 50 * 1024 * 1024,   # 50 MB
+        "audio":  5 * 1024 * 1024,   # 5 MB
+    }
+    media_kind = file.content_type.split("/")[0]
+    data = await file.read()
+    max_size = MAX_SIZES.get(media_kind, 10 * 1024 * 1024)
+    if len(data) > max_size:
+        raise HTTPException(413, f"Archivo demasiado grande (max {max_size // 1024 // 1024}MB)")
+
+    from app.db.supabase import get_supabase
+    db  = get_supabase()
+    ext = (file.filename or "file").rsplit(".", 1)[-1].lower() or "bin"
+    path = f"{payload['sub']}/{uuid.uuid4().hex}.{ext}"
+
+    db.storage.from_("chat").upload(path, data, {
+        "content-type": file.content_type,
+        "upsert": "true",
+    })
+
+    signed = db.storage.from_("chat").create_signed_url(path, 86400 * 7)
+    url = signed.get("signedUrl") or signed.get("signedURL", "")
+
+    return {
+        "url":   url,
+        "path":  path,
+        "type":  media_kind,
+        "mime":  file.content_type,
+        "size":  len(data),
+    }
+
+
+@router.post("/online")
+async def update_online(request: Request):
+    """Actualiza last_active_at del usuario (llamar cada 30s)."""
+    payload = _require_auth(request)
+    from app.db.supabase import get_supabase
+    get_supabase().table("users").update({
+        "last_active_at": datetime.now(timezone.utc).isoformat()
+    }).eq("id", payload["sub"]).execute()
+    return {"ok": True}
+
+
+@router.get("/online/{user_id}")
+async def get_online_status(user_id: str, request: Request):
+    """Devuelve el estado online de un usuario."""
+    _require_auth(request)
+    from app.db.supabase import get_supabase
+    from datetime import timedelta
+    r = get_supabase().table("users").select("last_active_at").eq("id", user_id).execute()
+    if not r.data or not r.data[0].get("last_active_at"):
+        return {"online": False, "last_seen": None}
+    last = datetime.fromisoformat(r.data[0]["last_active_at"].replace("Z", "+00:00"))
+    diff = datetime.now(timezone.utc) - last
+    online = diff.total_seconds() < 120  # online si activo en los últimos 2 min
+    return {
+        "online": online,
+        "last_seen": r.data[0]["last_active_at"],
+        "minutes_ago": int(diff.total_seconds() / 60),
+    }
