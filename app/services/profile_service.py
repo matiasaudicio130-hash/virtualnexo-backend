@@ -22,6 +22,10 @@ class ProfileService:
         if viewer_id == viewed_id:
             return
         db = get_supabase()
+        # Respetar modo anónimo del viewer
+        viewer_r = db.table("users").select("anonymous_mode").eq("id", viewer_id).execute()
+        if viewer_r.data and viewer_r.data[0].get("anonymous_mode"):
+            return  # Modo anónimo activo: no registrar la visita
         db.table("profile_views").upsert(
             {"viewer_id": viewer_id, "viewed_id": viewed_id, "viewed_at": datetime.now(timezone.utc).isoformat()},
             on_conflict="viewer_id,viewed_id",
