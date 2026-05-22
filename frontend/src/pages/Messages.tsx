@@ -1,0 +1,518 @@
+import { useState, useEffect, useRef, useCallback } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import {
+  ArrowLeft, MessageSquare, Lock, Heart, User,
+  Shield, Settings, X, Users,
+} from "lucide-react";
+import { messagingApi, profilesApi, messagingV2Api } from "@/lib/api";
+import { useAuthStore } from "@/store/authStore";
+import { useScreenCapture } from "@/hooks/useScreenCapture";
+import { ProtectedAvatar } from "@/components/ProtectedImage";
+import { PROFILE_TYPE_CONFIG } from "@/types";
+import type { ProfileType } from "@/types";
+import { ChatInput }    from "@/components/chat/ChatInput";
+import { MessageBubble } from "@/components/chat/MessageBubble";
+import { GroupsSection } from "@/components/chat/GroupChat";
+import { usePresenceHeartbeat, useOnlineStatus, formatLastSeen } from "@/hooks/useOnlineStatus";
+
+function timeAgo(d: string) {
+  const diff = Date.now() - new Date(d).getTime();
+  const m = Math.floor(diff / 60000);
+  if (m < 1) return "ahora";
+  if (m < 60) return `${m}m`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h`;
+  return new Date(d).toLocaleDateString("es-AR", { day: "numeric", month: "short" });
+}
+
+// ── ChatWindow ────────────────────────────────────────────────
+function ChatWindow({
+  conv, currentUserId, onClose,
+}: { conv: any; currentUserId: string; onClose: () => void }) {
+  const navigate                          = useNavigate();
+  const [messages, setMessages]           = useState<any[]>([]);
+  const [text, setText]                   = useState("");
+  const [sending, setSending]             = useState(false);
+  const [blocked, setBlocked]             = useState(conv.blocked_me);
+  const [replyTo, setReplyTo]             = useState<any>(null);
+  const [selectedMsg, setSelectedMsg]     = useState<string | null>(null);
+  const [showSettings, setShowSettings]   = useState(false);
+  const [typingUsers, setTypingUsers]     = useState<string[]>([]);
+  const [otherTyping, setOtherTyping]     = useState(false);
+  const [settings, setSettings]          = useState({ auto_delete_days: null as number|null, screenshot_alert: true });
+  const bottomRef                         = useRef<HTMLDivElement>(null);
+  const typingTimer                       = useRef<any>(null);
+  const pollTimer                         = useRef<any>(null);
+  const other                             = conv.other_user;
+
+  const load = useCallback(() => {
+    messagingApi.getMessages(conv.id).then(r => setMessages(r.data)).catch(() => {});
+  }, [conv.id]);
+
+  useEffect(() => { load(); }, [load]);
+
+  // Poll typing indicator
+  useEffect(() => {
+    pollTimer.current = setInterval(async () => {
+      try {
+        const { data } = await messagingV2Api.getTyping(conv.id);
+        setOtherTyping((data.typing || []).length > 0);
+      } catch { /* ignore */ }
+    }, 3000);
+    return () => clearInterval(pollTimer.current);
+  }, [conv.id]);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, otherTyping]);
+
+  function handleTextChange(v: string) {
+    setText(v);
+    // Send typing indicator
+    messagingV2Api.setTyping(conv.id, true).catch(() => {});
+    clearTimeout(typingTimer.current);
+    typingTimer.current = setTimeout(() => {
+      messagingV2Api.setTyping(conv.id, false).catch(() => {});
+    }, 2500);
+  }
+
+  async function handleSend() {
+    if (!text.trim() || sending || blocked) return;
+    setSending(true);
+    messagingV2Api.setTyping(conv.id, false).catch(() => {});
+    try {
+      const { data } = await messagingApi.sendMessage(conv.id, {
+        recipient_id: other?.id,
+        content: text.trim(),
+        reply_to_id: replyTo?.id,
+      });
+      setMessages(prev => [...prev, data]);
+      setText(""); setReplyTo(null);
+    } catch (e: any) {
+      alert(e.response?.data?.detail ?? "No se pudo enviar");
+    }
+    setSending(false);
+  }
+
+  const typeCfg   = other?.profile_type ? PROFILE_TYPE_CONFIG[other.profile_type as ProfileType] : null;
+  const onlineStatus = useOnlineStatus(other?.id);
+
+  async function handleDeleteMsg(msgId: string, forAll: boolean) {
+    await messagingV2Api.deleteMessage(msgId, forAll);
+    setSelectedMsg(null);
+    load();
+  }
+
+  async function handleReact(msgId: string, emoji: string) {
+    await messagingV2Api.reactMessage(msgId, emoji);
+    setSelectedMsg(null);
+    load();
+  }
+
+  async function saveSettings() {
+    await messagingV2Api.updateSettings(conv.id, settings);
+    setShowSettings(false);
+  }
+
+  async function clearHistory() {
+    if (!confirm("¿Borrar todo el historial de esta conversación? Esta acción no se puede deshacer.")) return;
+    await messagingV2Api.clearHistory(conv.id);
+    setMessages([]);
+    setShowSettings(false);
+  }
+
+  const visibleMessages = messages.filter(m => !m.deleted_for_all || m.sender_id === currentUserId);
+
+  return (
+    <div className="flex flex-col h-full relative">
+
+      {/* ── Header ── */}
+      <div className="flex items-center gap-3 px-4 pt-safe-3 pb-3 border-b border-border flex-shrink-0 bg-bg-base/95 backdrop-blur-md">
+        <button onClick={onClose} className="p-1.5 hover:bg-bg-muted rounded-xl text-text-muted">
+          <ArrowLeft size={18} />
+        </button>
+        <button onClick={() => other?.id && navigate(`/profile/${other.id}`)} className="flex-shrink-0">
+          <ProtectedAvatar src={other?.profile_photo_url || ""} size={36} />
+        </button>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1.5">
+            <p className="font-semibold text-sm truncate">
+              {other ? `${other.first_name} ${other.last_name}` : "Usuario"}
+            </p>
+            {typeCfg && <span className={`w-1.5 h-1.5 rounded-full inline-block flex-shrink-0 ${typeCfg.dot}`}/>}
+          </div>
+          <div className="flex items-center gap-2 mt-0.5">
+            <div className="flex items-center gap-1">
+              <span className={`w-1.5 h-1.5 rounded-full ${onlineStatus.online ? "bg-status-success" : "bg-text-muted/40"}`}/>
+              <span className="text-[9px] text-text-muted">
+                {onlineStatus.online ? "En línea" : formatLastSeen(onlineStatus.minutes_ago)}
+              </span>
+            </div>
+            <Shield size={9} className="text-accent-purple/50"/>
+            <span className="text-[9px] text-text-muted">Protegido</span>
+          </div>
+        </div>
+        <div className="flex items-center gap-1">
+          <button onClick={() => setShowSettings(v => !v)}
+            className="p-1.5 text-text-muted hover:text-text-primary rounded-xl transition-colors">
+            <Settings size={16}/>
+          </button>
+          {!blocked && (
+            <button onClick={async () => {
+              if (!confirm("¿Bloquear a este usuario?")) return;
+              await messagingApi.blockUser(conv.id); setBlocked(true);
+            }} className="p-1.5 text-text-muted hover:text-status-error rounded-xl transition-colors">
+              <Lock size={16}/>
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* ── Panel de configuración ── */}
+      {showSettings && (
+        <div className="absolute top-[60px] right-3 z-50 w-64 bg-bg-card border border-border rounded-xl shadow-lg p-4 space-y-4 animate-slide-up">
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-semibold text-text-primary">Configuración del chat</p>
+            <button onClick={() => setShowSettings(false)}><X size={14} className="text-text-muted"/></button>
+          </div>
+
+          <div>
+            <p className="text-[10px] text-text-muted uppercase tracking-widest mb-2">Auto-limpieza</p>
+            <div className="grid grid-cols-4 gap-1.5">
+              {([null, 15, 30, 90] as (number|null)[]).map(d => (
+                <button key={String(d)}
+                  onClick={() => setSettings(s => ({ ...s, auto_delete_days: d }))}
+                  className={`py-1.5 rounded-lg text-[10px] border transition-all ${
+                    settings.auto_delete_days === d
+                      ? "border-accent-purple/60 bg-accent-purple/10 text-accent-purple"
+                      : "border-border text-text-muted hover:border-accent-purple/30"
+                  }`}>
+                  {d ? `${d}d` : "Off"}
+                </button>
+              ))}
+            </div>
+            {settings.auto_delete_days && (
+              <p className="text-[9px] text-text-muted mt-1">
+                Mensajes de más de {settings.auto_delete_days} días se eliminan automáticamente
+              </p>
+            )}
+          </div>
+
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" checked={settings.screenshot_alert}
+              onChange={e => setSettings(s => ({ ...s, screenshot_alert: e.target.checked }))}
+              className="rounded"/>
+            <span className="text-xs text-text-secondary">Alerta al detectar captura</span>
+          </label>
+
+          <button onClick={saveSettings}
+            className="w-full py-2 bg-accent-purple text-white text-xs rounded-lg hover:opacity-90 transition-all">
+            Guardar
+          </button>
+
+          <button onClick={clearHistory}
+            className="w-full py-2 border border-status-error/40 text-status-error text-xs rounded-lg hover:bg-status-error/8 transition-all">
+            Limpiar historial
+          </button>
+        </div>
+      )}
+
+      {/* ── Mensajes ── */}
+      <div className="flex-1 overflow-y-auto px-3 py-4"
+        onClick={() => {}}>
+
+        {visibleMessages.map((msg, idx) => {
+          const prev = visibleMessages[idx - 1];
+          const showDate = !prev || new Date(msg.created_at).toDateString() !== new Date(prev.created_at).toDateString();
+          return (
+            <div key={msg.id}>
+              {showDate && (
+                <div className="flex items-center gap-2 my-4">
+                  <div className="flex-1 h-px bg-border/30"/>
+                  <span className="text-[10px] text-text-muted px-2 bg-bg-base rounded-full border border-border/30">
+                    {new Date(msg.created_at).toLocaleDateString("es-AR", { day: "numeric", month: "short" })}
+                  </span>
+                  <div className="flex-1 h-px bg-border/30"/>
+                </div>
+              )}
+              <MessageBubble
+                msg={msg}
+                isMe={msg.sender_id === currentUserId}
+                currentUserId={currentUserId}
+                onDelete={handleDeleteMsg}
+                onReply={setReplyTo}
+                onReload={load}
+              />
+            </div>
+          );
+        })}
+
+        {/* Typing indicator */}
+        {otherTyping && (
+          <div className="flex justify-start mb-2">
+            <div className="bg-bg-card border border-border rounded-2xl rounded-bl-sm px-4 py-3 flex items-center gap-1.5">
+              {[0,150,300].map(d => (
+                <span key={d} className="w-1.5 h-1.5 rounded-full bg-text-muted animate-bounce"
+                  style={{ animationDelay: `${d}ms` }}/>
+              ))}
+            </div>
+          </div>
+        )}
+        <div ref={bottomRef}/>
+      </div>
+
+      {/* ── Input ── */}
+      {blocked ? (
+        <div className="px-4 py-4 border-t border-border text-center text-sm text-status-error flex items-center justify-center gap-2 pb-safe">
+          <Lock size={14}/> Usuario bloqueado
+        </div>
+      ) : (
+        <ChatInput
+          onSend={async (msgData) => {
+            if (sending) return;
+            setSending(true);
+            try {
+              const { data } = await messagingApi.sendMessage(conv.id, {
+                recipient_id: other?.id,
+                content:      msgData.content,
+                media_url:    msgData.media_url,
+                type:         msgData.media_type || "text",
+                reply_to_id:  msgData.reply_to_id,
+                view_once:    msgData.view_once,
+              });
+              setMessages(prev => [...prev, data]);
+              setReplyTo(null);
+            } catch (e: any) {
+              alert(e.response?.data?.detail ?? "No se pudo enviar");
+            }
+            setSending(false);
+          }}
+          onTyping={(t) => {
+            messagingV2Api.setTyping(conv.id, t).catch(() => {});
+          }}
+          replyTo={replyTo ? {
+            id:      replyTo.id,
+            content: replyTo.content,
+            author:  other?.first_name || "Usuario",
+          } : null}
+          onCancelReply={() => setReplyTo(null)}
+          disabled={blocked}
+          recipientName={other?.first_name}
+        />
+      )}
+    </div>
+  );
+}
+
+// ── Página principal de mensajes ─────────────────────────────
+export default function Messages() {
+  const navigate = useNavigate();
+  const [params] = useSearchParams();
+  const { user } = useAuthStore();
+  usePresenceHeartbeat(); // mantiene el usuario como "online"
+  const [tab, setTab]                     = useState<"messages" | "matches" | "groups">("messages");
+  const [conversations, setConversations] = useState<any[]>([]);
+  const [matches, setMatches]             = useState<any[]>([]);
+  const [activeConv, setActiveConv]       = useState<any | null>(null);
+  const [loading, setLoading]             = useState(true);
+  const [matchesLoading, setMatchesLoading] = useState(false);
+
+  useScreenCapture({ warn: true });
+
+  useEffect(() => {
+    messagingApi.conversations()
+      .then(r => { setConversations(r.data); setLoading(false); })
+      .catch(() => setLoading(false));
+
+    const withUser = params.get("with");
+    if (withUser && user) {
+      messagingApi.startConversation(withUser)
+        .then(r => setActiveConv({ ...r.data, other_user: null, unread_count: 0 }))
+        .catch(() => {});
+    }
+  }, []);
+
+  useEffect(() => {
+    if (tab !== "matches" || matches.length > 0) return;
+    setMatchesLoading(true);
+    profilesApi.matches()
+      .then(r => setMatches(r.data))
+      .catch(() => {})
+      .finally(() => setMatchesLoading(false));
+  }, [tab]);
+
+  if (!user) return null;
+
+  return (
+    <div className="min-h-screen bg-bg-base text-text-primary flex flex-col">
+      {/* Header */}
+      {!activeConv && (
+        <header className="sticky top-0 z-10 bg-bg-base/80 backdrop-blur-md border-b border-border px-4 pt-safe-3 pb-0">
+          <div className="flex items-center gap-3 pb-3">
+            <button onClick={() => navigate(-1)} className="p-2 hover:bg-bg-muted rounded-xl">
+              <ArrowLeft size={18} className="text-text-muted" />
+            </button>
+            <h1 className="font-bold">Bandeja</h1>
+          </div>
+          {/* Pestañas */}
+          <div className="flex border-b border-border -mx-4 px-4">
+            {[
+              { id: "messages" as const, label: "Mensajes", icon: <MessageSquare size={14} /> },
+              { id: "groups"   as const, label: "Grupos",   icon: <Users size={14} /> },
+              { id: "matches"  as const, label: "Matches",  icon: <Heart size={14} /> },
+            ].map(t => (
+              <button
+                key={t.id}
+                onClick={() => setTab(t.id)}
+                className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 transition-all -mb-px ${
+                  tab === t.id
+                    ? "border-accent-purple text-accent-purple"
+                    : "border-transparent text-text-muted hover:text-text-primary"
+                }`}
+              >
+                {t.icon} {t.label}
+              </button>
+            ))}
+          </div>
+        </header>
+      )}
+
+      {/* Chat activo */}
+      {activeConv ? (
+        <div className="flex-1 flex flex-col h-screen">
+          <ChatWindow
+            conv={activeConv}
+            currentUserId={user.id}
+            onClose={() => {
+              setActiveConv(null);
+              messagingApi.conversations().then(r => setConversations(r.data));
+            }}
+          />
+        </div>
+      ) : tab === "messages" ? (
+        /* Lista de conversaciones */
+        <main className="flex-1 max-w-lg mx-auto w-full">
+          {loading && (
+            <div className="space-y-2 p-4">
+              {[1, 2, 3].map(i => <div key={i} className="h-16 bg-bg-card rounded-2xl animate-pulse" />)}
+            </div>
+          )}
+          {!loading && conversations.length === 0 && (
+            <div className="text-center py-16 text-text-muted px-6">
+              <MessageSquare size={36} className="mx-auto mb-3 opacity-30" />
+              <p className="font-medium">Sin conversaciones</p>
+              <p className="text-sm mt-1">
+                Encontrá a alguien en el{" "}
+                <button onClick={() => navigate("/feed")} className="text-accent-purple hover:underline">Feed</button>{" "}
+                y enviá un mensaje desde su perfil.
+              </p>
+            </div>
+          )}
+          <div className="divide-y divide-border">
+            {conversations.map(conv => {
+              const other   = conv.other_user;
+              const typeCfg = other?.profile_type ? PROFILE_TYPE_CONFIG[other.profile_type as ProfileType] : null;
+              return (
+                <div key={conv.id} className="flex items-center gap-3 px-4 py-4 hover:bg-bg-muted/50 transition-colors">
+                  {/* Avatar → perfil */}
+                  <button
+                    className="relative flex-shrink-0"
+                    onClick={() => other?.id && navigate(`/profile/${other.id}`)}
+                  >
+                    <ProtectedAvatar src={other?.profile_photo_url || ""} size={48} />
+                    {conv.unread_count > 0 && (
+                      <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-accent-purple text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1">
+                        {conv.unread_count}
+                      </span>
+                    )}
+                  </button>
+                  {/* Contenido → chat */}
+                  <button className="flex-1 min-w-0 text-left" onClick={() => setActiveConv(conv)}>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1 min-w-0">
+                        <p className={`text-sm truncate ${conv.unread_count > 0 ? "font-semibold" : "font-normal"}`}>
+                          {other ? `${other.first_name} ${other.last_name}` : "Usuario"}
+                        </p>
+                        {typeCfg && <span className={`w-1.5 h-1.5 rounded-full inline-block flex-shrink-0 ${typeCfg.dot}`} />}
+                      </div>
+                      <p className="text-[11px] text-text-muted flex-shrink-0 ml-2">
+                        {conv.last_message_at ? timeAgo(conv.last_message_at) : ""}
+                      </p>
+                    </div>
+                    <p className={`text-xs truncate mt-0.5 ${conv.unread_count > 0 ? "text-text-primary" : "text-text-muted"}`}>
+                      {conv.is_last_sender && <span className="mr-1">Vos:</span>}
+                      {conv.last_message_preview || "Sin mensajes aún"}
+                    </p>
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </main>
+      ) : tab === "groups" ? (
+        <main className="flex-1 max-w-lg mx-auto w-full overflow-hidden">
+          <GroupsSection />
+        </main>
+      ) : (
+        /* Pestaña Matches */
+        <main className="flex-1 max-w-lg mx-auto w-full">
+          {matchesLoading && (
+            <div className="space-y-2 p-4">
+              {[1, 2, 3].map(i => <div key={i} className="h-16 bg-bg-card rounded-2xl animate-pulse" />)}
+            </div>
+          )}
+          {!matchesLoading && matches.length === 0 && (
+            <div className="text-center py-16 text-text-muted px-6">
+              <Heart size={36} className="mx-auto mb-3 opacity-30" />
+              <p className="font-medium">Sin matches todavía</p>
+              <p className="text-sm mt-1">Cuando dos perfiles se den like mutuamente, aparecerán acá.</p>
+            </div>
+          )}
+          <div className="divide-y divide-border">
+            {matches.map(m => {
+              const typeCfg = m.profile_type ? PROFILE_TYPE_CONFIG[m.profile_type as ProfileType] : null;
+              return (
+                <button
+                  key={m.match_id}
+                  onClick={() => navigate(`/profile/${m.id}`)}
+                  className="w-full flex items-center gap-3 px-4 py-4 hover:bg-bg-muted/50 transition-colors text-left"
+                >
+                  <div className="relative">
+                    {m.profile_photo_url
+                      ? <img src={m.profile_photo_url} alt="" className="w-12 h-12 rounded-full object-cover border border-accent-purple/30" />
+                      : <div className="w-12 h-12 rounded-full bg-accent-purple/10 border border-accent-purple/30 flex items-center justify-center"><User size={20} className="text-accent-purple" /></div>
+                    }
+                    <span className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-status-error rounded-full flex items-center justify-center">
+                      <Heart size={8} fill="white" className="text-white" />
+                    </span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <p className="text-sm font-medium truncate">{m.first_name} {m.last_name}</p>
+                      {typeCfg && <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${typeCfg.dot}`} />}
+                    </div>
+                    <p className="text-xs text-text-muted mt-0.5">
+                      {m.province ?? ""} · Match {timeAgo(m.matched_at)}
+                    </p>
+                  </div>
+                  <button
+                    onClick={e => {
+                      e.stopPropagation();
+                      messagingApi.startConversation(m.id)
+                        .then(r => setActiveConv({ ...r.data, other_user: m, unread_count: 0 }))
+                        .catch(() => {});
+                    }}
+                    className="flex-shrink-0 p-2 rounded-xl bg-accent-purple/10 hover:bg-accent-purple/20 transition-colors"
+                    title="Enviar mensaje"
+                  >
+                    <MessageSquare size={15} className="text-accent-purple" />
+                  </button>
+                </button>
+              );
+            })}
+          </div>
+        </main>
+      )}
+    </div>
+  );
+}

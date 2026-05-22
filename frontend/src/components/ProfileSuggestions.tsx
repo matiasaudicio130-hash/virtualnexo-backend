@@ -1,0 +1,92 @@
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Sparkles } from "lucide-react";
+import { discoveryApi } from "@/lib/api";
+import { PROFILE_TYPE_CONFIG } from "@/types";
+import type { ProfileType } from "@/types";
+
+interface SuggestedUser {
+  id:                string;
+  first_name:        string;
+  last_name:         string;
+  profile_photo_url?: string;
+  profile_type?:     string;
+  province?:         string;
+  bio?:              string;
+}
+
+export function ProfileSuggestions() {
+  const navigate              = useNavigate();
+  const [users, setUsers]     = useState<SuggestedUser[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [dismissed, setDismissed] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    discoveryApi.suggestions()
+      .then(r => setUsers((r.data.users || []).slice(0, 8)))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  const visible = users.filter(u => !dismissed.has(u.id));
+  if (loading || visible.length === 0) return null;
+
+  return (
+    <div className="mx-4 my-3 bg-bg-card border border-border/50 rounded-2xl overflow-hidden">
+      <div className="flex items-center gap-2 px-4 py-3 border-b border-border/40">
+        <Sparkles size={14} className="text-accent-purple"/>
+        <span className="text-xs font-semibold text-text-primary">Quizás te interese</span>
+      </div>
+
+      <div className="divide-y divide-border/40">
+        {visible.slice(0, 4).map(u => {
+          const cfg = u.profile_type ? PROFILE_TYPE_CONFIG[u.profile_type as ProfileType] : null;
+          return (
+            <div key={u.id} className="flex items-center gap-3 px-4 py-3">
+              <button onClick={() => navigate(`/profile/${u.id}`)} className="flex-shrink-0">
+                <div className="w-11 h-11 rounded-full overflow-hidden border border-border/50">
+                  {u.profile_photo_url
+                    ? <img src={u.profile_photo_url} alt="" className="w-full h-full object-cover"/>
+                    : <div className="w-full h-full bg-accent-purple/10 flex items-center justify-center text-accent-purple font-light">
+                        {u.first_name.charAt(0)}
+                      </div>
+                  }
+                </div>
+              </button>
+
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <button
+                    onClick={() => navigate(`/profile/${u.id}`)}
+                    className="text-sm font-medium text-text-primary truncate hover:text-accent-purple transition-colors"
+                  >
+                    {u.first_name} {u.last_name}
+                  </button>
+                  {cfg && <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${cfg.dot}`}/>}
+                </div>
+                <p className="text-[11px] text-text-muted truncate">
+                  {u.bio?.slice(0, 45) || (u.province ?? "")}
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <button
+                  onClick={() => navigate(`/profile/${u.id}`)}
+                  className="text-[11px] px-3 py-1.5 bg-accent-purple text-white rounded-lg hover:opacity-90 transition-all"
+                >
+                  Ver perfil
+                </button>
+                <button
+                  onClick={() => setDismissed(prev => new Set([...prev, u.id]))}
+                  className="text-[10px] text-text-muted hover:text-text-primary transition-colors"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}

@@ -1,0 +1,89 @@
+<svg width="300" height="268" viewBox="0 0 300 268" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="halo" cx="50%" cy="42%" r="52%">
+      <stop offset="0%"  stop-color="#C9A227" stop-opacity="0.25"/>
+      <stop offset="40%" stop-color="#C9A227" stop-opacity="0.07"/>
+      <stop offset="100%" stop-color="#C9A227" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="core" cx="50%" cy="50%" r="50%">
+      <stop offset="0%"  stop-color="#FFFDE8"/>
+      <stop offset="22%" stop-color="#FFE566"/>
+      <stop offset="55%" stop-color="#C9A227"/>
+      <stop offset="100%" stop-color="#C9A227" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="txt" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%"  stop-color="#C9A227"/>
+      <stop offset="50%" stop-color="#FFE566"/>
+      <stop offset="100%" stop-color="#A07818"/>
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="7" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="rayF"><feGaussianBlur stdDeviation="3.5" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="armF"><feGaussianBlur stdDeviation="2.8" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="ringF"><feGaussianBlur stdDeviation="0.9" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- Halo atmosférico -->
+  <ellipse cx="150" cy="108" rx="148" ry="130" fill="url(#halo)"/>
+
+  <!-- Irradiación asimétrica de fondo -->
+  <g filter="url(#rayF)">
+    <polygon points="150,108 143,0 157,0"   fill="#C9A227" opacity="0.35"/>
+    <polygon points="150,108 143,0 157,0"   fill="#C9A227" opacity="0.28" transform="rotate(73,150,108)"/>
+    <polygon points="150,108 143,0 157,0"   fill="#C9A227" opacity="0.30" transform="rotate(162,150,108)"/>
+    <polygon points="150,108 143,0 157,0"   fill="#C9A227" opacity="0.26" transform="rotate(241,150,108)"/>
+    <polygon points="150,108 146,30 154,30" fill="#C9A227" opacity="0.25" transform="rotate(28,150,108)"/>
+    <polygon points="150,108 146,30 154,30" fill="#C9A227" opacity="0.22" transform="rotate(108,150,108)"/>
+    <polygon points="150,108 146,30 154,30" fill="#C9A227" opacity="0.24" transform="rotate(195,150,108)"/>
+    <polygon points="150,108 146,30 154,30" fill="#C9A227" opacity="0.20" transform="rotate(278,150,108)"/>
+    <polygon points="150,108 148,55 152,55" fill="#C9A227" opacity="0.18" transform="rotate(15,150,108)"/>
+    <polygon points="150,108 148,55 152,55" fill="#C9A227" opacity="0.16" transform="rotate(52,150,108)"/>
+    <polygon points="150,108 148,55 152,55" fill="#C9A227" opacity="0.17" transform="rotate(88,150,108)"/>
+    <polygon points="150,108 148,55 152,55" fill="#C9A227" opacity="0.15" transform="rotate(128,150,108)"/>
+    <polygon points="150,108 148,55 152,55" fill="#C9A227" opacity="0.16" transform="rotate(178,150,108)"/>
+    <polygon points="150,108 148,55 152,55" fill="#C9A227" opacity="0.15" transform="rotate(218,150,108)"/>
+    <polygon points="150,108 148,55 152,55" fill="#C9A227" opacity="0.16" transform="rotate(258,150,108)"/>
+    <polygon points="150,108 148,55 152,55" fill="#C9A227" opacity="0.14" transform="rotate(308,150,108)"/>
+  </g>
+  <!-- Líneas finas sobre rayos -->
+  <g filter="url(#armF)" opacity="0.5">
+    <line x1="150" y1="108" x2="150" y2="2"  stroke="#FFE566" stroke-width="0.5"/>
+    <line x1="150" y1="108" x2="150" y2="2"  stroke="#FFE566" stroke-width="0.5" transform="rotate(73,150,108)"/>
+    <line x1="150" y1="108" x2="150" y2="2"  stroke="#FFE566" stroke-width="0.5" transform="rotate(162,150,108)"/>
+    <line x1="150" y1="108" x2="150" y2="2"  stroke="#FFE566" stroke-width="0.5" transform="rotate(241,150,108)"/>
+  </g>
+  <circle cx="150" cy="108" r="40" fill="#C9A227" opacity="0.08" filter="url(#armF)"/>
+
+  <!-- Vórtice -->
+  <path d="M90,68 A60,57 0 1 1 145,125" fill="none" stroke="#6a4c08" stroke-width="0.85" stroke-linecap="round" opacity="0.52" transform="rotate(18,150,68)" filter="url(#ringF)"/>
+  <path d="M98,68 A52,50 0 1 1 145,117" fill="none" stroke="#906c14" stroke-width="1.0"  stroke-linecap="round" opacity="0.60" transform="rotate(35,150,68)" filter="url(#ringF)"/>
+  <path d="M107,68 A43,42 0 1 1 145,109" fill="none" stroke="#A88220" stroke-width="1.25" stroke-linecap="round" opacity="0.70" transform="rotate(53,150,68)" filter="url(#ringF)"/>
+  <path d="M116,68 A34,33 0 1 1 145,100" fill="none" stroke="#C9A227" stroke-width="1.5"  stroke-linecap="round" opacity="0.79" transform="rotate(72,150,68)" filter="url(#ringF)"/>
+  <path d="M126,68 A24,24 0 1 1 145,91"  fill="none" stroke="#E0C040" stroke-width="1.75" stroke-linecap="round" opacity="0.87" transform="rotate(93,150,68)"/>
+  <path d="M136,68 A14,14 0 1 1 145,82"  fill="none" stroke="#FFE566" stroke-width="2.1"  stroke-linecap="round" opacity="0.95"/>
+  <path d="M143,68 A7,7   0 1 1 145,75"  fill="none" stroke="#FFFDE8" stroke-width="2.5"  stroke-linecap="round"/>
+
+  <!-- Núcleo -->
+  <circle cx="150" cy="68" r="9"   fill="url(#core)" filter="url(#glow)"/>
+  <circle cx="150" cy="68" r="4"   fill="#FFE566"/>
+  <circle cx="150" cy="68" r="1.6" fill="white" opacity="0.95"/>
+
+  <!-- Wordmark -->
+  <text x="150" y="178" text-anchor="middle"
+    font-family="'Didot','Big Caslon','Playfair Display',serif"
+    font-size="58" font-weight="300" letter-spacing="14"
+    fill="url(#txt)" filter="url(#glow)">AURA</text>
+  <line x1="42"  y1="193" x2="92"  y2="193" stroke="#C9A227" stroke-width="0.4" opacity="0.45"/>
+  <line x1="208" y1="193" x2="258" y2="193" stroke="#C9A227" stroke-width="0.4" opacity="0.45"/>
+  <text x="150" y="212" text-anchor="middle"
+    font-family="'Helvetica Neue','Arial',sans-serif"
+    font-size="6.5" letter-spacing="5.5" fill="#4a3a10">EXCLUSIVE LIFESTYLE</text>
+</svg>

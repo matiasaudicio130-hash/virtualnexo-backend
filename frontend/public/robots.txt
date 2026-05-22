@@ -1,0 +1,20 @@
+User-agent: *
+Allow: /
+Allow: /privacidad
+Allow: /terminos
+
+# No indexar rutas de la app (requieren autenticación)
+Disallow: /dashboard
+Disallow: /feed
+Disallow: /profile/
+Disallow: /messages
+Disallow: /admin
+Disallow: /kyc
+Disallow: /checkout
+Disallow: /eventos
+Disallow: /travel
+Disallow: /registro
+Disallow: /login
+Disallow: /api/
+
+Sitemap: https://aurasw.club/sitemap.xml

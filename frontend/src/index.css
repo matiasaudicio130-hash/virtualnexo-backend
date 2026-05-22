@@ -1,0 +1,126 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─── Theme: Default (Dark + Gold AURA) ──────────────────── */
+:root {
+  --bg-base:  4 4 9;
+  --bg-card:  8 8 16;
+  --bg-muted: 14 14 24;
+  --border:   32 28 18;
+  --accent-primary:   201 162 39;
+  --accent-secondary: 255 229 102;
+  --text-primary:   248 244 232;
+  --text-secondary: 180 165 130;
+  --text-muted:     110 100 75;
+  --gradient-brand: linear-gradient(135deg, #C9A227 0%, #FFE566 100%);
+  --gradient-card:  linear-gradient(160deg, rgba(201,162,39,.06) 0%, transparent 60%);
+  --glow-color: rgba(201, 162, 39, 0.18);
+  --scrollbar-track: #040409;
+  --scrollbar-thumb: #2a2208;
+}
+
+/* ─── Theme: Blue ─────────────────────────────────────────── */
+[data-theme="blue"] {
+  --bg-base:  3 9 18;
+  --bg-card:  5 14 28;
+  --bg-muted: 8 22 44;
+  --border:   16 44 84;
+  --accent-primary:   49 130 246;
+  --accent-secondary: 96 165 250;
+  --gradient-brand: linear-gradient(135deg, #3182F6 0%, #60A5FA 100%);
+  --gradient-card:  linear-gradient(160deg, rgba(49,130,246,.06) 0%, transparent 60%);
+  --glow-color: rgba(49, 130, 246, 0.15);
+  --scrollbar-track: #030912;
+  --scrollbar-thumb: #102C54;
+}
+
+/* ─── Theme: Red ──────────────────────────────────────────── */
+[data-theme="red"] {
+  --bg-base:  10 3 5;
+  --bg-card:  18 6 10;
+  --bg-muted: 28 9 15;
+  --border:   60 15 25;
+  --accent-primary:   210 25 50;
+  --accent-secondary: 244 63 94;
+  --gradient-brand: linear-gradient(135deg, #D21932 0%, #F43F5E 100%);
+  --gradient-card:  linear-gradient(160deg, rgba(210,25,50,.06) 0%, transparent 60%);
+  --glow-color: rgba(210, 25, 50, 0.15);
+  --scrollbar-track: #0A0305;
+  --scrollbar-thumb: #3C0F19;
+}
+
+/* ─── Theme: Pure Dark (monochrome) ──────────────────────── */
+[data-theme="pure"] {
+  --bg-base:  6 6 6;
+  --bg-card:  11 11 11;
+  --bg-muted: 18 18 18;
+  --border:   36 36 36;
+  --accent-primary:   210 210 210;
+  --accent-secondary: 150 150 150;
+  --gradient-brand: linear-gradient(135deg, #D2D2D2 0%, #969696 100%);
+  --gradient-card:  linear-gradient(160deg, rgba(210,210,210,.04) 0%, transparent 60%);
+  --glow-color: rgba(210, 210, 210, 0.08);
+  --scrollbar-track: #060606;
+  --scrollbar-thumb: #242424;
+}
+
+/* ─── Base ────────────────────────────────────────────────── */
+@layer base {
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  html { color-scheme: dark; }
+
+  body {
+    @apply bg-bg-base text-text-primary font-sans;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  input, textarea, [contenteditable] {
+    -webkit-user-select: text;
+    user-select: text;
+  }
+
+  ::-webkit-scrollbar { width: 5px; }
+  ::-webkit-scrollbar-track  { background: var(--scrollbar-track); }
+  ::-webkit-scrollbar-thumb  { background: var(--scrollbar-thumb); border-radius: 3px; }
+}
+
+/* ─── AURA Logo Animations ───────────────────────────────── */
+@keyframes aura-spin  { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+@keyframes aura-pulse { 0%,100% { opacity: 0.6; } 50% { opacity: 1; } }
+@keyframes aura-float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+
+/* ─── Utilities ───────────────────────────────────────────── */
+@layer utilities {
+  .bg-gradient-card { background: var(--gradient-card); }
+  .shadow-glow { box-shadow: 0 0 24px var(--glow-color); }
+  .border-accent { border-color: rgb(var(--accent-primary) / 0.35); }
+  .min-h-dvh { min-height: 100dvh; }
+  .h-dvh     { height: 100dvh; }
+}
+
+/* ─── Safe Area iOS PWA — FUERA de @layer para que Tailwind no las purgue ── */
+/* Estas clases SIEMPRE están en el CSS final, sin importar el content scan.   */
+.pt-safe   { padding-top:    env(safe-area-inset-top,    0px) !important; }
+.pb-safe   { padding-bottom: env(safe-area-inset-bottom, 0px) !important; }
+.pl-safe   { padding-left:   env(safe-area-inset-left,   0px) !important; }
+.pr-safe   { padding-right:  env(safe-area-inset-right,  0px) !important; }
+.mt-safe   { margin-top:     env(safe-area-inset-top,    0px) !important; }
+.mb-safe   { margin-bottom:  env(safe-area-inset-bottom, 0px) !important; }
+
+/* Header: padding-top = 0.75rem + safe area (el contenido nunca queda bajo el notch) */
+.pt-safe-3 { padding-top:    calc(0.75rem + env(safe-area-inset-top,    0px)) !important; }
+.pb-safe-3 { padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px)) !important; }
+
+/* Selector global para TODOS los headers sticky/fixed al tope de la pantalla */
+/* Cubre automáticamente cualquier header que tenga estas clases */
+header.sticky,
+header[class*="sticky"],
+nav.fixed,
+nav[class*="fixed"] {
+  padding-top: max(0.75rem, env(safe-area-inset-top, 0px));
+}

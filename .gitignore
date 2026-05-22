@@ -1,0 +1,65 @@
+# ============================================================
+# CREDENCIALES — NUNCA subir a git
+# ============================================================
+.env
+.env.local
+.env.*.local
+.mcp.json
+*.pem
+*.key
+
+# ============================================================
+# Node / Frontend
+# ============================================================
+node_modules/
+dist/
+build/
+.vite/
+*.log
+.DS_Store
+coverage/
+
+# PWA generados
+dev-dist/
+sw.js
+workbox-*.js
+manifest.webmanifest
+
+# ============================================================
+# Python / Backend
+# ============================================================
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# ============================================================
+# IDEs
+# ============================================================
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ============================================================
+# Skills agentes
+# ============================================================
+# .agents/skills/ se mantiene en git (son guías compartidas)
+# pero si querés excluirlo descomentá:
+# .agents/
+
+# ============================================================
+# Supabase local
+# ============================================================
+supabase/.branches/
+supabase/.temp/
+railway_ids.json
+backend/.env.railway
+supabase/railway_deploy.py
