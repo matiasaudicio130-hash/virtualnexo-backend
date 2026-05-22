@@ -403,7 +403,7 @@ export default function Landing() {
       {/* NAV */}
       <nav style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 24px", background: "linear-gradient(to bottom,rgba(2,2,7,.95),transparent)" }}>
         <Link to="/" style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}>
-          <img src="/brand/logo-full-dark.jpg" alt="AURA" style={{ width: 28, height: 28, objectFit: "contain", mixBlendMode: "screen", filter: "drop-shadow(0 0 8px rgba(201,162,39,0.6))" }}/>
+          <img src="/brand/logo-transparent.png" alt="AURA" style={{ width: 28, height: 28, objectFit: "contain", mixBlendMode: "screen", filter: "drop-shadow(0 0 8px rgba(201,162,39,0.6))" }}/>
           <span style={{ fontSize: 11, letterSpacing: "0.3em", color: "rgba(201,162,39,0.9)", fontWeight: 300 }}>AURA</span>
         </Link>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -441,18 +441,18 @@ export default function Landing() {
             <div className="logo-ring" style={{ position: "absolute", inset: -12, borderRadius: "50%", border: "1px solid rgba(201,162,39,0.2)", zIndex: 0 }}/>
             <div style={{ position: "absolute", inset: -24, borderRadius: "50%", border: "1px solid rgba(201,162,39,0.08)", zIndex: 0 }}/>
             {/* Main image — screen blend elimina el fondo negro del JPG */}
-            <img src="/brand/logo-full-dark.jpg" alt="AURA"
+            <img src="/brand/logo-transparent.png" alt="AURA"
               style={{ width: "100%", height: "100%", objectFit: "contain", position: "relative", zIndex: 2,
                        mixBlendMode: "screen" as const,
                        filter: "drop-shadow(0 0 20px rgba(201,162,39,0.8)) drop-shadow(0 0 50px rgba(201,162,39,0.4)) brightness(1.2) contrast(1.1) saturate(1.2)" }}/>
             {/* Glitch layer 1 — red channel */}
-            <img src="/brand/logo-full-dark.jpg" alt="" aria-hidden
+            <img src="/brand/logo-transparent.png" alt="" aria-hidden
               className="glitch-r"
               style={{ width: "100%", height: "100%", objectFit: "contain", position: "absolute", inset: 0, zIndex: 1,
                        filter: "drop-shadow(0 0 0px #ff0000) saturate(0) brightness(2)", opacity: 0,
                        mixBlendMode: "screen" as const }}/>
             {/* Glitch layer 2 — cyan channel */}
-            <img src="/brand/logo-full-dark.jpg" alt="" aria-hidden
+            <img src="/brand/logo-transparent.png" alt="" aria-hidden
               className="glitch-c"
               style={{ width: "100%", height: "100%", objectFit: "contain", position: "absolute", inset: 0, zIndex: 1,
                        filter: "drop-shadow(0 0 0px #00ffff) saturate(0) brightness(2)", opacity: 0,
@@ -612,7 +612,7 @@ export default function Landing() {
 
       {/* FOOTER */}
       <footer style={{ borderTop: "1px solid rgba(201,162,39,0.1)", padding: "48px 24px", display: "flex", flexDirection: "column", alignItems: "center", gap: 20 }}>
-        <img src="/brand/logo-full-dark.jpg" alt="AURA" style={{ width: 34, height: 34, objectFit: "contain", mixBlendMode: "screen", filter: "drop-shadow(0 0 6px rgba(201,162,39,0.4))" }}/>
+        <img src="/brand/logo-transparent.png" alt="AURA" style={{ width: 34, height: 34, objectFit: "contain", mixBlendMode: "screen", filter: "drop-shadow(0 0 6px rgba(201,162,39,0.4))" }}/>
         <p style={{ fontSize: 9, letterSpacing: "0.3em", color: "rgba(201,162,39,0.45)", textTransform: "uppercase", fontWeight: 300 }}>{c.footer.tagline}</p>
         <div style={{ display: "flex", gap: 28 }}>
           {c.footer.links.map(([label, href]) =>
