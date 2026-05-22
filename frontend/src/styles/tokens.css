@@ -1,0 +1,130 @@
+/* ============================================================
+   Aura SW — Design Tokens
+   Drop into frontend/src/styles/tokens.css and import in globals.
+   ============================================================ */
+
+:root {
+  /* ---------- Neutros ---------- */
+  --obsidian:   #020207;   /* fondo principal */
+  --onyx:       #0B0B12;   /* surface */
+  --smoke:      #14141C;   /* surface-2 */
+  --pewter:     #1F1F2A;   /* surface-3 */
+  --ash:        #3A3A45;   /* borders, input underline */
+  --mist:       #8A8A95;   /* muted text */
+  --silver:     #C7C7CE;   /* secondary text */
+  --paper:      #F5F1E8;   /* primary text on dark */
+  --cream:      #EFE9DA;   /* warm light variant */
+
+  /* ---------- Dorado ---------- */
+  --gold-deep:   #8A6B14;
+  --gold:        #C9A227;   /* acento primario */
+  --gold-bright: #E6C25A;
+  --gold-light:  #FFE566;
+
+  /* ---------- Bordes ---------- */
+  --border:       rgba(255, 229, 102, 0.10);
+  --border-soft:  rgba(245, 241, 232, 0.06);
+
+  /* ---------- Semánticos ---------- */
+  --bg:           var(--obsidian);
+  --surface:      var(--onyx);
+  --surface-2:    var(--smoke);
+  --fg:           var(--paper);
+  --fg-mute:      var(--mist);
+  --fg-dim:       #5A5A66;
+  --accent:       var(--gold);
+  --accent-hover: var(--gold-bright);
+  --danger:       #C25A5A;
+  --success:      var(--gold);
+
+  /* ---------- Tipografía ---------- */
+  --font-display:      "Cormorant Garamond", "EB Garamond", Georgia, serif;
+  --font-display-caps: "Cinzel", "Cormorant Garamond", Georgia, serif;
+  --font-sans:         "Manrope", -apple-system, "Helvetica Neue", Arial, sans-serif;
+  --font-mono:         "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+  /* ---------- Escala tipográfica (desktop) ---------- */
+  --fs-display-xxl: clamp(64px, 11vw, 168px);
+  --fs-display-xl:  clamp(48px, 7vw, 96px);
+  --fs-display-l:   clamp(36px, 4.4vw, 64px);
+  --fs-display-m:   clamp(28px, 3vw, 40px);
+  --fs-body-l:      18px;
+  --fs-body:        15px;
+  --fs-eyebrow:     11px;
+
+  /* ---------- Spacing ---------- */
+  --gutter-mobile:  24px;
+  --gutter-desktop: 64px;
+  --gutter:         clamp(20px, 4vw, 56px);
+  --section-y:      clamp(80px, 12vh, 160px);
+
+  /* ---------- Radius ---------- */
+  --radius-sm:   4px;
+  --radius-md:   8px;
+  --radius-lg:   14px;
+  --radius-pill: 999px;
+
+  /* ---------- Tracking de eyebrow ---------- */
+  --tracking-eyebrow: 0.22em;
+  --tracking-caps:    0.18em;
+}
+
+/* ============================================================
+   Utility classes (opcional pero recomendado)
+   ============================================================ */
+
+.text-eyebrow {
+  font-family: var(--font-mono);
+  font-size: var(--fs-eyebrow);
+  letter-spacing: var(--tracking-eyebrow);
+  text-transform: uppercase;
+  color: var(--gold);
+  font-weight: 500;
+}
+
+.text-display-xl {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: var(--fs-display-xl);
+  line-height: 1.02;
+  letter-spacing: -0.015em;
+  color: var(--paper);
+}
+
+.text-display-l {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: var(--fs-display-l);
+  line-height: 1.08;
+  letter-spacing: -0.012em;
+  color: var(--paper);
+}
+
+.text-display-m {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: var(--fs-display-m);
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  color: var(--paper);
+}
+
+.text-title-caps {
+  font-family: var(--font-display-caps);
+  font-weight: 500;
+  letter-spacing: var(--tracking-caps);
+  text-transform: uppercase;
+}
+
+.text-body-l { font-family: var(--font-sans); font-size: var(--fs-body-l); line-height: 1.6; }
+.text-body   { font-family: var(--font-sans); font-size: var(--fs-body);   line-height: 1.65; }
+.text-mute   { color: var(--fg-mute); }
+.text-accent { color: var(--gold-bright); }
+
+/* Base */
+html, body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
