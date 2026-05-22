@@ -9,13 +9,20 @@ jobs:
   deploy-backend:
     name: Deploy Backend (Railway)
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
     steps:
-      - name: Trigger Railway deploy
+      - uses: actions/checkout@v4
+
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
+
+      - name: Deploy to Railway
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_PROJECT_TOKEN }}
         run: |
-          curl -s -X POST https://backboard.railway.app/graphql/v2 \
-            -H "Authorization: Bearer ${{ secrets.RAILWAY_TOKEN }}" \
-            -H "Content-Type: application/json" \
-            -d '{"query":"mutation{serviceInstanceDeploy(serviceId:\"${{ secrets.RAILWAY_SERVICE_ID }}\" environmentId:\"${{ secrets.RAILWAY_ENV_ID }}\")}"}'
+          railway up --service ${{ secrets.RAILWAY_SERVICE_ID }} --detach
           echo "Railway deploy triggered"
 
   # ── Frontend → Vercel ──────────────────────────────────────────
