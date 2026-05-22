@@ -6,7 +6,6 @@ import { useGSAP } from "@gsap/react";
 
 gsap.registerPlugin(ScrollTrigger, useGSAP);
 
-/* ── Copy bilingue ─────────────────────────────────────────── */
 const COPY = {
   es: {
     toggle: "EN",
@@ -174,11 +173,9 @@ const COPY = {
   },
 } as const;
 
-/* ── Icons ────────────────────────────────────────────────── */
 const ICON_PATHS: Record<string, string[]> = {
   shield: ["M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"],
   lock:   ["M19 11H5a2 2 0 00-2 2v7a2 2 0 002 2h14a2 2 0 002-2v-7a2 2 0 00-2-2z","M7 11V7a5 5 0 0110 0v4"],
-  map:    ["M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z","M12 10a1 1 0 100-2 1 1 0 000 2z"],
   plane:  ["M22 2L11 13","M22 2L15 22l-4-9-9-4 20-7z"],
   feed:   ["M4 6h16M4 10h16M4 14h10"],
   msg:    ["M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"],
@@ -188,14 +185,12 @@ const ICON_PATHS: Record<string, string[]> = {
 };
 function Icon({ name, size = 20 }: { name: string; size?: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
-      stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
       {(ICON_PATHS[name] || []).map((d, i) => <path key={i} d={d}/>)}
     </svg>
   );
 }
 
-/* ── Magnetic button ──────────────────────────────────────── */
 function useMagnet(strength = 0.35) {
   const ref = useRef<HTMLAnchorElement>(null);
   useEffect(() => {
@@ -203,7 +198,7 @@ function useMagnet(strength = 0.35) {
     if (!el) return;
     const onMove = (e: MouseEvent) => {
       const r = el.getBoundingClientRect();
-      gsap.to(el, { x: (e.clientX - r.left - r.width / 2) * strength, y: (e.clientY - r.top - r.height / 2) * strength, duration: 0.35, ease: "power2.out" });
+      gsap.to(el, { x: (e.clientX-r.left-r.width/2)*strength, y: (e.clientY-r.top-r.height/2)*strength, duration: 0.35, ease: "power2.out" });
     };
     const onLeave = () => gsap.to(el, { x: 0, y: 0, duration: 0.8, ease: "elastic.out(1,0.4)" });
     el.addEventListener("mousemove", onMove);
@@ -213,73 +208,61 @@ function useMagnet(strength = 0.35) {
   return ref;
 }
 
-/* ── Particles ────────────────────────────────────────────── */
 function Particles() {
   const wrap = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!wrap.current) return;
-    const els = Array.from(wrap.current.children) as HTMLElement[];
-    els.forEach(el => {
-      gsap.set(el, { x: Math.random() * window.innerWidth, y: Math.random() * window.innerHeight, opacity: 0 });
-      const dur = 5 + Math.random() * 9;
-      gsap.timeline({ repeat: -1, delay: Math.random() * dur })
-        .to(el, { y: `-=${150 + Math.random() * 200}`, opacity: 0.5, duration: dur * 0.4, ease: "none" })
-        .to(el, { opacity: 0, duration: dur * 0.6, ease: "none" });
-      gsap.to(el, { x: `+=${(Math.random() - 0.5) * 80}`, duration: dur * 0.7, repeat: -1, yoyo: true, ease: "sine.inOut" });
+    Array.from(wrap.current.children as HTMLCollectionOf<HTMLElement>).forEach(el => {
+      gsap.set(el, { x: Math.random()*window.innerWidth, y: Math.random()*window.innerHeight, opacity: 0 });
+      const dur = 5+Math.random()*9;
+      gsap.timeline({ repeat: -1, delay: Math.random()*dur })
+        .to(el, { y: `-=${150+Math.random()*200}`, opacity: 0.5, duration: dur*0.4, ease: "none" })
+        .to(el, { opacity: 0, duration: dur*0.6, ease: "none" });
+      gsap.to(el, { x: `+=${(Math.random()-0.5)*80}`, duration: dur*0.7, repeat: -1, yoyo: true, ease: "sine.inOut" });
     });
   }, []);
   return (
     <div ref={wrap} className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden>
       {Array.from({ length: 28 }).map((_, i) => {
-        const s = 0.8 + Math.random() * 2;
+        const s = 0.8+Math.random()*2;
         return <div key={i} style={{ width: s, height: s, borderRadius: "50%", background: "#FFE566", position: "absolute" }}/>;
       })}
     </div>
   );
 }
 
-/* ── Mark ─────────────────────────────────────────────────── */
 function Mark({ size = 40 }: { size?: number }) {
-  return (
-    <img src="/brand/logo-full-dark.jpg" alt="AURA" draggable={false}
-      style={{ width: size, height: size, objectFit: "contain", mixBlendMode: "screen" as const,
-               filter: "drop-shadow(0 0 6px rgba(201,162,39,0.4))" }}/>
-  );
+  return <img src="/brand/logo-full-dark.jpg" alt="AURA" draggable={false} style={{ width: size, height: size, objectFit: "contain", mixBlendMode: "screen" as const, filter: "drop-shadow(0 0 6px rgba(201,162,39,0.4))" }}/>;
 }
 
 function HeroMark() {
   return (
     <div className="hero-mark" style={{ position: "relative", width: 200, height: 200 }}>
-      <img src="/brand/logo-full-dark.jpg" alt="AURA" draggable={false}
-        style={{ width: "100%", height: "100%", objectFit: "contain", mixBlendMode: "screen",
-                 filter: "drop-shadow(0 0 22px rgba(201,162,39,0.5)) brightness(1.05)" }}/>
+      <img src="/brand/logo-full-dark.jpg" alt="AURA" draggable={false} style={{ width: "100%", height: "100%", objectFit: "contain", mixBlendMode: "screen", filter: "drop-shadow(0 0 22px rgba(201,162,39,0.5)) brightness(1.05)" }}/>
     </div>
   );
 }
 
-/* ── Divider ──────────────────────────────────────────────── */
 function Divider() {
   return <div className="s-line h-px bg-gradient-to-r from-transparent via-amber-900/28 to-transparent origin-left"/>;
 }
 
-/* ── Eyebrow ──────────────────────────────────────────────── */
 function Eyebrow({ text, className = "" }: { text: string; className?: string }) {
   return <p className={`text-[10px] tracking-[.44em] text-amber-500/55 uppercase mb-4 ${className}`}>{text}</p>;
 }
 
-/* ═══════════════════════════════════════════════════════════ */
 export default function Landing() {
   const [lang, setLang] = useState<"es"|"en">("es");
   const c = COPY[lang];
 
-  const problemRef  = useRef<HTMLElement>(null);
-  const leakRef     = useRef<HTMLElement>(null);
-  const kycRef      = useRef<HTMLElement>(null);
-  const howRef      = useRef<HTMLElement>(null);
-  const featRef     = useRef<HTMLElement>(null);
-  const travelRef   = useRef<HTMLElement>(null);
-  const proofRef    = useRef<HTMLElement>(null);
-  const priceRef    = useRef<HTMLElement>(null);
+  const problemRef = useRef<HTMLElement>(null);
+  const leakRef    = useRef<HTMLElement>(null);
+  const kycRef     = useRef<HTMLElement>(null);
+  const howRef     = useRef<HTMLElement>(null);
+  const featRef    = useRef<HTMLElement>(null);
+  const travelRef  = useRef<HTMLElement>(null);
+  const proofRef   = useRef<HTMLElement>(null);
+  const priceRef   = useRef<HTMLElement>(null);
 
   const ctaPrimary   = useMagnet(0.38);
   const ctaSecondary = useMagnet(0.28);
@@ -300,7 +283,6 @@ export default function Landing() {
   useGSAP(() => {
     const sd = { duration: 0.85, ease: "power3.out" };
 
-    /* Hero */
     gsap.timeline({ defaults: { ease: "expo.out" } })
       .fromTo(".hero-mark",   { scale: 0.75, opacity: 0 }, { scale: 1, opacity: 1, duration: 1.6 })
       .fromTo(".hero-tag",    { y: 16, opacity: 0 }, { y: 0, opacity: 1, duration: 0.7 }, "-=0.7")
@@ -310,46 +292,34 @@ export default function Landing() {
       .fromTo(".hero-ctas",   { y: 14, opacity: 0 }, { y: 0, opacity: 1, duration: 0.7 }, "-=0.45");
 
     gsap.to(".hero-mark", { y: -18, duration: 4, ease: "sine.inOut", repeat: -1, yoyo: true });
-    gsap.to(".hero-mark", { y: -70, ease: "none",
-      scrollTrigger: { trigger: ".hero-section", start: "top top", end: "bottom top", scrub: 2 } });
+    gsap.to(".hero-mark", { y: -70, ease: "none", scrollTrigger: { trigger: ".hero-section", start: "top top", end: "bottom top", scrub: 2 } });
 
-    /* Problem */
     gsap.fromTo(".prob-ey",   { y: 20, opacity: 0 }, { y: 0, opacity: 1, ...sd, scrollTrigger: st(problemRef) });
     gsap.fromTo(".prob-line", { x: -30, opacity: 0 }, { x: 0, opacity: 1, stagger: 0.22, ...sd, scrollTrigger: st(problemRef, "top 74%") });
     gsap.fromTo(".prob-pivot",{ y: 18, opacity: 0 }, { y: 0, opacity: 1, duration: 0.9, ease: "power3.out", scrollTrigger: st(problemRef, "top 68%") });
 
-    /* Leak */
-    gsap.fromTo(".leak-ey",   { y: 18, opacity: 0 }, { y: 0, opacity: 1, ...sd, scrollTrigger: st(leakRef) });
-    gsap.fromTo(".leak-h2",   { clipPath: "inset(0 100% 0 0)", opacity: 0 },
-      { clipPath: "inset(0 0% 0 0)", opacity: 1, duration: 1.3, ease: "power3.out", scrollTrigger: st(leakRef, "top 74%") });
+    gsap.fromTo(".leak-ey",  { y: 18, opacity: 0 }, { y: 0, opacity: 1, ...sd, scrollTrigger: st(leakRef) });
+    gsap.fromTo(".leak-h2",  { clipPath: "inset(0 100% 0 0)", opacity: 0 }, { clipPath: "inset(0 0% 0 0)", opacity: 1, duration: 1.3, ease: "power3.out", scrollTrigger: st(leakRef, "top 74%") });
     gsap.fromTo(".leak-body,.leak-tag", { y: 22, opacity: 0 }, { y: 0, opacity: 1, stagger: 0.12, ...sd, scrollTrigger: st(leakRef, "top 68%") });
 
-    /* KYC */
     gsap.fromTo(".kyc-item", { y: 32, opacity: 0 }, { y: 0, opacity: 1, stagger: 0.14, ...sd, scrollTrigger: st(kycRef) });
 
-    /* How */
     gsap.fromTo(".how-head", { y: 26, opacity: 0 }, { y: 0, opacity: 1, stagger: 0.1, ...sd, scrollTrigger: st(howRef) });
     gsap.fromTo(".how-step", { y: 50, opacity: 0 }, { y: 0, opacity: 1, stagger: 0.18, ...sd, scrollTrigger: st(howRef, "top 72%") });
 
-    /* Features */
     gsap.fromTo(".feat-head", { y: 26, opacity: 0 }, { y: 0, opacity: 1, stagger: 0.1, ...sd, scrollTrigger: st(featRef) });
     gsap.fromTo(".feat-card", { y: 40, opacity: 0, scale: 0.97 }, { y: 0, opacity: 1, scale: 1, stagger: 0.1, duration: 0.75, ease: "power3.out", scrollTrigger: st(featRef, "top 72%") });
 
-    /* Travel */
     gsap.fromTo(".travel-head", { y: 26, opacity: 0 }, { y: 0, opacity: 1, stagger: 0.1, ...sd, scrollTrigger: st(travelRef) });
     gsap.fromTo(".travel-city", { y: 18, opacity: 0, scale: 0.92 }, { y: 0, opacity: 1, scale: 1, stagger: 0.07, duration: 0.5, ease: "back.out(1.5)", scrollTrigger: st(travelRef, "top 72%") });
 
-    /* Proof */
     gsap.fromTo(".proof-head", { y: 26, opacity: 0 }, { y: 0, opacity: 1, stagger: 0.1, ...sd, scrollTrigger: st(proofRef) });
     gsap.fromTo(".proof-item", { y: 30, opacity: 0 }, { y: 0, opacity: 1, stagger: 0.18, ...sd, scrollTrigger: st(proofRef, "top 72%") });
 
-    /* Price */
     gsap.fromTo(".price-inner", { y: 34, opacity: 0 }, { y: 0, opacity: 1, duration: 0.9, ease: "power3.out", scrollTrigger: st(priceRef) });
 
-    /* Dividers */
     gsap.utils.toArray<HTMLElement>(".s-line").forEach(el =>
-      gsap.fromTo(el, { scaleX: 0 }, { scaleX: 1, duration: 1.4, ease: "power2.inOut",
-        scrollTrigger: { trigger: el, start: "top 92%" } })
+      gsap.fromTo(el, { scaleX: 0 }, { scaleX: 1, duration: 1.4, ease: "power2.inOut", scrollTrigger: { trigger: el, start: "top 92%" } })
     );
   }, [st]);
 
@@ -362,81 +332,47 @@ export default function Landing() {
   return (
     <div className="bg-[#020207] text-white overflow-x-hidden selection:bg-amber-800/30">
 
-      {/* NAV */}
-      <nav className="fixed top-0 inset-x-0 z-50 flex items-center justify-between px-6 pt-safe-3 pb-4"
-        style={{ background: "linear-gradient(to bottom,rgba(2,2,7,.96) 0%,transparent 100%)" }}>
+      <nav className="fixed top-0 inset-x-0 z-50 flex items-center justify-between px-6 pt-safe-3 pb-4" style={{ background: "linear-gradient(to bottom,rgba(2,2,7,.96) 0%,transparent 100%)" }}>
         <Link to="/" className="flex items-center gap-2.5">
           <Mark size={32}/>
           <span className="text-[11px] tracking-[.3em] text-amber-400/90 font-light">AURA</span>
         </Link>
         <div className="flex items-center gap-3">
-          <button onClick={() => setLang(l => l === "es" ? "en" : "es")}
-            className="text-[9px] tracking-[.35em] text-amber-500/65 hover:text-amber-400 border border-amber-800/35 px-3 py-1.5 rounded transition-colors uppercase">
-            {c.toggle}
-          </button>
-          <Link to="/login"
-            className="hidden sm:block text-[10px] tracking-[.2em] text-stone-400 hover:text-white transition-colors uppercase">
-            {c.nav.login}
-          </Link>
-          <Link to="/registro"
-            className="text-[10px] tracking-[.2em] px-4 py-2 border border-amber-700/45 text-amber-400 hover:bg-amber-400/8 rounded transition-all uppercase">
-            {c.nav.join}
-          </Link>
+          <button onClick={() => setLang(l => l === "es" ? "en" : "es")} className="text-[9px] tracking-[.35em] text-amber-500/65 hover:text-amber-400 border border-amber-800/35 px-3 py-1.5 rounded transition-colors uppercase">{c.toggle}</button>
+          <Link to="/login" className="hidden sm:block text-[10px] tracking-[.2em] text-stone-400 hover:text-white transition-colors uppercase">{c.nav.login}</Link>
+          <Link to="/registro" className="text-[10px] tracking-[.2em] px-4 py-2 border border-amber-700/45 text-amber-400 hover:bg-amber-400/8 rounded transition-all uppercase">{c.nav.join}</Link>
         </div>
       </nav>
 
-      {/* ══ HERO ══════════════════════════════════════════════════ */}
+      {/* HERO */}
       <section className="hero-section relative min-h-dvh flex flex-col items-center justify-center text-center px-6 pt-20 overflow-hidden">
-        <div className="hero-bg absolute inset-0"
-          style={{ background: "radial-gradient(ellipse 90% 80% at 50% 40%, #1c1408 0%, #0d0820 45%, #020207 100%)", backgroundSize: "200% 200%" }}/>
-        <div className="absolute top-[38%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[500px] pointer-events-none"
-          style={{ background: "radial-gradient(ellipse, rgba(201,162,39,0.10) 0%, transparent 65%)" }}/>
+        <div className="hero-bg absolute inset-0" style={{ background: "radial-gradient(ellipse 90% 80% at 50% 40%, #1c1408 0%, #0d0820 45%, #020207 100%)", backgroundSize: "200% 200%" }}/>
+        <div className="absolute top-[38%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[500px] pointer-events-none" style={{ background: "radial-gradient(ellipse, rgba(201,162,39,0.10) 0%, transparent 65%)" }}/>
         <Particles/>
-
         <div className="relative z-10 flex flex-col items-center gap-5 max-w-3xl">
           <HeroMark/>
           <p className="hero-tag text-[10px] tracking-[.42em] text-amber-500/55 uppercase mt-1">{c.hero.tag}</p>
-
           <div className="overflow-hidden">
-            <h1 className="hero-line-1 text-5xl sm:text-6xl md:text-7xl font-thin leading-[1.08] tracking-tight"
-              style={{ background: gold, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
-              {c.hero.h1a}
-            </h1>
+            <h1 className="hero-line-1 text-5xl sm:text-6xl md:text-7xl font-thin leading-[1.08] tracking-tight" style={{ background: gold, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>{c.hero.h1a}</h1>
           </div>
           <div className="overflow-hidden -mt-3">
-            <h1 className="hero-line-2 text-5xl sm:text-6xl md:text-7xl font-thin leading-[1.08] tracking-tight"
-              style={{ background: gold, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
-              {c.hero.h1b}
-            </h1>
+            <h1 className="hero-line-2 text-5xl sm:text-6xl md:text-7xl font-thin leading-[1.08] tracking-tight" style={{ background: gold, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>{c.hero.h1b}</h1>
           </div>
-
-          <p className="hero-sub text-xl sm:text-2xl font-thin text-white/75 tracking-wide mt-1">
-            {c.hero.sub}
-          </p>
-
+          <p className="hero-sub text-xl sm:text-2xl font-thin text-white/75 tracking-wide mt-1">{c.hero.sub}</p>
           <div className="hero-ctas flex flex-col sm:flex-row gap-4 mt-4">
-            <Link ref={ctaPrimary} to="/registro"
-              className="cta-primary px-9 py-4 text-[11px] tracking-[.22em] font-light text-black rounded transition-all hover:scale-[1.03] active:scale-[.98] uppercase"
-              style={{ background: gold }}>
-              {c.hero.cta}
-            </Link>
-            <Link ref={ctaSecondary} to="/login"
-              className="px-9 py-4 text-[11px] tracking-[.22em] font-light text-amber-400 border border-amber-700/45 rounded hover:border-amber-500/65 transition-all uppercase">
-              {c.hero.ctaSub}
-            </Link>
+            <Link ref={ctaPrimary} to="/registro" className="cta-primary px-9 py-4 text-[11px] tracking-[.22em] font-light text-black rounded transition-all hover:scale-[1.03] active:scale-[.98] uppercase" style={{ background: gold }}>{c.hero.cta}</Link>
+            <Link ref={ctaSecondary} to="/login" className="px-9 py-4 text-[11px] tracking-[.22em] font-light text-amber-400 border border-amber-700/45 rounded hover:border-amber-500/65 transition-all uppercase">{c.hero.ctaSub}</Link>
           </div>
         </div>
-
         <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2">
           <div className="w-px h-12 bg-gradient-to-b from-transparent to-amber-700/35"/>
           <div className="w-1 h-1 rounded-full bg-amber-600/55 animate-bounce"/>
         </div>
       </section>
 
-      {/* ══ PROBLEMA ══════════════════════════════════════════════ */}
+      {/* PROBLEMA */}
       <Divider/>
-      <section ref={problemRef} className="py-28 px-6 relative overflow-hidden"
-        style={{ background: "radial-gradient(ellipse 80% 60% at 50% 50%, rgba(120,30,30,0.06) 0%, transparent 100%)" }}>
+      <section ref={problemRef} className="py-28 px-6 relative overflow-hidden" style={{ background: "radial-gradient(ellipse 80% 60% at 50% 50%, rgba(120,30,30,0.06) 0%, transparent 100%)" }}>
         <div className="max-w-3xl mx-auto text-center">
           <Eyebrow text={c.problem.eyebrow} className="prob-ey"/>
           <div className="space-y-5 mb-10">
@@ -447,30 +383,20 @@ export default function Landing() {
               </p>
             ))}
           </div>
-          <p className="prob-pivot text-2xl sm:text-3xl font-thin tracking-tight"
-            style={{ background: gold, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
-            {c.problem.pivot}
-          </p>
+          <p className="prob-pivot text-2xl sm:text-3xl font-thin tracking-tight" style={{ background: gold, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>{c.problem.pivot}</p>
         </div>
       </section>
 
-      {/* ══ ANTI-LEAK ══════════════════════════════════════════════ */}
+      {/* ANTI-LEAK */}
       <Divider/>
-      <section ref={leakRef} className="py-32 px-6 relative overflow-hidden"
-        style={{ background: "linear-gradient(180deg, #020207 0%, #07060f 50%, #020207 100%)" }}>
-        <div className="absolute inset-0 pointer-events-none"
-          style={{ background: "radial-gradient(ellipse 70% 60% at 50% 50%, rgba(100,50,200,0.06) 0%, transparent 100%)" }}/>
+      <section ref={leakRef} className="py-32 px-6 relative overflow-hidden" style={{ background: "linear-gradient(180deg, #020207 0%, #07060f 50%, #020207 100%)" }}>
+        <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse 70% 60% at 50% 50%, rgba(100,50,200,0.06) 0%, transparent 100%)" }}/>
         <div className="max-w-4xl mx-auto relative z-10 text-center">
           <Eyebrow text={c.leak.eyebrow} className="leak-ey"/>
-          <h2 className="leak-h2 text-3xl sm:text-4xl md:text-5xl font-thin leading-[1.2] mb-12 whitespace-pre-line text-white/90">
-            {c.leak.h2}
-          </h2>
-          <p className="leak-body text-stone-300 text-base sm:text-lg leading-relaxed font-light max-w-2xl mx-auto mb-8">
-            {c.leak.body}
-          </p>
+          <h2 className="leak-h2 text-3xl sm:text-4xl md:text-5xl font-thin leading-[1.2] mb-12 whitespace-pre-line text-white/90">{c.leak.h2}</h2>
+          <p className="leak-body text-stone-300 text-base sm:text-lg leading-relaxed font-light max-w-2xl mx-auto mb-8">{c.leak.body}</p>
           <div className="leak-tag flex justify-center">
-            <div className="inline-flex items-center gap-3 px-5 py-3 border border-amber-900/28 rounded-full"
-              style={{ background: "rgba(201,162,39,0.04)" }}>
+            <div className="inline-flex items-center gap-3 px-5 py-3 border border-amber-900/28 rounded-full" style={{ background: "rgba(201,162,39,0.04)" }}>
               <div className="w-1.5 h-1.5 rounded-full bg-amber-500/60 animate-pulse"/>
               <p className="text-[9px] tracking-[.34em] text-amber-500/65 uppercase">{c.leak.tag}</p>
             </div>
@@ -478,20 +404,15 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ══ KYC ═══════════════════════════════════════════════════ */}
+      {/* KYC */}
       <Divider/>
       <section ref={kycRef} className="py-32 px-6">
         <div className="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
           <div className="kyc-item">
             <Eyebrow text={c.kyc.eyebrow}/>
-            <h2 className="text-3xl sm:text-4xl font-thin tracking-tight mb-6 whitespace-pre-line text-white/90 leading-[1.25]">
-              {c.kyc.h2}
-            </h2>
-            <p className="text-stone-400 text-sm leading-relaxed font-light max-w-md mb-6">
-              {c.kyc.body}
-            </p>
-            <div className="inline-flex items-center gap-3 px-4 py-2.5 border border-amber-900/28 rounded-full"
-              style={{ background: "rgba(201,162,39,0.04)" }}>
+            <h2 className="text-3xl sm:text-4xl font-thin tracking-tight mb-6 whitespace-pre-line text-white/90 leading-[1.25]">{c.kyc.h2}</h2>
+            <p className="text-stone-400 text-sm leading-relaxed font-light max-w-md mb-6">{c.kyc.body}</p>
+            <div className="inline-flex items-center gap-3 px-4 py-2.5 border border-amber-900/28 rounded-full" style={{ background: "rgba(201,162,39,0.04)" }}>
               <div className="w-1.5 h-1.5 rounded-full bg-amber-500/60"/>
               <p className="text-[9px] tracking-[.3em] text-amber-500/65 uppercase">{c.kyc.detail}</p>
             </div>
@@ -502,8 +423,7 @@ export default function Landing() {
               { icon: "lock",   text: lang === "es" ? "Biometría facial obligatoria" : "Mandatory facial biometrics" },
               { icon: "shield", text: lang === "es" ? "Sin excepciones, sin simulaciones" : "No exceptions, no simulations" },
             ].map((item, i) => (
-              <div key={i} className="flex items-center gap-4 px-5 py-4 border border-amber-900/20 rounded-xl"
-                style={{ background: "rgba(201,162,39,0.025)" }}>
+              <div key={i} className="flex items-center gap-4 px-5 py-4 border border-amber-900/20 rounded-xl" style={{ background: "rgba(201,162,39,0.025)" }}>
                 <div className="text-amber-600/55 flex-shrink-0"><Icon name={item.icon} size={16}/></div>
                 <p className="text-sm font-light text-white/80 tracking-wide">{item.text}</p>
               </div>
@@ -512,16 +432,12 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ══ CÓMO FUNCIONA ══════════════════════════════════════════ */}
+      {/* CÓMO FUNCIONA */}
       <Divider/>
-      <section ref={howRef} className="py-32 px-6"
-        style={{ background: "radial-gradient(ellipse 80% 55% at 50% 50%, rgba(201,162,39,0.03) 0%, transparent 100%)" }}>
+      <section ref={howRef} className="py-32 px-6" style={{ background: "radial-gradient(ellipse 80% 55% at 50% 50%, rgba(201,162,39,0.03) 0%, transparent 100%)" }}>
         <div className="max-w-5xl mx-auto">
           <Eyebrow text={c.how.eyebrow} className="how-head text-center"/>
-          <h2 className="how-head text-center text-3xl sm:text-4xl font-thin tracking-tight mb-20 whitespace-pre-line"
-            style={{ background: gold, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
-            {c.how.h2}
-          </h2>
+          <h2 className="how-head text-center text-3xl sm:text-4xl font-thin tracking-tight mb-20 whitespace-pre-line" style={{ background: gold, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>{c.how.h2}</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-14">
             {c.how.steps.map((s, i) => (
               <div key={i} className="how-step">
@@ -535,23 +451,18 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ══ FEATURES ══════════════════════════════════════════════ */}
+      {/* FEATURES */}
       <Divider/>
       <section ref={featRef} className="py-32 px-6">
         <div className="max-w-5xl mx-auto">
           <Eyebrow text={c.features.eyebrow} className="feat-head text-center"/>
-          <h2 className="feat-head text-center text-3xl sm:text-4xl font-thin tracking-tight mb-20 text-white/88 max-w-2xl mx-auto whitespace-pre-line">
-            {c.features.h2}
-          </h2>
+          <h2 className="feat-head text-center text-3xl sm:text-4xl font-thin tracking-tight mb-20 text-white/88 max-w-2xl mx-auto whitespace-pre-line">{c.features.h2}</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {c.features.items.map((f, i) => (
-              <div key={i} className="feat-card group relative p-7 rounded border border-amber-900/18 overflow-hidden transition-all duration-500 hover:border-amber-700/36"
-                style={{ background: "linear-gradient(145deg,rgba(201,162,39,0.035) 0%,transparent 55%)" }}>
+              <div key={i} className="feat-card group relative p-7 rounded border border-amber-900/18 overflow-hidden transition-all duration-500 hover:border-amber-700/36" style={{ background: "linear-gradient(145deg,rgba(201,162,39,0.035) 0%,transparent 55%)" }}>
                 <div className="absolute top-0 left-0 w-6 h-px bg-gradient-to-r from-amber-600/45 to-transparent"/>
                 <div className="absolute top-0 left-0 h-6 w-px bg-gradient-to-b from-amber-600/45 to-transparent"/>
-                <div className="text-amber-600/48 mb-4 group-hover:text-amber-500/75 transition-colors duration-300">
-                  <Icon name={f.icon} size={18}/>
-                </div>
+                <div className="text-amber-600/48 mb-4 group-hover:text-amber-500/75 transition-colors duration-300"><Icon name={f.icon} size={18}/></div>
                 <h3 className="text-[12px] font-light tracking-widest text-white/88 mb-2 uppercase">{f.title}</h3>
                 <p className="text-stone-400 text-sm leading-relaxed font-light">{f.body}</p>
               </div>
@@ -560,54 +471,39 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ══ TRAVEL MODE ═══════════════════════════════════════════ */}
+      {/* TRAVEL */}
       <Divider/>
       <section ref={travelRef} className="py-32 px-6">
-        <div className="max-w-5xl mx-auto">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-            <div>
-              <Eyebrow text={c.travel.eyebrow} className="travel-head"/>
-              <h2 className="travel-head text-3xl sm:text-4xl font-thin tracking-tight mb-6"
-                style={{ background: gold, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
-                {c.travel.h2}
-              </h2>
-              <p className="travel-head text-stone-400 text-sm leading-relaxed font-light max-w-md">
-                {c.travel.sub}
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-3">
-              {c.travel.cities.map((city, i) => (
-                <div key={i} className="travel-city flex items-center gap-2 px-4 py-2.5 border border-amber-900/22 rounded-full transition-all duration-400 hover:border-amber-700/45 cursor-default"
-                  style={{ background: "rgba(201,162,39,0.022)" }}>
-                  <Icon name="plane" size={11}/>
-                  <span className="text-[12px] font-light text-white/78 tracking-wide">{city}</span>
-                </div>
-              ))}
-              <div className="travel-city flex items-center px-4 py-2.5 border border-amber-700/28 rounded-full"
-                style={{ background: "rgba(201,162,39,0.055)" }}>
-                <span className="text-[10px] tracking-[.22em] text-amber-500/65 uppercase">+24 ciudades</span>
+        <div className="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+          <div>
+            <Eyebrow text={c.travel.eyebrow} className="travel-head"/>
+            <h2 className="travel-head text-3xl sm:text-4xl font-thin tracking-tight mb-6" style={{ background: gold, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>{c.travel.h2}</h2>
+            <p className="travel-head text-stone-400 text-sm leading-relaxed font-light max-w-md">{c.travel.sub}</p>
+          </div>
+          <div className="flex flex-wrap gap-3">
+            {c.travel.cities.map((city, i) => (
+              <div key={i} className="travel-city flex items-center gap-2 px-4 py-2.5 border border-amber-900/22 rounded-full cursor-default" style={{ background: "rgba(201,162,39,0.022)" }}>
+                <Icon name="plane" size={11}/>
+                <span className="text-[12px] font-light text-white/78 tracking-wide">{city}</span>
               </div>
+            ))}
+            <div className="travel-city flex items-center px-4 py-2.5 border border-amber-700/28 rounded-full" style={{ background: "rgba(201,162,39,0.055)" }}>
+              <span className="text-[10px] tracking-[.22em] text-amber-500/65 uppercase">+24 ciudades</span>
             </div>
           </div>
         </div>
       </section>
 
-      {/* ══ CREDIBILIDAD ══════════════════════════════════════════ */}
+      {/* CREDIBILIDAD */}
       <Divider/>
-      <section ref={proofRef} className="py-32 px-6"
-        style={{ background: "radial-gradient(ellipse 75% 55% at 50% 50%, rgba(201,162,39,0.04) 0%, transparent 100%)" }}>
+      <section ref={proofRef} className="py-32 px-6" style={{ background: "radial-gradient(ellipse 75% 55% at 50% 50%, rgba(201,162,39,0.04) 0%, transparent 100%)" }}>
         <div className="max-w-5xl mx-auto">
           <Eyebrow text={c.proof.eyebrow} className="proof-head text-center"/>
-          <h2 className="proof-head text-center text-3xl sm:text-4xl font-thin tracking-tight mb-20 text-white/88 whitespace-pre-line max-w-2xl mx-auto">
-            {c.proof.h2}
-          </h2>
+          <h2 className="proof-head text-center text-3xl sm:text-4xl font-thin tracking-tight mb-20 text-white/88 whitespace-pre-line max-w-2xl mx-auto">{c.proof.h2}</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
             {c.proof.items.map((p, i) => (
               <div key={i} className="proof-item text-center">
-                <p className="text-5xl sm:text-6xl font-thin mb-3"
-                  style={{ background: gold, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
-                  {p.value}
-                </p>
+                <p className="text-5xl sm:text-6xl font-thin mb-3" style={{ background: gold, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>{p.value}</p>
                 <div className="w-8 h-px bg-gradient-to-r from-transparent via-amber-600/40 to-transparent mx-auto mb-3"/>
                 <p className="text-[13px] font-light tracking-widest text-white/85 uppercase mb-2">{p.label}</p>
                 <p className="text-xs text-stone-500 font-light">{p.detail}</p>
@@ -617,23 +513,15 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ══ PRICING CTA ═══════════════════════════════════════════ */}
+      {/* PRICING */}
       <Divider/>
       <section ref={priceRef} className="py-40 px-6 relative overflow-hidden">
-        <div className="absolute inset-0 pointer-events-none"
-          style={{ background: "radial-gradient(ellipse 80% 65% at 50% 50%, rgba(201,162,39,0.07) 0%, transparent 100%)" }}/>
+        <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse 80% 65% at 50% 50%, rgba(201,162,39,0.07) 0%, transparent 100%)" }}/>
         <div className="price-inner max-w-xl mx-auto flex flex-col items-center text-center gap-7 relative z-10">
           <Eyebrow text={c.pricing.eyebrow}/>
-          <h2 className="text-4xl sm:text-5xl font-thin tracking-tight whitespace-pre-line"
-            style={{ background: gold, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
-            {c.pricing.h2}
-          </h2>
+          <h2 className="text-4xl sm:text-5xl font-thin tracking-tight whitespace-pre-line" style={{ background: gold, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>{c.pricing.h2}</h2>
           <p className="text-stone-400 text-sm font-light leading-relaxed">{c.pricing.sub}</p>
-          <Link to="/registro"
-            className="cta-primary mt-2 px-12 py-5 text-[11px] tracking-[.25em] font-light text-black rounded transition-all hover:scale-[1.04] active:scale-[.97] uppercase"
-            style={{ background: gold }}>
-            {c.pricing.cta}
-          </Link>
+          <Link to="/registro" className="cta-primary mt-2 px-12 py-5 text-[11px] tracking-[.25em] font-light text-black rounded transition-all hover:scale-[1.04] active:scale-[.97] uppercase" style={{ background: gold }}>{c.pricing.cta}</Link>
           <p className="text-[9px] tracking-[.24em] text-amber-600/55 uppercase">{c.pricing.note}</p>
         </div>
       </section>
@@ -647,13 +535,9 @@ export default function Landing() {
           </div>
           <div className="flex gap-8">
             {c.footer.links.map(l => {
-              const href = l === "Privacidad" || l === "Privacy" ? "/privacidad"
-                : l === "Términos" || l === "Terms" ? "/terminos"
-                : "mailto:soporte@aurasw.club";
+              const href = l === "Privacidad" || l === "Privacy" ? "/privacidad" : l === "Términos" || l === "Terms" ? "/terminos" : "mailto:soporte@aurasw.club";
               const cls = "text-[10px] tracking-[.22em] text-stone-500 hover:text-amber-500 transition-colors uppercase";
-              return href.startsWith("mailto")
-                ? <a key={l} href={href} className={cls}>{l}</a>
-                : <Link key={l} to={href} className={cls}>{l}</Link>;
+              return href.startsWith("mailto") ? <a key={l} href={href} className={cls}>{l}</a> : <Link key={l} to={href} className={cls}>{l}</Link>;
             })}
           </div>
           <p className="text-[11px] text-stone-500 text-center max-w-sm leading-relaxed font-light">{c.footer.legal}</p>
