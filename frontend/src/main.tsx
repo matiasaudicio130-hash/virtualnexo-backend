@@ -5,17 +5,19 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import App from "./App";
 import "./index.css";
 
-class ErrorBoundary extends Component<{ children: ReactNode }, { error: boolean }> {
-  state = { error: false };
-  static getDerivedStateFromError() { return { error: true }; }
+class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
+  state: { error: Error | null } = { error: null };
+  static getDerivedStateFromError(error: Error) { return { error }; }
   render() {
     if (this.state.error) {
       return (
-        <div style={{ background: "#020207", color: "#fff", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "100vh", gap: 16, fontFamily: "sans-serif" }}>
-          <p style={{ color: "#C9A227", fontSize: 18, fontWeight: 300 }}>Algo salió mal</p>
-          <p style={{ color: "#888", fontSize: 14 }}>Recargá la página para continuar</p>
-          <button onClick={() => window.location.reload()} style={{ marginTop: 8, padding: "10px 28px", background: "linear-gradient(135deg,#C9A227,#FFE566)", border: "none", borderRadius: 8, cursor: "pointer", fontWeight: 500 }}>
-            Recargar
+        <div style={{ background: "#020207", color: "#fff", padding: 32, fontFamily: "monospace", minHeight: "100vh" }}>
+          <p style={{ color: "#C9A227", fontSize: 16, marginBottom: 12 }}>Error detectado:</p>
+          <pre style={{ color: "#f87171", fontSize: 12, whiteSpace: "pre-wrap", background: "#1a0000", padding: 16, borderRadius: 8, marginBottom: 16 }}>
+            {this.state.error.message}{"\n\n"}{this.state.error.stack?.split("\n").slice(0, 6).join("\n")}
+          </pre>
+          <button onClick={() => this.setState({ error: null })} style={{ padding: "8px 20px", background: "#C9A227", border: "none", borderRadius: 4, cursor: "pointer" }}>
+            Reintentar
           </button>
         </div>
       );
