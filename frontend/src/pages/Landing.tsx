@@ -441,17 +441,17 @@ export default function Landing() {
             <div className="logo-ring" style={{ position: "absolute", inset: -12, borderRadius: "50%", border: "1px solid rgba(201,162,39,0.2)", zIndex: 0 }}/>
             <div style={{ position: "absolute", inset: -24, borderRadius: "50%", border: "1px solid rgba(201,162,39,0.08)", zIndex: 0 }}/>
             {/* Main image */}
-            <img src="/brand/logo-full-dark-removebg-preview.png" alt="AURA"
+            <img src="/brand/logo-full-dark.jpg" alt="AURA"
               style={{ width: "100%", height: "100%", objectFit: "contain", position: "relative", zIndex: 2,
                        filter: "drop-shadow(0 0 20px rgba(201,162,39,0.7)) drop-shadow(0 0 40px rgba(201,162,39,0.3)) brightness(1.15) contrast(1.05)" }}/>
             {/* Glitch layer 1 — red channel */}
-            <img src="/brand/logo-full-dark-removebg-preview.png" alt="" aria-hidden
+            <img src="/brand/logo-full-dark.jpg" alt="" aria-hidden
               className="glitch-r"
               style={{ width: "100%", height: "100%", objectFit: "contain", position: "absolute", inset: 0, zIndex: 1,
                        filter: "drop-shadow(0 0 0px #ff0000) saturate(0) brightness(2)", opacity: 0,
                        mixBlendMode: "screen" as const }}/>
             {/* Glitch layer 2 — cyan channel */}
-            <img src="/brand/logo-full-dark-removebg-preview.png" alt="" aria-hidden
+            <img src="/brand/logo-full-dark.jpg" alt="" aria-hidden
               className="glitch-c"
               style={{ width: "100%", height: "100%", objectFit: "contain", position: "absolute", inset: 0, zIndex: 1,
                        filter: "drop-shadow(0 0 0px #00ffff) saturate(0) brightness(2)", opacity: 0,
