@@ -418,7 +418,7 @@ export default function Landing() {
         {/* Video background */}
         <video
           autoPlay muted loop playsInline
-          style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", zIndex: 0, opacity: 0.35 }}
+          style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", zIndex: 0, opacity: 0.65 }}
         >
           <source src="/brand/hero-bg.mp4.mp4" type="video/mp4"/>
         </video>
@@ -426,8 +426,8 @@ export default function Landing() {
         <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, rgba(2,2,7,0.55) 0%, rgba(2,2,7,0.3) 50%, rgba(2,2,7,0.85) 100%)", zIndex: 1 }}/>
         {/* Gradient lateral para profundidad */}
         <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse 90% 70% at 50% 40%, rgba(28,20,8,0.5) 0%, transparent 70%)", zIndex: 1 }}/>
-        {/* Grid */}
-        <div style={{ position: "absolute", inset: 0, backgroundImage: "linear-gradient(rgba(201,162,39,0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(201,162,39,0.025) 1px, transparent 1px)", backgroundSize: "64px 64px", pointerEvents: "none", zIndex: 2 }}/>
+        {/* Grid muy sutil — solo para desktop */}
+        <div style={{ position: "absolute", inset: 0, backgroundImage: "linear-gradient(rgba(201,162,39,0.012) 1px, transparent 1px), linear-gradient(90deg, rgba(201,162,39,0.012) 1px, transparent 1px)", backgroundSize: "80px 80px", pointerEvents: "none", zIndex: 2 }}/>
         {/* Orb glow center */}
         <div style={{ position: "absolute", top: "40%", left: "50%", transform: "translate(-50%,-50%)", width: 600, height: 400, background: "radial-gradient(ellipse, rgba(201,162,39,0.08) 0%, transparent 65%)", pointerEvents: "none", zIndex: 2 }}/>
 
@@ -440,10 +440,11 @@ export default function Landing() {
             {/* Outer glow ring */}
             <div className="logo-ring" style={{ position: "absolute", inset: -12, borderRadius: "50%", border: "1px solid rgba(201,162,39,0.2)", zIndex: 0 }}/>
             <div style={{ position: "absolute", inset: -24, borderRadius: "50%", border: "1px solid rgba(201,162,39,0.08)", zIndex: 0 }}/>
-            {/* Main image */}
+            {/* Main image — screen blend elimina el fondo negro del JPG */}
             <img src="/brand/logo-full-dark.jpg" alt="AURA"
               style={{ width: "100%", height: "100%", objectFit: "contain", position: "relative", zIndex: 2,
-                       filter: "drop-shadow(0 0 20px rgba(201,162,39,0.7)) drop-shadow(0 0 40px rgba(201,162,39,0.3)) brightness(1.15) contrast(1.05)" }}/>
+                       mixBlendMode: "screen" as const,
+                       filter: "drop-shadow(0 0 20px rgba(201,162,39,0.8)) drop-shadow(0 0 50px rgba(201,162,39,0.4)) brightness(1.2) contrast(1.1) saturate(1.2)" }}/>
             {/* Glitch layer 1 — red channel */}
             <img src="/brand/logo-full-dark.jpg" alt="" aria-hidden
               className="glitch-r"
