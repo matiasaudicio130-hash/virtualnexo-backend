@@ -5,6 +5,8 @@ import { kycApi } from "@/lib/api";
 import { useAuthStore } from "@/store/authStore";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { VerifiedBadge } from "@/components/ui/VerifiedBadge";
+import { Logo } from "@/components/brand/Logo";
 import { Shield, Loader2, CheckCircle, RefreshCw } from "lucide-react";
 
 type KYCState = "loading" | "ready" | "pending" | "verified" | "rejected" | "error";
@@ -68,8 +70,9 @@ export default function KYCVerification() {
 
   return (
     <div className="min-h-screen bg-bg-base flex flex-col items-center justify-center px-4 py-12 animate-fade-in">
-      <div className="mb-8 text-2xl font-bold bg-gradient-brand bg-clip-text text-transparent">
-        {APP_CONFIG.name}
+      <div className="mb-6 flex flex-col items-center gap-3">
+        <Logo variant="primary" size={72}
+          style={{ filter: "drop-shadow(0 0 20px rgba(201,162,39,0.5))" }}/>
       </div>
 
       <Card glow className="w-full max-w-md p-8">
@@ -82,14 +85,16 @@ export default function KYCVerification() {
 
         {state === "ready" && (
           <>
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-10 h-10 rounded-xl bg-accent-purple/10 flex items-center justify-center">
-                <Shield size={20} className="text-accent-purple" />
-              </div>
-              <div>
-                <h1 className="text-xl font-bold">Verificación de Identidad</h1>
-                <p className="text-text-secondary text-sm">Paso obligatorio para acceder</p>
-              </div>
+            <div className="mb-6 text-center flex flex-col items-center gap-3">
+              <p style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-eyebrow)", letterSpacing: "var(--tracking-eyebrow)", textTransform: "uppercase", color: "var(--gold)", fontWeight: 500 }}>
+                Verificación de identidad
+              </p>
+              <h1 style={{ fontFamily: "var(--font-display)", fontSize: "var(--fs-display-m)", fontWeight: 400, fontStyle: "italic", color: "var(--paper)", lineHeight: 1.1 }}>
+                Antes de entrar, queremos<br/>saber quién sos.
+              </h1>
+              <p style={{ fontFamily: "var(--font-sans)", fontSize: "var(--fs-body)", color: "var(--mist)" }}>
+                Es la única vez que vas a tener que hacerlo.
+              </p>
             </div>
 
             <div className="bg-bg-muted border border-border rounded-xl p-4 mb-6 space-y-2">
@@ -131,10 +136,15 @@ export default function KYCVerification() {
         )}
 
         {state === "verified" && (
-          <div className="text-center">
-            <CheckCircle size={48} className="text-status-success mx-auto mb-4" />
-            <h1 className="text-2xl font-bold mb-2">¡Identidad verificada!</h1>
-            <p className="text-text-secondary">Bienvenido a {APP_CONFIG.name}. Redirigiendo...</p>
+          <div className="text-center flex flex-col items-center gap-4">
+            <CheckCircle size={40} style={{ color: "var(--gold)" }} />
+            <VerifiedBadge label="Identidad verificada" />
+            <h1 style={{ fontFamily: "var(--font-display)", fontSize: "var(--fs-display-m)", fontWeight: 400, fontStyle: "italic", color: "var(--paper)" }}>
+              Listo.
+            </h1>
+            <p style={{ fontFamily: "var(--font-sans)", fontSize: "var(--fs-body)", color: "var(--mist)" }}>
+              Tu identidad está verificada. Verificá una vez. Confiá para siempre.
+            </p>
           </div>
         )}
 

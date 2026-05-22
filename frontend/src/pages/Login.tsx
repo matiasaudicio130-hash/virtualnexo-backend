@@ -1,36 +1,42 @@
+/**
+ * Login — brand book layout mobile.
+ * Logo como decoración, no hay ilustración.
+ * Inputs underline-only. Botón pill dorado.
+ * Tipografía: Cormorant para el saludo, Manrope para el cuerpo.
+ */
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { ShieldCheck } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Input } from "@/components/ui/Input";
-import { ShieldCheck } from "lucide-react";
+import { Button } from "@/components/ui/Button";
+import { Logo } from "@/components/brand/Logo";
 import type { UserStatus } from "@/types";
 
 const schema = z.object({
-  email: z.string().email("Email invalido"),
-  password: z.string().min(1, "Ingresa tu contraseña"),
+  email:    z.string().email("Email inválido"),
+  password: z.string().min(1, "Ingresá tu contraseña"),
 });
 type FormData = z.infer<typeof schema>;
 
 const REDIRECT: Record<UserStatus, string> = {
-  pending_email: "/verificar-email",
-  pending_kyc: "/kyc",
+  pending_email:  "/verificar-email",
+  pending_kyc:    "/kyc",
   pending_manual: "/aprobacion-pendiente",
-  active: "/feed",
-  suspended: "/acceso-denegado",
-  rejected: "/acceso-denegado",
+  active:         "/feed",
+  suspended:      "/acceso-denegado",
+  rejected:       "/acceso-denegado",
 };
-
-const gold = "linear-gradient(135deg,#C9A227 0%,#FFE566 100%)";
 
 export default function Login() {
   const navigate = useNavigate();
   const { login, verifyTotpLogin } = useAuth();
-  const [error, setError] = useState("");
+  const [error, setError]         = useState("");
   const [totpState, setTotpState] = useState<{ session: string } | null>(null);
-  const [totpCode, setTotpCode] = useState("");
+  const [totpCode, setTotpCode]   = useState("");
   const [totpLoading, setTotpLoading] = useState(false);
 
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<FormData>({
@@ -41,10 +47,7 @@ export default function Login() {
     setError("");
     try {
       const result = await login(data.email, data.password);
-      if (result.requires2fa) {
-        setTotpState({ session: result.totpSession });
-        return;
-      }
+      if (result.requires2fa) { setTotpState({ session: result.totpSession }); return; }
       navigate(REDIRECT[result.status] ?? "/feed");
     } catch (e: any) {
       const msg = e.response?.data?.detail;
@@ -66,44 +69,46 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-dvh flex flex-col items-center justify-center px-4 py-12 animate-fade-in"
-      style={{ background: "radial-gradient(ellipse 80% 70% at 50% 30%, #1a1205 0%, #04040a 100%)" }}>
+    <div className="min-h-dvh flex flex-col items-center justify-center px-6 py-16 animate-fade-in"
+      style={{ background: "var(--obsidian)" }}>
 
-      {/* Logo */}
-      <Link to="/" className="mb-10 flex flex-col items-center gap-3">
-        <img
-          src="/brand/logo-full-dark.jpg"
-          alt="AURA"
-          draggable={false}
-          style={{ width: 140, height: 140, objectFit: "contain",
-                   mixBlendMode: "screen", filter: "drop-shadow(0 0 16px rgba(201,162,39,0.5))" }}
-        />
+      {/* Logo — es la decoración, como dice el brand book */}
+      <Link to="/" className="mb-8 flex items-center justify-center">
+        <Logo variant="primary" size={96}
+          style={{ filter: "drop-shadow(0 0 28px rgba(201,162,39,0.55)) drop-shadow(0 0 56px rgba(201,162,39,0.20))" }}/>
       </Link>
 
-      {/* Card */}
-      <div className="w-full max-w-sm"
-        style={{ background: "rgba(8,8,16,0.9)", border: "1px solid rgba(201,162,39,0.18)",
-                 borderRadius: 4, padding: "40px 32px" }}>
+      {/* Eyebrow */}
+      <p style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-eyebrow)", letterSpacing: "var(--tracking-eyebrow)", textTransform: "uppercase", color: "var(--gold)", fontWeight: 500, marginBottom: 12 }}>
+        Acceso verificado
+      </p>
 
-        <h1 className="text-xl font-light tracking-[.1em] text-white/90 mb-1">Ingresar</h1>
-        <p className="text-sm text-stone-500 font-light mb-8 tracking-wide">Bienvenido de vuelta</p>
+      {/* Heading */}
+      {!totpState && (
+        <h1 style={{ fontFamily: "var(--font-display)", fontSize: "var(--fs-display-m)", fontWeight: 400, fontStyle: "italic", color: "var(--paper)", marginBottom: 40, textAlign: "center", lineHeight: 1.1 }}>
+          Bienvenida<br/>de nuevo.
+        </h1>
+      )}
+
+      {/* Form container — sin card, directo sobre obsidian */}
+      <div style={{ width: "100%", maxWidth: 360 }}>
 
         {error && (
-          <div className="mb-6 p-3 bg-red-900/20 border border-red-800/40 rounded text-red-400 text-sm">
+          <div style={{ marginBottom: 20, padding: "10px 14px", border: "1px solid rgba(194,90,90,0.35)", borderRadius: "var(--radius-md)", background: "rgba(194,90,90,0.06)", color: "var(--danger)", fontFamily: "var(--font-mono)", fontSize: 11, letterSpacing: "0.08em" }}>
             {error}
           </div>
         )}
 
-        {/* ── Paso 2FA ── */}
+        {/* ── 2FA step ── */}
         {totpState ? (
-          <div className="space-y-5">
-            <div className="flex flex-col items-center gap-2 py-2">
-              <ShieldCheck size={32} className="text-amber-500/80" />
-              <p className="text-white/80 text-sm font-light tracking-wide text-center">
-                Verificación en dos pasos
-              </p>
-              <p className="text-stone-500 text-xs text-center">
-                Ingresá el código de 6 dígitos de tu app autenticadora
+          <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+            <div style={{ textAlign: "center" }}>
+              <ShieldCheck size={28} style={{ color: "var(--gold-bright)", margin: "0 auto 12px" }}/>
+              <h2 style={{ fontFamily: "var(--font-display)", fontSize: "var(--fs-display-m)", fontStyle: "italic", fontWeight: 400, color: "var(--paper)", marginBottom: 8 }}>
+                Verificación<br/>en dos pasos.
+              </h2>
+              <p style={{ fontFamily: "var(--font-sans)", fontSize: "var(--fs-body)", color: "var(--mist)" }}>
+                Código de 6 dígitos de tu app autenticadora
               </p>
             </div>
             <input
@@ -113,50 +118,57 @@ export default function Login() {
               placeholder="000000"
               inputMode="numeric"
               maxLength={6}
-              className="w-full text-center text-2xl tracking-[.5em] py-3 bg-transparent border border-stone-700/60 rounded text-white/90 focus:outline-none focus:border-amber-600/50 placeholder-stone-700"
               autoFocus
+              style={{
+                textAlign: "center", fontSize: 28, letterSpacing: "0.5em", padding: "12px 0",
+                background: "transparent", border: "none", borderBottom: "1px solid var(--ash)",
+                color: "var(--paper)", fontFamily: "var(--font-mono)", outline: "none", width: "100%",
+              }}
             />
-            <button
-              onClick={handleTotpVerify}
-              disabled={totpLoading || totpCode.length < 6}
-              className="w-full py-3.5 text-[11px] tracking-[.22em] font-light text-black rounded transition-all hover:opacity-90 active:scale-[.98] disabled:opacity-50 uppercase"
-              style={{ background: gold }}
-            >
-              {totpLoading ? "Verificando..." : "Verificar"}
-            </button>
-            <button
-              onClick={() => { setTotpState(null); setTotpCode(""); setError(""); }}
-              className="w-full text-xs text-stone-600 hover:text-stone-400 transition-colors"
-            >
+            <Button onClick={handleTotpVerify} loading={totpLoading} disabled={totpCode.length < 6} fullWidth>
+              Verificar
+            </Button>
+            <button onClick={() => { setTotpState(null); setTotpCode(""); setError(""); }}
+              style={{ fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.14em", color: "var(--mist)", background: "none", border: "none", cursor: "pointer", textTransform: "uppercase" }}>
               Volver al login
             </button>
           </div>
         ) : (
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            <Input label="Email" type="email" placeholder="tu@email.com"
-              autoComplete="email" error={errors.email?.message} {...register("email")} />
-            <Input label="Contraseña" type="password" placeholder="••••••••"
-              autoComplete="current-password" error={errors.password?.message} {...register("password")} />
-
-            <button type="submit" disabled={isSubmitting}
-              className="w-full py-3.5 text-[11px] tracking-[.22em] font-light text-black rounded mt-2 transition-all hover:opacity-90 active:scale-[.98] disabled:opacity-50 uppercase"
-              style={{ background: gold }}>
-              {isSubmitting ? "Ingresando..." : "Ingresar"}
-            </button>
+          <form onSubmit={handleSubmit(onSubmit)} style={{ display: "flex", flexDirection: "column", gap: 28 }}>
+            <Input
+              id="email"
+              label="Email"
+              type="email"
+              autoComplete="email"
+              error={errors.email?.message}
+              {...register("email")}
+            />
+            <Input
+              id="password"
+              label="Contraseña"
+              type="password"
+              autoComplete="current-password"
+              error={errors.password?.message}
+              {...register("password")}
+            />
+            <Button type="submit" loading={isSubmitting} fullWidth style={{ marginTop: 8 }}>
+              Entrar
+            </Button>
           </form>
         )}
 
-        <p className="text-center text-stone-600 text-xs mt-7 tracking-wide">
-          No tenes cuenta?{" "}
-          <Link to="/registro" className="text-amber-600 hover:text-amber-400 transition-colors">
-            Registrarse
+        {/* Footer link */}
+        <p style={{ textAlign: "center", marginTop: 28, fontFamily: "var(--font-sans)", fontSize: "var(--fs-body)", color: "var(--mist)" }}>
+          ¿Primera vez?{" "}
+          <Link to="/registro" style={{ color: "var(--gold-bright)" }}>
+            Pedí tu invitación
           </Link>
         </p>
       </div>
 
-      {/* Footer */}
-      <p className="mt-8 text-[10px] tracking-[.3em] text-stone-800 uppercase">
-        Solo mayores de 18 anos · Argentina
+      {/* Legal */}
+      <p style={{ marginTop: 40, fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.3em", color: "var(--fg-dim)", textTransform: "uppercase" }}>
+        Solo mayores de 18 años · Argentina
       </p>
     </div>
   );

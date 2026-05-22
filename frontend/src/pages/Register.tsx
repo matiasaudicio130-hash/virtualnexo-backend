@@ -8,6 +8,7 @@ import { authApi } from "@/lib/api";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Card } from "@/components/ui/Card";
+import { Logo } from "@/components/brand/Logo";
 import { ChevronDown, Key } from "lucide-react";
 
 const schema = z.object({
@@ -60,9 +61,8 @@ export default function Register() {
     <div className="min-h-dvh flex flex-col items-center justify-center pt-safe px-4 py-12 animate-fade-in"
       style={{ background: "radial-gradient(ellipse 80% 70% at 50% 30%, #1a1205 0%, #04040a 100%)" }}>
       <Link to="/" className="mb-8 flex items-center">
-        <img src="/brand/logo-full-dark.jpg" alt="AURA" draggable={false}
-          style={{ width: 100, height: 100, objectFit: "contain",
-                   mixBlendMode: "screen", filter: "drop-shadow(0 0 12px rgba(201,162,39,0.5))" }}/>
+        <Logo variant="primary" size={80}
+          style={{ filter: "drop-shadow(0 0 18px rgba(201,162,39,0.5))" }}/>
       </Link>
 
       <Card glow className="w-full max-w-md p-8">

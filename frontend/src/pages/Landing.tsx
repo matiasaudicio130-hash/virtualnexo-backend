@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
+import { Logo, Wordmark } from "@/components/brand/Logo";
 
 gsap.registerPlugin(ScrollTrigger, useGSAP);
 
@@ -398,13 +399,13 @@ export default function Landing() {
   const T = (s: React.CSSProperties): React.CSSProperties => s;
 
   return (
-    <div style={{ background: "#020207", color: "#fff", overflowX: "hidden", fontFamily: "'Inter', sans-serif" }}>
+    <div style={{ background: "var(--obsidian)", color: "var(--paper)", overflowX: "hidden", fontFamily: "var(--font-sans)" }}>
 
       {/* NAV */}
       <nav style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 24px", background: "linear-gradient(to bottom,rgba(2,2,7,.95),transparent)" }}>
         <Link to="/" style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}>
-          <img src="/brand/logo-transparent.png" alt="AURA" style={{ width: 28, height: 28, objectFit: "contain", mixBlendMode: "screen", filter: "drop-shadow(0 0 8px rgba(201,162,39,0.6))" }}/>
-          <span style={{ fontSize: 11, letterSpacing: "0.3em", color: "rgba(201,162,39,0.9)", fontWeight: 300 }}>AURA</span>
+          <Logo variant="primary" size={28} />
+          <Wordmark size={11} />
         </Link>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <button onClick={() => setLang(l => l === "es" ? "en" : "es")} style={{ fontSize: 9, letterSpacing: "0.35em", color: "rgba(201,162,39,0.65)", border: "1px solid rgba(201,162,39,0.25)", padding: "5px 12px", borderRadius: 3, background: "transparent", cursor: "pointer" }}>{c.toggle}</button>
@@ -440,36 +441,33 @@ export default function Landing() {
             {/* Outer glow ring */}
             <div className="logo-ring" style={{ position: "absolute", inset: -12, borderRadius: "50%", border: "1px solid rgba(201,162,39,0.2)", zIndex: 0 }}/>
             <div style={{ position: "absolute", inset: -24, borderRadius: "50%", border: "1px solid rgba(201,162,39,0.08)", zIndex: 0 }}/>
-            {/* Main image — screen blend elimina el fondo negro del JPG */}
-            <img src="/brand/logo-transparent.png" alt="AURA"
-              style={{ width: "100%", height: "100%", objectFit: "contain", position: "relative", zIndex: 2,
-                       mixBlendMode: "screen" as const,
-                       filter: "drop-shadow(0 0 20px rgba(201,162,39,0.8)) drop-shadow(0 0 50px rgba(201,162,39,0.4)) brightness(1.2) contrast(1.1) saturate(1.2)" }}/>
-            {/* Glitch layer 1 — red channel */}
-            <img src="/brand/logo-transparent.png" alt="" aria-hidden
-              className="glitch-r"
-              style={{ width: "100%", height: "100%", objectFit: "contain", position: "absolute", inset: 0, zIndex: 1,
-                       filter: "drop-shadow(0 0 0px #ff0000) saturate(0) brightness(2)", opacity: 0,
-                       mixBlendMode: "screen" as const }}/>
-            {/* Glitch layer 2 — cyan channel */}
-            <img src="/brand/logo-transparent.png" alt="" aria-hidden
-              className="glitch-c"
-              style={{ width: "100%", height: "100%", objectFit: "contain", position: "absolute", inset: 0, zIndex: 1,
-                       filter: "drop-shadow(0 0 0px #00ffff) saturate(0) brightness(2)", opacity: 0,
-                       mixBlendMode: "screen" as const }}/>
+            {/* Logo primario */}
+            <Logo variant="primary" size={140}
+              style={{ position: "relative", zIndex: 2,
+                       filter: "drop-shadow(0 0 24px rgba(201,162,39,0.8)) drop-shadow(0 0 56px rgba(201,162,39,0.35)) brightness(1.15)" }}/>
+            {/* Glitch layer R */}
+            <img src="/brand/logo-aura.png" alt="" aria-hidden className="glitch-r"
+              style={{ width: 140, height: 140, objectFit: "contain", position: "absolute", inset: 0, zIndex: 1,
+                       filter: "saturate(0) brightness(2)", opacity: 0, mixBlendMode: "screen" as const }}/>
+            {/* Glitch layer C */}
+            <img src="/brand/logo-aura.png" alt="" aria-hidden className="glitch-c"
+              style={{ width: 140, height: 140, objectFit: "contain", position: "absolute", inset: 0, zIndex: 1,
+                       filter: "saturate(0) brightness(2)", opacity: 0, mixBlendMode: "screen" as const }}/>
           </div>
 
           {/* Tag */}
-          <p className="h-tag" style={{ fontSize: 9, letterSpacing: "0.5em", color: "rgba(201,162,39,0.55)", textTransform: "uppercase", fontWeight: 300 }}>{c.hero.tag}</p>
+          <p className="h-tag" style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-eyebrow)", letterSpacing: "var(--tracking-eyebrow)", color: "var(--gold)", textTransform: "uppercase", fontWeight: 500 }}>{c.hero.tag}</p>
 
           {/* H1 lines */}
           <div style={{ display: "flex", flexDirection: "column", width: "100%", gap: 4 }}>
             {c.hero.lines.map((line, i) => (
               <div key={i} style={{ overflow: "hidden" }}>
                 <h1 className="h-line" style={{
-                  fontSize: "clamp(52px, 11vw, 112px)", fontWeight: 100, lineHeight: 1.05,
-                  letterSpacing: "-0.025em", display: "block",
-                  ...(i % 2 === 0 ? { background: GOLD, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" } : { color: "rgba(255,255,255,0.88)" }),
+                  fontFamily: "var(--font-display)",
+                  fontSize: "var(--fs-display-xl)", fontWeight: i === c.hero.lines.length - 1 ? 300 : 400,
+                  fontStyle: i === c.hero.lines.length - 1 ? "italic" : "normal",
+                  lineHeight: 1.05, letterSpacing: "-0.02em", display: "block",
+                  ...(i % 2 === 0 ? { background: GOLD, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" } : { color: "var(--paper)" }),
                 }}>
                   {line}
                 </h1>
@@ -477,7 +475,7 @@ export default function Landing() {
             ))}
           </div>
 
-          <p className="h-sub" style={{ fontSize: "clamp(16px, 2.2vw, 22px)", color: "rgba(255,255,255,0.6)", fontWeight: 200, letterSpacing: "0.02em", maxWidth: 480 }}>{c.hero.sub}</p>
+          <p className="h-sub" style={{ fontFamily: "var(--font-sans)", fontSize: "var(--fs-body-l)", color: "var(--mist)", fontWeight: 300, lineHeight: 1.6, maxWidth: 460 }}>{c.hero.sub}</p>
 
           <div className="h-ctas" style={{ display: "flex", gap: 16, flexWrap: "wrap", justifyContent: "center", marginTop: 8 }}>
             <Link ref={cta1} to="/registro" className="glow-cta" style={{ padding: "15px 40px", background: GOLD, color: "#000", fontWeight: 400, fontSize: 11, letterSpacing: "0.22em", textTransform: "uppercase", borderRadius: 3, textDecoration: "none" }}>{c.hero.cta}</Link>
@@ -504,7 +502,7 @@ export default function Landing() {
             <div style={{ display: "flex", gap: 8, marginBottom: 32 }}>
               {SCENE_ACCENT.map((col, j) => <div key={j} style={{ width: j === i ? 28 : 6, height: 3, borderRadius: 2, background: j === i ? col : "rgba(255,255,255,0.12)", transition: "all 0.3s" }}/>)}
             </div>
-            <h2 style={{ fontSize: "clamp(32px, 6vw, 68px)", fontWeight: 100, letterSpacing: "-0.02em", color: "rgba(255,255,255,0.92)", marginBottom: 20, whiteSpace: "pre-line", lineHeight: 1.15 }}>{sc.title}</h2>
+            <h2 style={{ fontFamily: "var(--font-display)", fontSize: "var(--fs-display-l)", fontWeight: 400, letterSpacing: "-0.02em", color: "var(--paper)", marginBottom: 20, whiteSpace: "pre-line", lineHeight: 1.15 }}>{sc.title}</h2>
             <p style={{ fontSize: "clamp(14px, 1.6vw, 17px)", color: "rgba(255,255,255,0.5)", fontWeight: 200, maxWidth: 500, lineHeight: 1.85 }}>{sc.body}</p>
           </div>
         ))}
@@ -526,7 +524,7 @@ export default function Landing() {
             <div key={i} style={{ position: "absolute", ...pos, width: 28, height: 28, borderTop: i<2 ? "1px solid rgba(201,162,39,0.7)" : "none", borderBottom: i>=2 ? "1px solid rgba(201,162,39,0.7)" : "none", borderLeft: i%2===0 ? "1px solid rgba(201,162,39,0.7)" : "none", borderRight: i%2===1 ? "1px solid rgba(201,162,39,0.7)" : "none" }}/>
           ))}
           <div style={{ textAlign: "center", position: "relative", zIndex: 1 }}>
-            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="rgba(201,162,39,0.6)" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="rgba(201,162,39,0.6)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
               <path d="M9 12l2 2 4-4"/>
             </svg>
@@ -535,8 +533,8 @@ export default function Landing() {
         </div>
         <div className="leak-text">
           <p style={{ fontSize: 9, letterSpacing: "0.44em", color: "rgba(201,162,39,0.55)", textTransform: "uppercase", marginBottom: 20, fontWeight: 300, fontStyle: "italic" }}>{c.leak.eyebrow}</p>
-          <h2 style={{ fontSize: "clamp(26px, 3.5vw, 48px)", fontWeight: 100, lineHeight: 1.25, color: "rgba(255,255,255,0.9)", marginBottom: 28, whiteSpace: "pre-line", letterSpacing: "-0.02em" }}>{c.leak.h2}</h2>
-          <p style={{ fontSize: 15, color: "rgba(170,170,170,0.7)", lineHeight: 1.9, fontWeight: 300, maxWidth: 440 }}>{c.leak.body}</p>
+          <h2 style={{ fontFamily: "var(--font-display)", fontSize: "var(--fs-display-l)", fontWeight: 400, lineHeight: 1.25, color: "var(--paper)", marginBottom: 28, whiteSpace: "pre-line", letterSpacing: "-0.02em" }}>{c.leak.h2}</h2>
+          <p style={{ fontSize: 15, color: "var(--silver)", lineHeight: 1.9, fontWeight: 300, maxWidth: 440 }}>{c.leak.body}</p>
         </div>
       </section>
 
@@ -544,14 +542,14 @@ export default function Landing() {
       <div className="s-div" style={{ height: 1, background: "linear-gradient(90deg, transparent, rgba(201,162,39,0.22), transparent)", transformOrigin: "center" }}/>
       <section className="kyc-section" style={{ padding: "120px 24px", maxWidth: 1080, margin: "0 auto", textAlign: "center" }}>
         <p style={{ fontSize: 9, letterSpacing: "0.44em", color: "rgba(201,162,39,0.55)", textTransform: "uppercase", marginBottom: 20, fontWeight: 300 }}>Verificación real</p>
-        <h2 style={{ fontSize: "clamp(28px, 4vw, 56px)", fontWeight: 100, color: "rgba(255,255,255,0.88)", marginBottom: 12, letterSpacing: "-0.02em" }}>{c.kyc.h1}</h2>
+        <h2 style={{ fontSize: "clamp(28px, 4vw, 56px)", fontWeight: 100, color: "var(--paper)", marginBottom: 12, letterSpacing: "-0.02em" }}>{c.kyc.h1}</h2>
         <h2 style={{ fontSize: "clamp(28px, 4vw, 56px)", fontWeight: 100, marginBottom: 64, letterSpacing: "-0.02em", background: GOLD, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>{c.kyc.h2}</h2>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 20 }}>
           {c.kyc.cards.map((item, i) => (
             <div key={i} className="kyc-card" style={{ padding: "36px 28px", border: "1px solid rgba(201,162,39,0.1)", borderRadius: 12, background: "linear-gradient(145deg, rgba(201,162,39,0.04), transparent)", cursor: "default", willChange: "transform" }}>
               <div style={{ fontSize: 36, marginBottom: 20 }}>{item.icon}</div>
               <h3 style={{ fontSize: 12, letterSpacing: "0.18em", textTransform: "uppercase", color: "rgba(255,255,255,0.85)", marginBottom: 12, fontWeight: 300 }}>{item.title}</h3>
-              <p style={{ fontSize: 13, color: "rgba(150,150,150,0.7)", lineHeight: 1.8, fontWeight: 300 }}>{item.body}</p>
+              <p style={{ fontSize: 13, color: "var(--mist)", lineHeight: 1.8, fontWeight: 300 }}>{item.body}</p>
             </div>
           ))}
         </div>
@@ -561,7 +559,7 @@ export default function Landing() {
       <div className="s-div" style={{ height: 1, background: "linear-gradient(90deg, transparent, rgba(201,162,39,0.22), transparent)", transformOrigin: "center" }}/>
       <div style={{ padding: "60px 24px 24px", textAlign: "center" }}>
         <p className="feat-eyebrow" style={{ fontSize: 9, letterSpacing: "0.44em", color: "rgba(201,162,39,0.55)", textTransform: "uppercase", fontWeight: 300 }}>La plataforma</p>
-        <h2 style={{ fontSize: "clamp(26px, 3.5vw, 48px)", fontWeight: 100, letterSpacing: "-0.02em", color: "rgba(255,255,255,0.88)", marginTop: 12, marginBottom: 0 }}>Una red social completa. Nadie miente.</h2>
+        <h2 style={{ fontFamily: "var(--font-display)", fontSize: "var(--fs-display-l)", fontWeight: 400, letterSpacing: "-0.02em", color: "var(--paper)", marginTop: 12, marginBottom: 0 }}>Una red social completa. Nadie miente.</h2>
       </div>
       <div ref={featRef} style={{ height: "100vh", overflow: "hidden", position: "relative" }}>
         <div ref={featTrackRef} style={{ display: "flex", alignItems: "center", height: "100%", paddingLeft: 60, paddingRight: 60, gap: 24, willChange: "transform" }}>
@@ -570,8 +568,8 @@ export default function Landing() {
               <div>
                 <span style={{ fontSize: 11, letterSpacing: "0.3em", color: "rgba(201,162,39,0.4)", fontWeight: 300 }}>{f.n}</span>
                 <div style={{ width: 28, height: 1, background: GOLD, margin: "14px 0 18px" }}/>
-                <h3 style={{ fontSize: 18, fontWeight: 200, color: "rgba(255,255,255,0.88)", letterSpacing: "-0.01em", marginBottom: 14 }}>{f.title}</h3>
-                <p style={{ fontSize: 13, color: "rgba(150,150,150,0.7)", lineHeight: 1.8, fontWeight: 300 }}>{f.body}</p>
+                <h3 style={{ fontSize: 18, fontWeight: 200, color: "var(--paper)", letterSpacing: "-0.01em", marginBottom: 14 }}>{f.title}</h3>
+                <p style={{ fontSize: 13, color: "var(--mist)", lineHeight: 1.8, fontWeight: 300 }}>{f.body}</p>
               </div>
               <div style={{ width: 6, height: 6, borderRadius: "50%", background: GOLD }}/>
             </div>
@@ -603,8 +601,8 @@ export default function Landing() {
         <div style={{ position: "absolute", inset: 0, backgroundImage: "linear-gradient(rgba(201,162,39,0.022) 1px, transparent 1px), linear-gradient(90deg, rgba(201,162,39,0.022) 1px, transparent 1px)", backgroundSize: "64px 64px", pointerEvents: "none" }}/>
         <div style={{ position: "relative", zIndex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 24 }}>
           <p className="cta-item" style={{ fontSize: 9, letterSpacing: "0.44em", color: "rgba(201,162,39,0.55)", textTransform: "uppercase", fontWeight: 300 }}>{c.pricing.eyebrow}</p>
-          <h2 className="cta-item" style={{ fontSize: "clamp(36px, 7vw, 86px)", fontWeight: 100, letterSpacing: "-0.03em", background: GOLD, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", whiteSpace: "pre-line", lineHeight: 1.1 }}>{c.pricing.h2}</h2>
-          <p className="cta-item" style={{ fontSize: 15, color: "rgba(155,155,155,0.65)", fontWeight: 300, maxWidth: 420, lineHeight: 1.85 }}>{c.pricing.body}</p>
+          <h2 className="cta-item" style={{ fontFamily: "var(--font-display)", fontSize: "var(--fs-display-xl)", fontWeight: 300, fontStyle: "italic", letterSpacing: "-0.03em", background: GOLD, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", whiteSpace: "pre-line", lineHeight: 1.1 }}>{c.pricing.h2}</h2>
+          <p className="cta-item" style={{ fontSize: 15, color: "var(--mist)", fontWeight: 300, maxWidth: 420, lineHeight: 1.85 }}>{c.pricing.body}</p>
           <Link ref={ctaBottom} to="/registro" className="glow-cta cta-item" style={{ padding: "18px 60px", background: GOLD, color: "#000", fontWeight: 400, fontSize: 11, letterSpacing: "0.25em", textTransform: "uppercase", borderRadius: 3, textDecoration: "none", marginTop: 8 }}>{c.pricing.cta}</Link>
           <p className="cta-item" style={{ fontSize: 9, letterSpacing: "0.22em", color: "rgba(201,162,39,0.38)", textTransform: "uppercase", fontWeight: 300 }}>{c.pricing.note}</p>
         </div>
@@ -612,7 +610,7 @@ export default function Landing() {
 
       {/* FOOTER */}
       <footer style={{ borderTop: "1px solid rgba(201,162,39,0.1)", padding: "48px 24px", display: "flex", flexDirection: "column", alignItems: "center", gap: 20 }}>
-        <img src="/brand/logo-transparent.png" alt="AURA" style={{ width: 34, height: 34, objectFit: "contain", mixBlendMode: "screen", filter: "drop-shadow(0 0 6px rgba(201,162,39,0.4))" }}/>
+        <Logo variant="soft" size={40} />
         <p style={{ fontSize: 9, letterSpacing: "0.3em", color: "rgba(201,162,39,0.45)", textTransform: "uppercase", fontWeight: 300 }}>{c.footer.tagline}</p>
         <div style={{ display: "flex", gap: 28 }}>
           {c.footer.links.map(([label, href]) =>
