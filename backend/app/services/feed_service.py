@@ -66,7 +66,7 @@ class FeedService:
         # 2. Query base — posts activos no expirados
         q = db.table("posts").select(
             "*, users!posts_user_id_fkey("
-            "id,first_name,last_name,profile_photo_url,province,"
+            "id,first_name,last_name,profile_photo_url,province,username,"
             "profile_type,is_shadow_banned,hide_from_solos,visible_to)"
         ).eq("status", "active")
 
@@ -124,6 +124,7 @@ class FeedService:
                 "author": {
                     "id":           uid,
                     "name":         f"{user.get('first_name','')} {user.get('last_name','')}".strip(),
+                    "username":     user.get('username'),
                     "avatar":       user.get("profile_photo_url"),
                     "province":     user.get("province"),
                     "profile_type": author_type,
@@ -171,7 +172,7 @@ class FeedService:
 
         q = db.table("posts").select(
             "id,user_id,media_url,storage_path,created_at,expires_at,"
-            "users!posts_user_id_fkey(id,first_name,last_name,profile_photo_url,is_shadow_banned)"
+            "users!posts_user_id_fkey(id,first_name,last_name,profile_photo_url,username,is_shadow_banned)"
         ).eq("type", "story").eq("status", "active").gt("created_at", cutoff).order("created_at", desc=True)
 
         if province:
@@ -192,6 +193,7 @@ class FeedService:
                 stories_by_user[uid] = {
                     "user_id": uid,
                     "name":    f"{user.get('first_name','')} {user.get('last_name','')}".strip(),
+                    "username": user.get('username'),
                     "avatar":  user.get("profile_photo_url"),
                     "stories": [],
                 }

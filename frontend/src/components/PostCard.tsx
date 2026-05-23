@@ -124,7 +124,7 @@ export function PostCard({ post, currentUserId, onDelete }: Props) {
                 onClick={() => navigate(`/profile/${post.author.id}`)}
                 className="text-sm font-semibold leading-tight hover:text-accent-purple transition-colors"
               >
-                {post.author.name || "Usuario"}
+                {(post.author as any).username ? `@${(post.author as any).username}` : post.author.name || "Usuario"}
               </button>
               {post.author.profile_type && (() => {
                 const cfg = PROFILE_TYPE_CONFIG[post.author.profile_type as ProfileType];
@@ -197,7 +197,7 @@ export function PostCard({ post, currentUserId, onDelete }: Props) {
       {/* Caption (en polls ya está en la pregunta, no mostrar doble) */}
       {post.caption && !isPoll && (
         <p className="px-4 py-2.5 text-sm text-text-secondary leading-relaxed">
-          <span className="font-semibold text-text-primary mr-1.5">{post.author.name?.split(" ")[0]}</span>
+          <span className="font-semibold text-text-primary mr-1.5 cursor-pointer hover:underline" onClick={() => navigate(`/profile/${post.author.id}`)}>{(post.author as any).username ? `@${(post.author as any).username}` : post.author.name?.split(" ")[0]}</span>
           {post.caption}
         </p>
       )}

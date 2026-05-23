@@ -319,6 +319,35 @@ export const groupsApi = {
   removeMember:  (id: string, userId: string)    => api.delete(`/groups/${id}/members/${userId}`),
 };
 
+export const albumsApi = {
+  // Username
+  checkUsername:   (username: string)                 => api.get(`/albums/username/check/${username}`),
+  setUsername:     (username: string)                 => api.post("/albums/username", { username }),
+  // Seeking
+  setSeeking:      (body: object)                     => api.post("/albums/seeking", body),
+  // Albums
+  listUser:        (userId: string)                   => api.get(`/albums/user/${userId}`),
+  mine:            ()                                 => api.get("/albums/mine"),
+  create:          (body: object)                     => api.post("/albums/", body),
+  update:          (id: string, body: object)         => api.patch(`/albums/${id}`, body),
+  delete:          (id: string)                       => api.delete(`/albums/${id}`),
+  // Photos
+  addPhoto:        (id: string, file: File)           => {
+    const form = new FormData(); form.append("file", file);
+    return api.post(`/albums/${id}/photos`, form, { headers: { "Content-Type": "multipart/form-data" } });
+  },
+  getPhotos:       (id: string)                       => api.get(`/albums/${id}/photos`),
+  deletePhoto:     (albumId: string, photoId: string) => api.delete(`/albums/${albumId}/photos/${photoId}`),
+  // Access requests
+  requestAccess:   (albumId: string)                  => api.post(`/albums/${albumId}/request`),
+  listRequests:    (albumId: string)                  => api.get(`/albums/${albumId}/requests`),
+  approve:         (albumId: string, reqId: string)   => api.post(`/albums/${albumId}/requests/${reqId}/approve`),
+  reject:          (albumId: string, reqId: string)   => api.post(`/albums/${albumId}/requests/${reqId}/reject`),
+  // Profile stats
+  recordView:      (userId: string)                   => api.post(`/albums/profile/${userId}/view`),
+  myStats:         ()                                 => api.get("/albums/profile/my-stats"),
+};
+
 export const adminApi = {
   createKey: (data: object) => api.post("/admin/keys", data),
   createKeyBatch: (data: object) => api.post("/admin/keys/batch", data),

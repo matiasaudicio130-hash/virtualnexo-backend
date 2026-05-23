@@ -9,7 +9,7 @@ from app.core.config import get_settings
 from app.core.branding import APP_NAME, APP_VERSION
 from app.routers import auth, kyc, admin, exchange, payments, settings as settings_router, tokens, pricing
 from app.routers import stripe_router, reports, payouts, media, feed, reviews, ads, travel, messaging, notifications, profiles, comments, push, highlights, events, discovery
-from app.routers import two_factor, sessions as sessions_router, follows, groups
+from app.routers import two_factor, sessions as sessions_router, follows, groups, albums
 
 settings = get_settings()
 
@@ -60,6 +60,7 @@ app.include_router(two_factor.router,      prefix="/api/v1")
 app.include_router(sessions_router.router, prefix="/api/v1")
 app.include_router(follows.router,         prefix="/api/v1")
 app.include_router(groups.router,          prefix="/api/v1")
+app.include_router(albums.router,          prefix="/api/v1")
 
 
 @app.get("/health")

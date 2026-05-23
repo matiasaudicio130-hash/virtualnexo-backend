@@ -23,6 +23,7 @@ import { InstallPrompt } from "@/components/InstallPrompt";
 import { NotificationBell } from "@/components/NotificationBell";
 import { SecuritySettings } from "@/components/SecuritySettings";
 import { EditProfileModal } from "@/components/EditProfileModal";
+import { MyProfileSection } from "@/components/MyProfileSection";
 import { NavLogo } from "@/components/AuraLogo";
 import { StoryHighlights } from "@/components/StoryHighlights";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
@@ -230,34 +231,34 @@ export default function Dashboard() {
         {/* Story Highlights */}
         <StoryHighlights userId={user.id} isOwn={true} />
 
-        {/* Perfil e identidad */}
-        <Card className="p-5 border-accent-purple/15">
-          <div className="flex items-center justify-between mb-5">
+        {/* Mi perfil — stats privados, completitud, username, albums */}
+        <Card className="p-5">
+          <div className="flex items-center justify-between mb-4">
             <h2 className="font-semibold text-sm flex items-center gap-2">
               <Shield size={15} className="text-accent-purple" />
-              {t.profile.title}
+              Mi perfil
             </h2>
             <button
               onClick={() => setShowEditProfile(true)}
               className="text-xs text-accent-purple hover:opacity-80 transition-opacity flex items-center gap-1"
             >
-              <Settings size={12} /> Editar
+              <Settings size={12} /> Editar datos
             </button>
-            <div className="flex items-center gap-1.5 flex-wrap justify-end">
-              {profileCfg && (
-                <span className={`text-xs px-2.5 py-1 rounded-full bg-bg-muted flex items-center gap-1.5 ${profileCfg.color}`}>
-                  <span className={`w-1.5 h-1.5 rounded-full ${profileCfg.dot}`} />
-                  {t.profileTypes[user.profile_type as ProfileType]}
-                </span>
-              )}
-              {orientCfg && (
-                <span className="text-xs px-2.5 py-1 rounded-full bg-bg-muted text-text-muted">
-                  {t.orientations[user.sexual_orientation as SexualOrientation]}
-                </span>
-              )}
-            </div>
           </div>
-          <ProfileTypeSettings onSaved={() => refreshUser()} />
+          <MyProfileSection />
+        </Card>
+
+        {/* Perfil e identidad — tipo + orientación (colapsado) */}
+        <Card className="p-5 border-accent-purple/15">
+          <details>
+            <summary className="font-semibold text-sm flex items-center gap-2 cursor-pointer list-none">
+              <Shield size={15} className="text-accent-purple" />
+              {t.profile.title}
+            </summary>
+            <div className="mt-4">
+              <ProfileTypeSettings onSaved={() => refreshUser()} />
+            </div>
+          </details>
         </Card>
 
         {/* Cuenta */}
