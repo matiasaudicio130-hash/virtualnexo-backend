@@ -390,7 +390,7 @@ export default function Feed() {
 
         {/* ── Posts ───────────────────────────────────────────── */}
         <div className="space-y-4 px-4 pt-2">
-          {loading && [1, 2, 3].map(i => <PostSkeleton key={i} />)}
+          {loading && posts.length === 0 && [1, 2, 3].map(i => <PostSkeleton key={i} />)}
 
           {!loading && posts.length === 0 && (
             <div className="text-center py-16 text-text-muted">
