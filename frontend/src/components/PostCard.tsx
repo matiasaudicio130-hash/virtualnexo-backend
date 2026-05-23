@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { MapPin, Trash2, MoreHorizontal } from "lucide-react";
 import {
-  MapPin, Flame, Heart, Star, Trash2, MoreHorizontal,
-  MessageSquare, Bookmark, BookmarkCheck, Share2,
-} from "lucide-react";
+  Heart, Fire, BookmarkSimple, PaperPlaneTilt, ChatCircle,
+} from "@phosphor-icons/react";
 import { feedApi } from "@/lib/api";
 import { ProtectedAvatar } from "@/components/ProtectedImage";
 import { CommentsSection } from "@/components/Comments";
@@ -14,10 +14,10 @@ import { PollCard } from "@/components/PollCard";
 import { PROFILE_TYPE_CONFIG } from "@/types";
 import type { Post, ProfileType } from "@/types";
 
+// Solo 2 reacciones — semántica inmediata, sin ambigüedad
 const REACTIONS = [
-  { type: "fire",  icon: Flame,  label: "Fuego" },
-  { type: "heart", icon: Heart,  label: "Me gusta" },
-  { type: "star",  icon: Star,   label: "Destacado" },
+  { type: "heart", Icon: Heart,  colorActive: "#e05068" },
+  { type: "fire",  Icon: Fire,   colorActive: "#f97316" },
 ] as const;
 
 function timeAgo(dateStr: string): string {
@@ -54,16 +54,13 @@ export function PostCard({ post, currentUserId, onDelete }: Props) {
     (post as any).user_poll_vote ?? null
   );
 
-  const isPoll = post.type === "poll" || !!(post as any).extra_data?.poll;
-
+  const isPoll  = post.type === "poll" || !!(post as any).extra_data?.poll;
   const isOwner = post.user_id === currentUserId;
-  const totalReactions = Object.values(reactions || {}).reduce((a: number, b) => a + (b as number), 0);
 
-  // Carrusel: usar media_urls si hay más de una imagen
   const mediaItems: { url: string; type?: string }[] = post.media_urls?.length
     ? post.media_urls.map((m: any) => ({ url: m.url, type: m.type || "image" }))
     : post.media_url
-      ? [{ url: post.media_url, type: post.type === "story" ? "image" : "image" }]
+      ? [{ url: post.media_url, type: "image" }]
       : [];
 
   async function handleReact(type: string) {
@@ -115,20 +112,38 @@ export function PostCard({ post, currentUserId, onDelete }: Props) {
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3">
         <div className="flex items-center gap-3">
-          <button onClick={() => navigate(`/profile/${post.author.id}`)} className="flex-shrink-0">
+          {/* Avatar con badge de verificación */}
+          <button
+            onClick={() => navigate(`/profile/${post.author.id}`)}
+            className="relative flex-shrink-0"
+          >
             <ProtectedAvatar src={post.author.avatar || ""} size={36} />
+            {/* Badge dorado — todos los usuarios están verificados por KYC */}
+            <div
+              className="absolute -bottom-0.5 -right-0.5 w-[11px] h-[11px] rounded-full border-2 border-bg-card flex items-center justify-center"
+              style={{ background: "#C9A227" }}
+            >
+              <svg width="6" height="5" viewBox="0 0 6 5" fill="none">
+                <path d="M1 2.5l1.2 1.2L5 1" stroke="#020207" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </div>
           </button>
+
           <div>
             <div className="flex items-center gap-1.5">
               <button
                 onClick={() => navigate(`/profile/${post.author.id}`)}
                 className="text-sm font-semibold leading-tight hover:text-accent-purple transition-colors"
               >
-                {(post.author as any).username ? `@${(post.author as any).username}` : post.author.name || "Usuario"}
+                {(post.author as any).username
+                  ? `@${(post.author as any).username}`
+                  : post.author.name || "Usuario"}
               </button>
               {post.author.profile_type && (() => {
                 const cfg = PROFILE_TYPE_CONFIG[post.author.profile_type as ProfileType];
-                return cfg ? <span className={`w-1.5 h-1.5 rounded-full inline-block flex-shrink-0 ${cfg.dot}`}/> : null;
+                return cfg
+                  ? <span className={`w-1.5 h-1.5 rounded-full inline-block flex-shrink-0 ${cfg.dot}`}/>
+                  : null;
               })()}
             </div>
             <div className="flex items-center gap-2 text-xs text-text-muted">
@@ -151,16 +166,22 @@ export function PostCard({ post, currentUserId, onDelete }: Props) {
             <MoreHorizontal size={16}/>
           </button>
           {showMenu && (
-            <div className="absolute right-0 top-8 bg-bg-card border border-border rounded-xl shadow-xl z-20 py-1.5 min-w-[140px]"
-              onClick={() => setShowMenu(false)}>
+            <div
+              className="absolute right-0 top-8 bg-bg-card border border-border rounded-xl shadow-xl z-20 py-1.5 min-w-[140px]"
+              onClick={() => setShowMenu(false)}
+            >
               {isOwner && (
-                <button onClick={handleDelete}
-                  className="flex items-center gap-2 w-full px-4 py-2 text-sm text-status-error hover:bg-bg-muted">
+                <button
+                  onClick={handleDelete}
+                  className="flex items-center gap-2 w-full px-4 py-2 text-sm text-status-error hover:bg-bg-muted"
+                >
                   <Trash2 size={13}/> Eliminar
                 </button>
               )}
-              <button onClick={() => navigate(`/profile/${post.author.id}`)}
-                className="flex items-center gap-2 w-full px-4 py-2 text-sm text-text-secondary hover:bg-bg-muted">
+              <button
+                onClick={() => navigate(`/profile/${post.author.id}`)}
+                className="flex items-center gap-2 w-full px-4 py-2 text-sm text-text-secondary hover:bg-bg-muted"
+              >
                 Ver perfil
               </button>
             </div>
@@ -168,7 +189,7 @@ export function PostCard({ post, currentUserId, onDelete }: Props) {
         </div>
       </div>
 
-      {/* Media — carrusel con doble tap */}
+      {/* Media */}
       {mediaItems.length > 0 && (
         <DoubleTapLike onDoubleTap={handleDoubleTap}>
           <Carousel items={mediaItems} aspectRatio="square"/>
@@ -194,72 +215,93 @@ export function PostCard({ post, currentUserId, onDelete }: Props) {
         />
       )}
 
-      {/* Caption (en polls ya está en la pregunta, no mostrar doble) */}
+      {/* Caption */}
       {post.caption && !isPoll && (
         <p className="px-4 py-2.5 text-sm text-text-secondary leading-relaxed">
-          <span className="font-semibold text-text-primary mr-1.5 cursor-pointer hover:underline" onClick={() => navigate(`/profile/${post.author.id}`)}>{(post.author as any).username ? `@${(post.author as any).username}` : post.author.name?.split(" ")[0]}</span>
+          <span
+            className="font-semibold text-text-primary mr-1.5 cursor-pointer hover:underline"
+            onClick={() => navigate(`/profile/${post.author.id}`)}
+          >
+            {(post.author as any).username
+              ? `@${(post.author as any).username}`
+              : post.author.name?.split(" ")[0]}
+          </span>
           {post.caption}
         </p>
       )}
 
-      {/* Actions bar */}
-      <div className="flex items-center gap-1 px-3 pb-3 pt-1">
-        {/* Reactions */}
-        {REACTIONS.map(({ type, icon: Icon }) => {
-          const count  = reactions?.[type] || 0;
-          const active = myReaction === type;
-          return (
+      {/* ── Actions bar ─────────────────────────────────────────── */}
+      <div className="flex items-center justify-between px-4 pb-3 pt-2">
+
+        {/* Izquierda: reacciones — engagement emocional */}
+        <div className="flex items-center gap-4">
+          {REACTIONS.map(({ type, Icon, colorActive }) => {
+            const count  = reactions?.[type] || 0;
+            const active = myReaction === type;
+            return (
+              <button
+                key={type}
+                onClick={() => handleReact(type)}
+                disabled={loading}
+                className="flex items-center gap-1.5 transition-transform active:scale-110"
+                aria-label={type === "heart" ? "Me gusta" : "Fuego"}
+              >
+                <Icon
+                  size={20}
+                  weight={active ? "fill" : "light"}
+                  style={{ color: active ? colorActive : "var(--color-text-muted, #6b7280)" }}
+                />
+                {count > 0 && (
+                  <span
+                    className="text-xs font-medium tabular-nums"
+                    style={{ color: active ? colorActive : "var(--color-text-muted, #6b7280)" }}
+                  >
+                    {count}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Derecha: utilidades — sin contadores */}
+        <div className="flex items-center gap-3">
+          {/* Guardar */}
+          <button
+            onClick={handleSave}
+            className="p-1 transition-colors"
+            title={saved ? "Guardado" : "Guardar"}
+          >
+            <BookmarkSimple
+              size={19}
+              weight={saved ? "fill" : "light"}
+              style={{ color: saved ? "var(--gold, #C9A227)" : "var(--color-text-muted, #6b7280)" }}
+            />
+          </button>
+
+          {/* Compartir */}
+          {post.allow_share !== false && (
             <button
-              key={type}
-              onClick={() => handleReact(type)}
-              disabled={loading}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm transition-all ${
-                active
-                  ? "bg-accent-purple/15 text-accent-purple border border-accent-purple/35"
-                  : "bg-bg-muted/60 text-text-muted hover:bg-bg-muted border border-transparent"
-              }`}
+              onClick={() => setShowShare(true)}
+              className="p-1 text-text-muted transition-colors hover:text-text-primary"
+              title="Compartir"
             >
-              <Icon size={14} className={active ? "fill-current" : ""}/>
-              {count > 0 && <span className="text-xs font-medium">{count}</span>}
+              <PaperPlaneTilt size={19} weight="light" />
             </button>
-          );
-        })}
+          )}
 
-        {/* Spacer */}
-        <div className="flex-1"/>
-
-        {/* Save */}
-        <button
-          onClick={handleSave}
-          className={`p-2 rounded-xl transition-colors ${
-            saved ? "text-accent-purple" : "text-text-muted hover:text-text-primary"
-          }`}
-          title={saved ? "Guardado" : "Guardar"}
-        >
-          {saved ? <BookmarkCheck size={17}/> : <Bookmark size={17}/>}
-        </button>
-
-        {/* Share */}
-        {post.allow_share !== false && (
-          <button
-            onClick={() => setShowShare(true)}
-            className="p-2 rounded-xl text-text-muted hover:text-text-primary transition-colors"
-            title="Compartir"
-          >
-            <Share2 size={17}/>
-          </button>
-        )}
-
-        {/* Message */}
-        {!isOwner && (
-          <button
-            onClick={() => navigate(`/messages?with=${post.author.id}`)}
-            className="p-2 rounded-xl text-text-muted hover:text-accent-purple transition-colors"
-            title="Enviar mensaje"
-          >
-            <MessageSquare size={17}/>
-          </button>
-        )}
+          {/* Mensaje directo al autor */}
+          {!isOwner && (
+            <button
+              onClick={() => navigate(`/messages?with=${post.author.id}`)}
+              className="p-1 transition-colors hover:text-accent-purple"
+              title="Enviar mensaje"
+              style={{ color: "var(--color-text-muted, #6b7280)" }}
+            >
+              <ChatCircle size={19} weight="light" />
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Comments */}
