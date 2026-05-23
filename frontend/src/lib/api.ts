@@ -137,6 +137,7 @@ export const travelApi = {
 
 export const feedApi = {
   getFeed:      (params?: object)                => api.get("/feed/", { params }),
+  getUserPosts: (userId: string, params?: object)=> api.get(`/feed/user/${userId}`, { params }),
   getStories:   (province?: string)              => api.get("/feed/stories", { params: province ? { province } : {} }),
   createPost:   (body: object)                   => api.post("/feed/posts", body),
   uploadPost:   (file: File, params: object) => {

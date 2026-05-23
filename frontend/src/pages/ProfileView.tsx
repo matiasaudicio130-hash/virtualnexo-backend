@@ -149,9 +149,8 @@ export default function ProfileView() {
     albumsApi.listUser(userId).then(r => setAlbums(r.data)).catch(() => {});
 
     // Posts recientes del usuario
-    feedApi.getFeed({ limit: 9 }).then(r => {
-      const userPosts = (r.data.posts || []).filter((p: any) => p.user_id === userId);
-      setPosts(userPosts);
+    feedApi.getUserPosts(userId, { limit: 9 }).then(r => {
+      setPosts(r.data.posts || []);
     }).catch(() => {});
 
   }, [userId, isOwnProfile]);

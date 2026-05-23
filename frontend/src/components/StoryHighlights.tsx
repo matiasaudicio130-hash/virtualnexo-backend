@@ -36,7 +36,7 @@ export function StoryHighlights({ userId, isOwn = false, onSelect }: Props) {
       let cover_url: string | undefined;
       if (coverFile) {
         const { data: uploaded } = await mediaApi.uploadPost(coverFile);
-        cover_url = uploaded?.url ?? uploaded?.media_url ?? undefined;
+        cover_url = uploaded?.signed_url ?? uploaded?.url ?? undefined;
       }
       const { data } = await highlightsApi.create({ title: newTitle.trim(), story_ids: [], cover_url });
       setHighlights(prev => [...prev, data]);

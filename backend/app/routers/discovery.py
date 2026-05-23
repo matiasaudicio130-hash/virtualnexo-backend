@@ -124,15 +124,22 @@ async def profile_suggestions(
     viewed_ids = {r["viewed_id"] for r in viewed_r.data}
     viewed_ids.add(payload["sub"])
 
-    # Buscar candidatos
-    q = db.table("users").select(
+    # Buscar candidatos — primero misma provincia, fallback global
+    base_q = db.table("users").select(
         "id,first_name,last_name,profile_photo_url,profile_type,province,city,bio"
     ).eq("status", "active").neq("is_shadow_banned", True)
 
+    candidates = []
     if viewer.get("province"):
-        q = q.eq("province", viewer["province"])
+        candidates = base_q.eq("province", viewer["province"]).limit(100).execute().data
 
-    candidates = q.limit(100).execute().data
+    # Si no hay suficientes en la provincia, ampliar al resto del país
+    if len(candidates) < 8:
+        all_candidates = base_q.limit(200).execute().data
+        seen = {u["id"] for u in candidates}
+        for u in all_candidates:
+            if u["id"] not in seen:
+                candidates.append(u)
 
     # Filtrar: tipo compatible, no visto recientemente
     from app.utils.profile_constants import VALID_PROFILE_TYPES

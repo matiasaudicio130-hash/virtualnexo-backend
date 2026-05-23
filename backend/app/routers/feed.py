@@ -66,6 +66,38 @@ async def get_feed(
     )
 
 
+@router.get("/user/{author_id}")
+async def get_user_posts(
+    request: Request,
+    author_id: str,
+    limit: int  = Query(18, le=50),
+    offset: int = Query(0, ge=0),
+):
+    """Posts públicos de un usuario específico (para su perfil)."""
+    _require_auth(request)
+    from app.db.supabase import get_supabase
+    db = get_supabase()
+    SELECT = (
+        "id,user_id,caption,media_url,type,created_at,city,reactions,expires_at,"
+        "users!posts_user_id_fkey(id,first_name,last_name,profile_photo_url,profile_type,username)"
+    )
+    rows = (
+        db.table("posts")
+        .select(SELECT)
+        .eq("user_id", author_id)
+        .in_("type", ["photo", "video", "text", "poll"])
+        .order("created_at", desc=True)
+        .range(offset, offset + limit - 1)
+        .execute()
+        .data
+    )
+    posts = []
+    for r in rows:
+        author_raw = r.pop("users!posts_user_id_fkey", None) or {}
+        posts.append({**r, "author": author_raw, "viewer_reaction": None})
+    return {"posts": posts}
+
+
 @router.get("/stories")
 async def get_stories(
     request: Request,

@@ -7,7 +7,6 @@ import { useAuthStore } from "@/store/authStore";
 import { useScreenCapture } from "@/hooks/useScreenCapture";
 import { PostCard }   from "@/components/PostCard";
 import { StoryBar }   from "@/components/StoryBar";
-import { StreakBadge } from "@/components/StreakBadge";
 import { CreatePost } from "@/components/CreatePost";
 import { AdBanner }   from "@/components/AdBanner";
 import { BottomNav }  from "@/components/BottomNav";
@@ -224,7 +223,6 @@ export default function Feed() {
       <header className="sticky top-0 z-20 bg-bg-base/90 backdrop-blur-md border-b border-border px-4 pt-safe-3 pb-3 flex items-center justify-between">
         <NavLogo />
         <div className="flex items-center gap-2.5">
-          <StreakBadge initialStreak={(user as any).current_streak ?? 0} />
           <button
             onClick={() => setShowFilters(v => !v)}
             className={`p-2 rounded-xl transition-colors ${showFilters ? "bg-bg-muted" : "hover:bg-bg-muted"}`}
