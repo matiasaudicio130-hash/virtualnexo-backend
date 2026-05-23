@@ -93,8 +93,7 @@ export function AuraLogo({
 
 /** Logo de nav — logo completo estático, sin animación */
 export function NavLogo({ light = false }: { light?: boolean }) {
-  // logo-full-dark-removebg-preview.png tiene canal alpha real (removebg.com)
-  const src = light ? "/brand/logo-light-digital.png" : "/brand/logo-full-dark-removebg-preview.png";
+  const src = light ? "/brand/logo-light-digital.png" : "/brand/logo-aura.png";
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
       <img
