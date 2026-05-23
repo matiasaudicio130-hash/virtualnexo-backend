@@ -37,7 +37,7 @@ export default function VerifyEmail() {
 
   return (
     <div className="min-h-screen bg-bg-base flex flex-col items-center justify-center px-4 py-12 animate-fade-in">
-      <Link to="/" className="mb-8 text-2xl font-bold bg-gradient-brand bg-clip-text text-transparent">
+      <Link to="/" className="mb-8 brand-eyebrow">
         {APP_CONFIG.name}
       </Link>
 
@@ -47,7 +47,7 @@ export default function VerifyEmail() {
             <div className="w-16 h-16 rounded-2xl bg-accent-purple/10 flex items-center justify-center mx-auto mb-6">
               <Mail size={32} className="text-accent-purple" />
             </div>
-            <h1 className="text-2xl font-bold mb-3">Revisá tu email</h1>
+            <h1 className="brand-title" style={{ fontSize: "var(--fs-display-m)" }}>Revisá tu email</h1>
             <p className="text-text-secondary text-sm leading-relaxed mb-6">
               Te enviamos un link de verificación. Revisá tu bandeja de entrada y también la carpeta de spam.
             </p>
@@ -58,14 +58,14 @@ export default function VerifyEmail() {
         {state === "verifying" && (
           <>
             <Loader2 size={40} className="text-accent-purple mx-auto mb-6 animate-spin" />
-            <h1 className="text-xl font-bold">Verificando...</h1>
+            <h1 className="brand-title" style={{ fontSize: "var(--fs-display-m)" }}>Verificando...</h1>
           </>
         )}
 
         {state === "success" && (
           <>
             <CheckCircle size={48} className="text-status-success mx-auto mb-6" />
-            <h1 className="text-2xl font-bold mb-3">¡Email verificado!</h1>
+            <h1 className="brand-title" style={{ fontSize: "var(--fs-display-m)" }}>¡Email verificado!</h1>
             <p className="text-text-secondary text-sm">
               {nextStatus === "pending_kyc"
                 ? "Ahora necesitás verificar tu identidad. Te redirigimos..."
@@ -77,7 +77,7 @@ export default function VerifyEmail() {
         {state === "error" && (
           <>
             <XCircle size={48} className="text-status-error mx-auto mb-6" />
-            <h1 className="text-2xl font-bold mb-3">Link inválido</h1>
+            <h1 className="brand-title" style={{ fontSize: "var(--fs-display-m)" }}>Link inválido</h1>
             <p className="text-text-secondary text-sm mb-6">{errorMsg}</p>
             <Link to="/login">
               <Button fullWidth>Ir al login</Button>

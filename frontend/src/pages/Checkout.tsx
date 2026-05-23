@@ -58,7 +58,7 @@ export default function Checkout() {
 
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold">{APP_CONFIG.name}</h1>
+          <h1 className="brand-eyebrow">{APP_CONFIG.name}</h1>
           <p className="text-text-muted text-sm mt-1">Elegí tu membresía</p>
         </div>
 

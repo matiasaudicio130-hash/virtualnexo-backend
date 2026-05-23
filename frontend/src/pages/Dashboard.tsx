@@ -414,7 +414,7 @@ function MembershipCTA() {
 
       {!showAll && monthly && (
         <div className="mb-4">
-          <p className="text-3xl font-bold">{formatARS(monthly.price_ars)}<span className="text-text-muted text-sm font-normal">{t.membership.perMonth}</span></p>
+          <p className="brand-title" style={{ fontSize: "var(--fs-display-l)" }}>{formatARS(monthly.price_ars)}<span className="text-text-muted text-sm font-normal" style={{ fontFamily: "var(--font-sans)" }}>{t.membership.perMonth}</span></p>
           <p className="text-text-muted text-xs mt-1">{t.membership.international}: {formatUSD(monthly.price_usd)}{t.membership.perMonth}</p>
           {blue && <p className="text-text-muted text-xs">{t.membership.blueToday}: {formatARS(blue.sell)}</p>}
         </div>
@@ -432,7 +432,7 @@ function MembershipCTA() {
                   {p.savings && <p className="text-status-success text-xs">{t.membership.save} {p.savings.pct}% {t.membership.vsMonthly}</p>}
                 </div>
                 <div className="text-right">
-                  <p className="text-xl font-bold">{formatARS(p.price_ars)}</p>
+                  <p className="brand-title" style={{ fontSize: "var(--fs-display-m)" }}>{formatARS(p.price_ars)}</p>
                   <p className="text-text-muted text-xs">{formatUSD(p.price_usd)} USD</p>
                 </div>
               </div>

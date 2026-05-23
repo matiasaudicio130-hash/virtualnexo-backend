@@ -88,6 +88,71 @@
 ::-webkit-scrollbar-thumb { background: var(--ash); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--gold-deep); }
 
+/* ── Brand typography helpers (usar en toda la app) ─────── */
+
+/* Clase para cualquier título editorial grande */
+.brand-title {
+  font-family: var(--font-display);
+  font-weight: 400;
+  letter-spacing: -0.015em;
+  color: var(--paper);
+  line-height: 1.1;
+}
+
+.brand-title-italic {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-style: italic;
+  letter-spacing: -0.015em;
+  color: var(--paper);
+  line-height: 1.1;
+}
+
+/* Eyebrow / kicker — JetBrains Mono */
+.brand-eyebrow {
+  font-family: var(--font-mono);
+  font-size: var(--fs-eyebrow);
+  letter-spacing: var(--tracking-eyebrow);
+  text-transform: uppercase;
+  color: var(--gold);
+  font-weight: 500;
+}
+
+.brand-eyebrow-muted {
+  font-family: var(--font-mono);
+  font-size: var(--fs-eyebrow);
+  letter-spacing: var(--tracking-eyebrow);
+  text-transform: uppercase;
+  color: var(--fg-mute);
+  font-weight: 500;
+}
+
+/* Estado vacío — usado en empty states de toda la app */
+.brand-empty-title {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-style: italic;
+  font-size: var(--fs-display-m);
+  color: var(--paper);
+  line-height: 1.15;
+}
+
+/* Animación del logo (rotación suave del aura) */
+@keyframes aura-float {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-12px); }
+}
+
+@keyframes aura-pulse {
+  0%, 100% { opacity: 0.5; transform: scale(1); }
+  50%       { opacity: 0.15; transform: scale(1.12); }
+}
+
+@keyframes aura-rotate {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
 /* ─── Theme: Default (Dark + Gold AURA) ──────────────────── */
 :root {
   --bg-base:  4 4 9;

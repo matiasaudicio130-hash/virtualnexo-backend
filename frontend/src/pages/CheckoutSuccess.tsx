@@ -17,7 +17,7 @@ export default function CheckoutSuccess() {
     <div className="min-h-screen bg-bg-base flex items-center justify-center p-4">
       <div className="w-full max-w-sm text-center space-y-6">
         <div className="w-20 h-20 bg-status-success/15 rounded-full flex items-center justify-center mx-auto border border-status-success/25">
-          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
         </div>
 
         <div>

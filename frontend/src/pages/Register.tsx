@@ -59,7 +59,7 @@ export default function Register() {
 
   return (
     <div className="min-h-dvh flex flex-col items-center justify-center pt-safe px-4 py-12 animate-fade-in"
-      style={{ background: "radial-gradient(ellipse 80% 70% at 50% 30%, #1a1205 0%, #04040a 100%)" }}>
+      style={{ background: "radial-gradient(ellipse 80% 70% at 50% 50%, rgba(28,20,8,0.95) 0%, var(--obsidian) 100%)" }}>
       <Link to="/" className="mb-8 flex items-center">
         <Logo variant="primary" size={80}
           style={{ filter: "drop-shadow(0 0 18px rgba(201,162,39,0.5))" }}/>

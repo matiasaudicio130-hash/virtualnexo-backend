@@ -6,7 +6,7 @@ import { Clock } from "lucide-react";
 export default function PendingApproval() {
   return (
     <div className="min-h-screen bg-bg-base flex flex-col items-center justify-center px-4 py-12 animate-fade-in">
-      <Link to="/" className="mb-8 text-2xl font-bold bg-gradient-brand bg-clip-text text-transparent">
+      <Link to="/" className="mb-8 brand-eyebrow">
         {APP_CONFIG.name}
       </Link>
 
@@ -14,7 +14,7 @@ export default function PendingApproval() {
         <div className="w-16 h-16 rounded-2xl bg-status-warning/10 flex items-center justify-center mx-auto mb-6">
           <Clock size={32} className="text-status-warning" />
         </div>
-        <h1 className="text-2xl font-bold mb-3">Revisión en proceso</h1>
+        <h1 className="brand-title" style={{ fontSize: "var(--fs-display-m)" }}>Revisión en proceso</h1>
         <p className="text-text-secondary text-sm leading-relaxed">
           Usaste un código de acceso especial. Tu cuenta está en revisión manual por nuestro equipo.
           Recibirás una respuesta por email en las próximas <strong className="text-text-primary">24-48 horas</strong>.
