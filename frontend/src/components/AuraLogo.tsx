@@ -93,7 +93,8 @@ export function AuraLogo({
 
 /** Logo de nav — logo completo estático, sin animación */
 export function NavLogo({ light = false }: { light?: boolean }) {
-  const src = light ? "/brand/logo-light-digital.png" : "/brand/logo-transparent.png";
+  // logo-full-dark-removebg-preview.png tiene canal alpha real (removebg.com)
+  const src = light ? "/brand/logo-light-digital.png" : "/brand/logo-full-dark-removebg-preview.png";
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
       <img
@@ -104,9 +105,18 @@ export function NavLogo({ light = false }: { light?: boolean }) {
           width: 36,
           height: 36,
           objectFit: "contain",
-          filter: light ? "none" : "drop-shadow(0 0 5px rgba(201,162,39,0.45))",
+          filter: light ? "none" : "drop-shadow(0 0 6px rgba(201,162,39,0.5))",
         }}
       />
+      <span style={{
+        fontSize: 11,
+        letterSpacing: "0.32em",
+        fontWeight: 300,
+        color: light ? "#7a5010" : "rgba(255,229,102,0.82)",
+        textTransform: "uppercase" as const,
+      }}>
+        AURA
+      </span>
     </div>
   );
 }
