@@ -14,6 +14,7 @@ import { ChatInput }    from "@/components/chat/ChatInput";
 import { MessageBubble } from "@/components/chat/MessageBubble";
 import { GroupsSection } from "@/components/chat/GroupChat";
 import { usePresenceHeartbeat, useOnlineStatus, formatLastSeen } from "@/hooks/useOnlineStatus";
+import { BottomNav } from "@/components/BottomNav";
 
 function timeAgo(d: string) {
   const diff = Date.now() - new Date(d).getTime();
@@ -391,7 +392,7 @@ export default function Messages() {
         </div>
       ) : tab === "messages" ? (
         /* Lista de conversaciones */
-        <main className="flex-1 max-w-lg mx-auto w-full">
+        <main className="flex-1 max-w-lg mx-auto w-full pb-[80px]">
           {loading && (
             <div className="space-y-2 p-4">
               {[1, 2, 3].map(i => <div key={i} className="h-16 bg-bg-card rounded-2xl animate-pulse" />)}
@@ -455,7 +456,7 @@ export default function Messages() {
         </main>
       ) : (
         /* Pestaña Matches */
-        <main className="flex-1 max-w-lg mx-auto w-full">
+        <main className="flex-1 max-w-lg mx-auto w-full pb-[80px]">
           {matchesLoading && (
             <div className="space-y-2 p-4">
               {[1, 2, 3].map(i => <div key={i} className="h-16 bg-bg-card rounded-2xl animate-pulse" />)}
@@ -513,6 +514,8 @@ export default function Messages() {
           </div>
         </main>
       )}
+
+      {!activeConv && <BottomNav />}
     </div>
   );
 }

@@ -1,11 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { useNavigate } from "react-router-dom";
-import { Plus, RefreshCw, SlidersHorizontal, User, Plane, MessageSquare, Calendar } from "lucide-react";
-import { NotificationBell } from "@/components/NotificationBell";
+import { Plus } from "lucide-react";
+import { SlidersHorizontal } from "@phosphor-icons/react";
 import { NavLogo }            from "@/components/AuraLogo";
-import { NearbyUsers }        from "@/components/NearbyUsers";
-import { ProfileSuggestions } from "@/components/ProfileSuggestions";
-import { useGeolocation }     from "@/hooks/useGeolocation";
 import { feedApi, adsApi, followsApi } from "@/lib/api";
 import { useAuthStore } from "@/store/authStore";
 import { useScreenCapture } from "@/hooks/useScreenCapture";
@@ -14,7 +10,7 @@ import { StoryBar } from "@/components/StoryBar";
 import { StreakBadge } from "@/components/StreakBadge";
 import { CreatePost } from "@/components/CreatePost";
 import { AdBanner } from "@/components/AdBanner";
-import { APP_CONFIG } from "@/config/app";
+import { BottomNav } from "@/components/BottomNav";
 import type { Post, Story } from "@/types";
 import type { Ad } from "@/components/AdBanner";
 
@@ -23,7 +19,6 @@ const ADS_EVERY_N_POSTS = 3;
 const RADIUS_OPTIONS = [50, 100, 200, 500];
 
 export default function Feed() {
-  const navigate = useNavigate();
   const { user } = useAuthStore();
   const [posts, setPosts]           = useState<Post[]>([]);
   const [loading, setLoading]       = useState(true);
@@ -43,7 +38,6 @@ export default function Feed() {
   const LIMIT = 12;
 
   useScreenCapture({ warn: true });
-  const { coords } = useGeolocation();
 
   useEffect(() => {
     if (navigator.geolocation) {
@@ -112,29 +106,17 @@ export default function Feed() {
 
   return (
     <div className="min-h-screen bg-bg-base text-text-primary">
-      {/* Header */}
+      {/* Header — logo + streak + filtros */}
       <header className="sticky top-0 z-20 bg-bg-base/90 backdrop-blur-md border-b border-border px-4 pt-safe-3 pb-3 flex items-center justify-between">
         <NavLogo />
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2.5">
           <StreakBadge initialStreak={(user as any).current_streak ?? 0} />
-          <button onClick={() => setShowFilters(v => !v)} className="p-2 rounded-xl hover:bg-bg-muted text-text-muted">
-            <SlidersHorizontal size={18} />
-          </button>
-          <button onClick={loadFeed} className="p-2 rounded-xl hover:bg-bg-muted text-text-muted">
-            <RefreshCw size={18} className={loading ? "animate-spin" : ""} />
-          </button>
-          <button onClick={() => navigate("/events")} className="p-2 rounded-xl hover:bg-bg-muted text-text-muted" title="Eventos">
-            <Calendar size={18} />
-          </button>
-          <button onClick={() => navigate("/travel")} className="p-2 rounded-xl hover:bg-bg-muted text-text-muted" title="Modo Viaje">
-            <Plane size={18} />
-          </button>
-          <button onClick={() => navigate("/messages")} className="p-2 rounded-xl hover:bg-bg-muted text-text-muted" title="Mensajes">
-            <MessageSquare size={18} />
-          </button>
-          <NotificationBell />
-          <button onClick={() => navigate("/dashboard")} className="p-2 rounded-xl hover:bg-bg-muted text-text-muted" title="Mi cuenta">
-            <User size={18} />
+          <button
+            onClick={() => setShowFilters(v => !v)}
+            className={`p-2 rounded-xl transition-colors ${showFilters ? "bg-bg-muted" : "hover:bg-bg-muted"}`}
+            aria-label="Filtros"
+          >
+            <SlidersHorizontal size={18} weight="light" style={{ color: showFilters ? "var(--gold, #C9A227)" : undefined }} className="text-text-muted" />
           </button>
         </div>
       </header>
@@ -194,7 +176,7 @@ export default function Feed() {
         </div>
       )}
 
-      <main className="max-w-lg mx-auto pb-24">
+      <main className="max-w-lg mx-auto pb-[100px]">
         {/* Stories */}
         <div className="px-4 pt-4 pb-2">
           <StoryBar
@@ -202,12 +184,6 @@ export default function Feed() {
             onSelectStory={s => setSelectedStory(s)}
           />
         </div>
-
-        {/* Cerca tuyo */}
-        {coords && <NearbyUsers lat={coords.lat} lng={coords.lng} />}
-
-        {/* Sugerencias de perfiles */}
-        <ProfileSuggestions />
 
         {/* Posts */}
         <div className="space-y-4 px-4 pt-2">
@@ -264,13 +240,13 @@ export default function Feed() {
         </div>
       </main>
 
-      {/* FAB — crear publicación */}
+      {/* FAB — crear publicación (sube para no quedar tapado por bottom nav) */}
       <button
         onClick={() => setShowCreate(true)}
-        className="fixed bottom-6 right-6 w-14 h-14 bg-accent-purple rounded-full shadow-lg flex items-center justify-center text-white hover:scale-105 active:scale-95 transition-transform z-30"
+        className="fixed bottom-[76px] right-4 w-12 h-12 bg-accent-purple rounded-full shadow-lg flex items-center justify-center text-white hover:scale-105 active:scale-95 transition-transform z-30"
         aria-label="Nueva publicación"
       >
-        <Plus size={24} />
+        <Plus size={22} />
       </button>
 
       {/* Modal crear post */}
@@ -285,6 +261,8 @@ export default function Feed() {
       {selectedStory && (
         <StoryViewer story={selectedStory} onClose={() => setSelectedStory(null)} />
       )}
+
+      <BottomNav />
     </div>
   );
 }
@@ -349,7 +327,7 @@ function StoryViewer({ story, onClose }: { story: Story; onClose: () => void }) 
             <span className="text-white text-sm font-semibold drop-shadow">{story.name}</span>
           </button>
           <button onClick={onClose} className="w-10 h-10 flex items-center justify-center text-white/80">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
               <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
             </svg>
           </button>

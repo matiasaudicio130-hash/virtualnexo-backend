@@ -26,6 +26,7 @@ import TravelMode from "@/pages/TravelMode";
 import Messages from "@/pages/Messages";
 import ProfileView from "@/pages/ProfileView";
 import Events      from "@/pages/Events";
+import Explore     from "@/pages/Explore";
 
 // Checkout
 import Checkout from "@/pages/Checkout";
@@ -72,6 +73,7 @@ export default function App() {
         <Route path="/travel" element={<TravelMode />} />
         <Route path="/messages" element={<Messages />} />
         <Route path="/events"   element={<Events />} />
+        <Route path="/explore"  element={<Explore />} />
         <Route path="/checkout" element={<Checkout />} />
         <Route path="/checkout/pay" element={<CheckoutPay />} />
         <Route path="/checkout/success" element={<CheckoutSuccess />} />

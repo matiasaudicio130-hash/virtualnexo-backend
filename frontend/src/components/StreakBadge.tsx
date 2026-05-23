@@ -3,6 +3,7 @@
  * Se llama desde Feed y Dashboard. Dispara el heartbeat automáticamente una vez por sesión.
  */
 import { useState, useEffect, useRef } from "react";
+import { Flame } from "@phosphor-icons/react";
 import { authApi } from "@/lib/api";
 
 const SESSION_KEY = "streak_heartbeat_done";
@@ -51,17 +52,20 @@ export function StreakBadge({ initialStreak = 0, showToast = true }: Props) {
   return (
     <>
       {/* Badge inline */}
-      <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-bg-muted border border-border/60"
-        title={`Racha actual: ${streak} día${streak !== 1 ? "s" : ""}`}>
-        <span className="text-sm leading-none">🔥</span>
-        <span className="text-xs font-semibold text-text-primary tabular-nums">{streak}</span>
+      <div
+        className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-bg-muted border border-border/60"
+        title={`Racha actual: ${streak} día${streak !== 1 ? "s" : ""}`}
+        style={{ borderColor: "rgba(201,162,39,0.3)" }}
+      >
+        <Flame size={13} weight="fill" style={{ color: "#C9A227" }} />
+        <span className="text-xs font-semibold tabular-nums" style={{ color: "#C9A227", fontFamily: "var(--font-mono, monospace)" }}>{streak}</span>
       </div>
 
       {/* Toast de racha nueva */}
       {toast && (
         <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 animate-slide-up pointer-events-none">
           <div className="flex items-center gap-3 px-5 py-3 bg-bg-card border border-accent-purple/30 rounded-2xl shadow-lg">
-            <span className="text-2xl">🔥</span>
+            <Flame size={24} weight="fill" style={{ color: "#C9A227" }} />
             <div>
               <p className="text-sm font-semibold text-text-primary">
                 ¡{streak} días seguidos!

@@ -11,8 +11,9 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import {
   Shield, LogOut, User, Star, MapPin, Rss,
-  Settings, Check, MessageSquare, ArrowLeft, Eye, Heart,
+  Settings, Check, MessageSquare, Eye, Heart,
 } from "lucide-react";
+import { BottomNav } from "@/components/BottomNav";
 import { usePricingPlans, formatARS, formatUSD } from "@/hooks/useExchangeRate";
 import { profilesApi } from "@/lib/api";
 import { AvatarUpload } from "@/components/AvatarUpload";
@@ -20,7 +21,6 @@ import { StreakBadge } from "@/components/StreakBadge";
 import { useScreenCapture } from "@/hooks/useScreenCapture";
 import { ProfileTypeSettings } from "@/components/ProfileTypeSettings";
 import { InstallPrompt } from "@/components/InstallPrompt";
-import { NotificationBell } from "@/components/NotificationBell";
 import { SecuritySettings } from "@/components/SecuritySettings";
 import { EditProfileModal } from "@/components/EditProfileModal";
 import { MyProfileSection } from "@/components/MyProfileSection";
@@ -83,18 +83,8 @@ export default function Dashboard() {
 
       {/* Header */}
       <header className="sticky top-0 z-20 bg-bg-base/85 backdrop-blur-md border-b border-border px-4 pt-safe-3 pb-3 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => navigate("/feed")}
-            className="p-2 rounded-xl hover:bg-bg-muted transition-colors"
-            title="Volver al feed"
-          >
-            <ArrowLeft size={17} className="text-text-muted" />
-          </button>
-          <NavLogo />
-        </div>
+        <NavLogo />
         <div className="flex items-center gap-2">
-          <NotificationBell />
           <button
             onClick={() => setSettingsOpen(v => !v)}
             className="p-2 rounded-xl hover:bg-bg-muted transition-colors"
@@ -112,7 +102,7 @@ export default function Dashboard() {
         </div>
       </header>
 
-      <main className="max-w-2xl mx-auto px-4 py-8 space-y-5">
+      <main className="max-w-2xl mx-auto px-4 py-8 space-y-5 pb-[80px]">
 
         {/* Panel de configuración */}
         {settingsOpen && (
@@ -375,6 +365,8 @@ export default function Dashboard() {
         {/* Seguridad */}
         <SecuritySection />
       </main>
+
+      <BottomNav />
     </div>
   );
 }
