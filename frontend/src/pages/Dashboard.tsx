@@ -10,8 +10,8 @@ import { APP_CONFIG } from "@/config/app";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import {
-  Shield, LogOut, User, Star, MapPin, Rss,
-  Settings, Check, MessageSquare, Eye, Heart,
+  Shield, LogOut, User,
+  Settings, Check, Eye, Heart,
 } from "lucide-react";
 import { BottomNav } from "@/components/BottomNav";
 import { usePricingPlans, formatARS, formatUSD } from "@/hooks/useExchangeRate";
@@ -293,34 +293,6 @@ export default function Dashboard() {
             )}
           </div>
         </Card>
-
-        {/* Navegación */}
-        <div className="grid grid-cols-1 gap-3">
-          {[
-            { icon: Rss,          key: "feed"       as const, to: "/feed",               disabled: false },
-            { icon: MessageSquare,key: "messages"   as const, to: "/messages",           disabled: false },
-            { icon: Star,         key: "reviews"    as const, to: `/reviews/${user.id}`, disabled: false },
-            { icon: MapPin,       key: "travelMode" as const, to: null,                  disabled: true  },
-          ].map(({ icon: Icon, key, to, disabled }) => (
-            <Card
-              key={key}
-              className={`p-4 flex items-center gap-4 ${
-                disabled
-                  ? "opacity-40 cursor-default"
-                  : "cursor-pointer hover:border-accent-purple/40 transition-colors"
-              }`}
-              onClick={to && !disabled ? () => navigate(to) : undefined}
-            >
-              <div className="w-9 h-9 rounded-xl bg-bg-muted flex items-center justify-center flex-shrink-0">
-                <Icon size={18} className="text-text-muted" />
-              </div>
-              <div className="flex-1">
-                <p className="font-medium text-sm">{t.nav[key]}</p>
-                {disabled && <p className="text-text-muted text-xs">{t.common.comingSoon}</p>}
-              </div>
-            </Card>
-          ))}
-        </div>
 
         {/* Quién vio mi perfil */}
         {viewers.length > 0 && (

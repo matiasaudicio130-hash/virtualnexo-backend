@@ -35,6 +35,10 @@ export interface User {
   // deprecated
   hide_from_solos: boolean;
   no_messages_from_solos: boolean;
+  // Identidad pública
+  username?: string | null;
+  seeking_tags?: string[] | null;
+  seeking_text?: string | null;
 }
 
 export interface AuthTokens {

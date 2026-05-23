@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { MapPin } from "lucide-react";
 import { useGeolocation } from "@/hooks/useGeolocation";
 import { NearbyUsers } from "@/components/NearbyUsers";
 import { ProfileSuggestions } from "@/components/ProfileSuggestions";
@@ -12,16 +13,27 @@ type Tab = "personas" | "eventos" | "viaje";
 export default function Explore() {
   const navigate = useNavigate();
   const { user } = useAuthStore();
-  const { coords } = useGeolocation();
+  const { coords: geoCoords } = useGeolocation();
+  const [manualCoords, setManualCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [tab, setTab] = useState<Tab>("personas");
+
+  const coords = manualCoords ?? geoCoords;
 
   if (!user) return null;
 
   const tabs: { id: Tab; label: string; Icon: any }[] = [
-    { id: "personas", label: "Personas",  Icon: Compass       },
-    { id: "eventos",  label: "Eventos",   Icon: CalendarBlank },
+    { id: "personas", label: "Personas",   Icon: Compass       },
+    { id: "eventos",  label: "Eventos",    Icon: CalendarBlank },
     { id: "viaje",    label: "Modo Viaje", Icon: Airplane      },
   ];
+
+  function requestGPS() {
+    navigator.geolocation.getCurrentPosition(
+      (pos) => setManualCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+      (err) => console.warn("GPS denegado:", err.message),
+      { timeout: 8000, maximumAge: 60000 },
+    );
+  }
 
   return (
     <div className="min-h-screen bg-bg-base text-text-primary">
@@ -60,18 +72,29 @@ export default function Explore() {
       <main className="max-w-lg mx-auto pb-[80px]">
         {tab === "personas" && (
           <>
-            {coords && <NearbyUsers lat={coords.lat} lng={coords.lng} />}
+            {coords ? (
+              <NearbyUsers lat={coords.lat} lng={coords.lng} />
+            ) : (
+              <div className="mx-4 mt-3 p-4 rounded-xl border border-border text-center">
+                <MapPin size={20} className="mx-auto mb-2" style={{ color: "var(--gold, #C9A227)" }} />
+                <p className="text-sm text-text-muted mb-3">
+                  Activá tu ubicación para ver personas cerca
+                </p>
+                <button
+                  onClick={requestGPS}
+                  className="text-xs px-4 py-1.5 rounded-full border transition-all hover:opacity-80"
+                  style={{ color: "var(--gold, #C9A227)", borderColor: "rgba(201,162,39,0.35)" }}
+                >
+                  Activar GPS
+                </button>
+              </div>
+            )}
             <ProfileSuggestions />
           </>
         )}
 
-        {tab === "eventos" && (
-          <EventosTab navigate={navigate} />
-        )}
-
-        {tab === "viaje" && (
-          <ViajeTab navigate={navigate} />
-        )}
+        {tab === "eventos" && <EventosTab navigate={navigate} />}
+        {tab === "viaje"   && <ViajeTab   navigate={navigate} />}
       </main>
 
       <BottomNav />

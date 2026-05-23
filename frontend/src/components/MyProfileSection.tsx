@@ -22,13 +22,13 @@ const SEEKING_TAGS = [
 
 function calcCompleteness(user: any): { pct: number; missing: string[] } {
   const checks = [
-    [!!user.profile_photo_url, "Foto de perfil"],
-    [!!user.username, "Username (@handle)"],
-    [!!user.bio, "Descripción"],
-    [!!user.province, "Ubicación"],
+    [!!(user.profile_photo_url), "Foto de perfil"],
+    [!!(user.username), "Username (@handle)"],
+    [!!(user.bio?.trim()), "Bio"],
+    [!!(user.province || user.city), "Ubicación"],
     [!!(user.seeking_tags?.length), "Qué buscás"],
-    [!!user.profile_type, "Tipo de perfil"],
-    [!!user.sexual_orientation, "Orientación"],
+    [!!(user.profile_type), "Tipo de perfil"],
+    [!!(user.sexual_orientation && user.sexual_orientation !== "na"), "Orientación"],
   ] as [boolean, string][];
   const done = checks.filter(([v]) => v).length;
   const missing = checks.filter(([v]) => !v).map(([, label]) => label);
@@ -192,11 +192,11 @@ export function MyProfileSection() {
       {stats && (
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 1, marginBottom: 20, background: "var(--border-soft)", borderRadius: "var(--radius-lg)", overflow: "hidden" }}>
           {[
-            { icon: <Eye size={14} strokeWidth={1.5}/>, value: stats.profile_views_7d, label: "Vistas (7d)" },
-            { icon: <Lock size={14} strokeWidth={1.5}/>, value: stats.pending_album_requests, label: "Solicitudes" },
-            { icon: <Flame size={14} strokeWidth={1.5}/>, value: stats.current_streak, label: "Racha 🔥" },
+            { icon: <Eye size={14} strokeWidth={1.5}/>, value: stats.profile_views_7d, label: "Vistas (7d)", hint: "" },
+            { icon: <Lock size={14} strokeWidth={1.5}/>, value: stats.pending_album_requests, label: "Solicitudes", hint: "" },
+            { icon: <Flame size={14} strokeWidth={1.5}/>, value: stats.current_streak, label: "Días seguidos", hint: "Días consecutivos activo en Aura" },
           ].map((s, i) => (
-            <div key={i} style={{ background: "var(--onyx)", padding: "14px 8px", textAlign: "center" }}>
+            <div key={i} style={{ background: "var(--onyx)", padding: "14px 8px", textAlign: "center" }} title={s.hint || undefined}>
               <div style={{ color: "var(--gold)", display: "flex", justifyContent: "center", marginBottom: 4 }}>{s.icon}</div>
               <p style={{ fontFamily: "var(--font-display)", fontSize: 22, fontWeight: 400, color: "var(--paper)" }}>{s.value}</p>
               <p style={{ fontFamily: "var(--font-mono)", fontSize: 8, color: "var(--mist)", letterSpacing: "0.12em", textTransform: "uppercase" }}>{s.label}</p>
@@ -209,7 +209,14 @@ export function MyProfileSection() {
       {pct < 100 && (
         <div style={{ marginBottom: 20, padding: "16px", border: "1px solid var(--border-soft)", borderRadius: "var(--radius-lg)" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
-            <p className="brand-eyebrow">Mostrás más de vos</p>
+            <div>
+              <p className="brand-eyebrow">{pct < 100 ? "Completá tu perfil" : "Perfil completo ✓"}</p>
+              {missing.length > 0 && (
+                <p style={{ fontFamily: "var(--font-sans)", fontSize: 11, color: "var(--mist)", marginTop: 2 }}>
+                  Falta: {missing.slice(0, 2).join(", ")}{missing.length > 2 ? ` y ${missing.length - 2} más` : ""}
+                </p>
+              )}
+            </div>
             <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--gold)" }}>{pct}%</span>
           </div>
           <div style={{ height: 3, background: "var(--smoke)", borderRadius: 2, marginBottom: 12 }}>

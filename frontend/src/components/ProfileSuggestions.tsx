@@ -29,7 +29,12 @@ export function ProfileSuggestions() {
   }, []);
 
   const visible = users.filter(u => !dismissed.has(u.id));
-  if (loading || visible.length === 0) return null;
+  if (loading) return null;
+  if (visible.length === 0) return (
+    <div className="mx-4 my-3 py-6 text-center">
+      <p className="text-xs text-text-muted">No hay sugerencias por ahora. Completá tu perfil para aparecer en Explorar.</p>
+    </div>
+  );
 
   return (
     <div className="mx-4 my-3 bg-bg-card border border-border/50 rounded-2xl overflow-hidden">

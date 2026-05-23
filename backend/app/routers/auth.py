@@ -282,7 +282,8 @@ async def me(request: Request):
         "profile_type,sexual_orientation,interested_in,visible_to,no_messages_from,"
         "identity_description,profile_extended,"
         "hide_from_solos,no_messages_from_solos,"
-        "current_streak,longest_streak,last_streak_date"
+        "current_streak,longest_streak,last_streak_date,"
+        "username,seeking_tags,seeking_text"
     ).eq("id", payload["sub"]).execute()
     if not result.data:
         raise HTTPException(404, "Usuario no encontrado")
