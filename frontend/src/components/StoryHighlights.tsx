@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { Plus, X } from "lucide-react";
-import { highlightsApi } from "@/lib/api";
+import { Plus, X, ImagePlus } from "lucide-react";
+import { highlightsApi, mediaApi } from "@/lib/api";
 
 interface Highlight {
   id: string;
@@ -20,6 +20,8 @@ export function StoryHighlights({ userId, isOwn = false, onSelect }: Props) {
   const [showCreate, setShowCreate] = useState(false);
   const [newTitle, setNewTitle]     = useState("");
   const [creating, setCreating]     = useState(false);
+  const [coverFile, setCoverFile]   = useState<File | null>(null);
+  const [coverPreview, setCoverPreview] = useState<string | null>(null);
 
   useEffect(() => {
     highlightsApi.forUser(userId)
@@ -31,12 +33,27 @@ export function StoryHighlights({ userId, isOwn = false, onSelect }: Props) {
     if (!newTitle.trim() || creating) return;
     setCreating(true);
     try {
-      const { data } = await highlightsApi.create({ title: newTitle.trim(), story_ids: [] });
+      let cover_url: string | undefined;
+      if (coverFile) {
+        const { data: uploaded } = await mediaApi.uploadPost(coverFile);
+        cover_url = uploaded?.url ?? uploaded?.media_url ?? undefined;
+      }
+      const { data } = await highlightsApi.create({ title: newTitle.trim(), story_ids: [], cover_url });
       setHighlights(prev => [...prev, data]);
       setNewTitle("");
+      setCoverFile(null);
+      setCoverPreview(null);
       setShowCreate(false);
     } catch { /* ignore */ }
     setCreating(false);
+  }
+
+  function handleCoverSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setCoverFile(file);
+    setCoverPreview(URL.createObjectURL(file));
+    e.target.value = "";
   }
 
   async function handleDelete(id: string, e: React.MouseEvent) {
@@ -114,6 +131,21 @@ export function StoryHighlights({ userId, isOwn = false, onSelect }: Props) {
           <div className="bg-bg-card border border-border rounded-2xl p-6 w-72 animate-slide-up"
             onClick={e => e.stopPropagation()}>
             <h3 className="font-semibold text-sm mb-4">Nuevo Highlight</h3>
+
+            {/* Portada */}
+            <label className="block mb-4 cursor-pointer">
+              <div className="w-full h-28 rounded-xl border border-dashed border-border overflow-hidden flex items-center justify-center bg-bg-muted hover:border-accent-purple/40 transition-colors">
+                {coverPreview
+                  ? <img src={coverPreview} className="w-full h-full object-cover" />
+                  : <div className="flex flex-col items-center gap-1.5 text-text-muted">
+                      <ImagePlus size={20} strokeWidth={1.5} />
+                      <span className="text-xs">Foto de portada (opcional)</span>
+                    </div>
+                }
+              </div>
+              <input type="file" accept="image/*" className="hidden" onChange={handleCoverSelect} />
+            </label>
+
             <input
               value={newTitle}
               onChange={e => setNewTitle(e.target.value)}
@@ -124,7 +156,7 @@ export function StoryHighlights({ userId, isOwn = false, onSelect }: Props) {
               className="w-full bg-bg-muted border border-border rounded-xl px-4 py-2.5 text-sm text-text-primary placeholder-text-muted focus:outline-none focus:border-accent-purple/60 mb-4"
             />
             <div className="flex gap-2">
-              <button onClick={() => setShowCreate(false)}
+              <button onClick={() => { setShowCreate(false); setCoverFile(null); setCoverPreview(null); }}
                 className="flex-1 py-2.5 border border-border text-text-muted text-sm rounded-xl hover:bg-bg-muted transition-all">
                 Cancelar
               </button>

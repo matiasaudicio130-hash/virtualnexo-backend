@@ -4,7 +4,7 @@
  */
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Eye, Images, Lock, Plus, Flame, AlertCircle } from "lucide-react";
+import { Eye, Images, Lock, Plus, Flame, AlertCircle, X } from "lucide-react";
 import { albumsApi } from "@/lib/api";
 import { useAuthStore } from "@/store/authStore";
 import { Button } from "@/components/ui/Button";
@@ -165,6 +165,9 @@ export function MyProfileSection() {
   const [showCreate, setShowCreate] = useState(false);
   const [newAlbumTitle, setNewAlbumTitle] = useState("");
   const [newAlbumPrivate, setNewAlbumPrivate] = useState(false);
+  const [openAlbum, setOpenAlbum]   = useState<any | null>(null);
+  const [albumPhotos, setAlbumPhotos] = useState<any[]>([]);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
   useEffect(() => {
     albumsApi.myStats().then(r => setStats(r.data)).catch(() => {});
@@ -174,7 +177,6 @@ export function MyProfileSection() {
   if (!user) return null;
 
   const { pct, missing } = calcCompleteness(user);
-  const displayName = (user as any).username ? `@${(user as any).username}` : `${user.first_name} ${user.last_name}`;
 
   async function createAlbum() {
     if (!newAlbumTitle.trim()) return;
@@ -182,6 +184,35 @@ export function MyProfileSection() {
       const { data } = await albumsApi.create({ title: newAlbumTitle.trim(), is_private: newAlbumPrivate });
       setAlbums(prev => [...prev, data]);
       setNewAlbumTitle(""); setNewAlbumPrivate(false); setShowCreate(false);
+    } catch { /* ignore */ }
+  }
+
+  async function handleOpenAlbum(album: any) {
+    setOpenAlbum(album);
+    try {
+      const { data } = await albumsApi.getPhotos(album.id);
+      setAlbumPhotos(data || []);
+    } catch { setAlbumPhotos([]); }
+  }
+
+  async function handleAddPhoto(file: File) {
+    if (!openAlbum || uploadingPhoto) return;
+    setUploadingPhoto(true);
+    try {
+      await albumsApi.addPhoto(openAlbum.id, file);
+      const { data } = await albumsApi.getPhotos(openAlbum.id);
+      setAlbumPhotos(data || []);
+      setAlbums(prev => prev.map(a => a.id === openAlbum.id ? { ...a, photos_count: (data || []).length } : a));
+    } catch { /* ignore */ }
+    setUploadingPhoto(false);
+  }
+
+  async function handleDeletePhoto(photoId: string) {
+    if (!openAlbum) return;
+    try {
+      await albumsApi.deletePhoto(openAlbum.id, photoId);
+      setAlbumPhotos(prev => prev.filter((p: any) => p.id !== photoId));
+      setAlbums(prev => prev.map(a => a.id === openAlbum.id ? { ...a, photos_count: Math.max(0, a.photos_count - 1) } : a));
     } catch { /* ignore */ }
   }
 
@@ -299,18 +330,85 @@ export function MyProfileSection() {
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
         {albums.map(album => (
-          <div key={album.id} style={{ border: "1px solid var(--border-soft)", borderRadius: "var(--radius-md)", padding: "12px 14px", background: "var(--onyx)" }}>
+          <div
+            key={album.id}
+            onClick={() => handleOpenAlbum(album)}
+            style={{ border: "1px solid var(--border-soft)", borderRadius: "var(--radius-md)", padding: "12px 14px", background: "var(--onyx)", cursor: "pointer" }}
+          >
             <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
               {album.is_private && <Lock size={11} style={{ color: "var(--gold)" }} strokeWidth={1.5}/>}
               <p style={{ fontFamily: "var(--font-sans)", fontSize: 13, fontWeight: 500, color: "var(--paper)", flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{album.title}</p>
             </div>
             <p style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "var(--mist)", letterSpacing: "0.12em" }}>
-              {album.photos_count} foto{album.photos_count !== 1 ? "s" : ""}
+              {album.photos_count ?? 0} foto{(album.photos_count ?? 0) !== 1 ? "s" : ""}
               {album.access_requests_count > 0 && ` · ${album.access_requests_count} solicitud${album.access_requests_count !== 1 ? "es" : ""}`}
             </p>
           </div>
         ))}
       </div>
+
+      {/* ── Drawer de album ── */}
+      {openAlbum && (
+        <div
+          style={{ position: "fixed", inset: 0, zIndex: 50, background: "rgba(2,2,7,0.96)", display: "flex", flexDirection: "column" }}
+          onClick={e => { if (e.target === e.currentTarget) { setOpenAlbum(null); setAlbumPhotos([]); } }}
+        >
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px", borderBottom: "1px solid var(--border-soft)", flexShrink: 0 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              {openAlbum.is_private && <Lock size={13} style={{ color: "var(--gold)" }} strokeWidth={1.5}/>}
+              <span style={{ fontFamily: "var(--font-sans)", fontSize: 15, fontWeight: 500, color: "var(--paper)" }}>{openAlbum.title}</span>
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "var(--mist)", letterSpacing: "0.1em" }}>{albumPhotos.length} foto{albumPhotos.length !== 1 ? "s" : ""}</span>
+            </div>
+            <button
+              onClick={() => { setOpenAlbum(null); setAlbumPhotos([]); }}
+              style={{ background: "none", border: "none", cursor: "pointer", color: "var(--mist)", padding: 4 }}
+            >
+              <X size={18} strokeWidth={1.5}/>
+            </button>
+          </div>
+
+          <div style={{ flex: 1, overflowY: "auto", padding: 12 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 4 }}>
+              {albumPhotos.map((photo: any) => (
+                <div key={photo.id} style={{ position: "relative", aspectRatio: "1", borderRadius: 6, overflow: "hidden", background: "var(--onyx)" }}>
+                  <img src={photo.url || photo.photo_url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }}/>
+                  <button
+                    onClick={() => handleDeletePhoto(photo.id)}
+                    style={{ position: "absolute", top: 4, right: 4, width: 20, height: 20, borderRadius: "50%", background: "rgba(2,2,7,0.75)", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
+                  >
+                    <X size={10} strokeWidth={2} style={{ color: "var(--paper)" }}/>
+                  </button>
+                </div>
+              ))}
+
+              <label
+                style={{ aspectRatio: "1", borderRadius: 6, border: "1px dashed var(--ash)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", cursor: uploadingPhoto ? "default" : "pointer", opacity: uploadingPhoto ? 0.5 : 1, gap: 4 }}
+              >
+                {uploadingPhoto
+                  ? <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "var(--mist)" }}>Subiendo...</span>
+                  : <>
+                      <Plus size={20} strokeWidth={1.5} style={{ color: "var(--mist)" }}/>
+                      <span style={{ fontFamily: "var(--font-mono)", fontSize: 8, color: "var(--mist)", letterSpacing: "0.1em" }}>AGREGAR</span>
+                    </>
+                }
+                <input
+                  type="file"
+                  accept="image/*,video/*"
+                  style={{ display: "none" }}
+                  disabled={uploadingPhoto}
+                  onChange={e => { const f = e.target.files?.[0]; if (f) handleAddPhoto(f); e.target.value = ""; }}
+                />
+              </label>
+            </div>
+
+            {albumPhotos.length === 0 && !uploadingPhoto && (
+              <p style={{ textAlign: "center", padding: "32px 0", color: "var(--mist)", fontFamily: "var(--font-sans)", fontSize: 13 }}>
+                Tocá + para subir tu primera foto
+              </p>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
