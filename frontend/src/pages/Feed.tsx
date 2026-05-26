@@ -29,38 +29,56 @@ interface CityResult {
   display: string;
 }
 
-const PLACE_TYPES = new Set([
-  "city","town","village","municipality","hamlet",
-  "suburb","borough","quarter","neighbourhood","locality",
-]);
-
 async function searchCities(q: string): Promise<CityResult[]> {
   if (q.length < 2) return [];
-  const url = `https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&lang=es&limit=12`;
+  // Nominatim (OSM oficial) — filtra por featuretype=settlement: ciudades, pueblos, villas
+  const params = new URLSearchParams({
+    q,
+    format:         "json",
+    limit:          "8",
+    addressdetails: "1",
+    featuretype:    "settlement",
+  });
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 6000);
   try {
-    const res  = await fetch(url, { signal: AbortSignal.timeout(6000) });
-    const data = await res.json();
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/search?${params}`,
+      {
+        signal:  controller.signal,
+        headers: { "Accept-Language": "es,en;q=0.9" },
+      }
+    );
+    clearTimeout(timer);
+    if (!res.ok) return [];
+    const data: any[] = await res.json();
+    const seen    = new Set<string>();
     const results: CityResult[] = [];
-    for (const f of (data.features || [])) {
-      const p  = f.properties || {};
-      const co = f.geometry?.coordinates;
-      if (!p.name || !co) continue;
-      if (p.osm_key !== "place" || !PLACE_TYPES.has(p.osm_value || "")) continue;
-      const state   = p.state || p.county || "";
-      const country = p.country || "";
+    for (const item of data) {
+      const addr    = item.address || {};
+      const name    = addr.city || addr.town || addr.village || addr.hamlet
+                   || addr.suburb || item.name
+                   || (item.display_name || "").split(",")[0];
+      if (!name) continue;
+      const state      = addr.state || addr.county || "";
+      const country    = addr.country || "";
+      const key        = `${name}|${country}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
       results.push({
-        name:        p.name,
+        name,
         state,
         country,
-        countryCode: (p.countrycode || "").toLowerCase(),
-        lat:  co[1],
-        lng:  co[0],
-        display: [p.name, state, country].filter(Boolean).join(", "),
+        countryCode: (addr.country_code || "").toLowerCase(),
+        lat:     parseFloat(item.lat),
+        lng:     parseFloat(item.lon),
+        display: [name, state, country].filter(Boolean).join(", "),
       });
       if (results.length === 6) break;
     }
     return results;
   } catch {
+    clearTimeout(timer);
     return [];
   }
 }
@@ -296,6 +314,9 @@ export default function Feed() {
                   autoCorrect="off"
                   autoCapitalize="none"
                   spellCheck={false}
+                  onFocus={e => {
+                    setTimeout(() => e.target.scrollIntoView({ behavior: "smooth", block: "center" }), 350);
+                  }}
                 />
                 {cityQuery && (
                   <button onClick={clearCity} className="text-text-muted hover:text-text-primary">
