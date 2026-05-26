@@ -2,8 +2,42 @@ import React, { Component, ReactNode } from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { useRegisterSW } from "virtual:pwa-register/react";
 import App from "./App";
 import "./index.css";
+
+function UpdateBanner() {
+  const { needRefresh: [needRefresh], updateServiceWorker } = useRegisterSW({
+    onRegistered(r) {
+      // Revisar actualizaciones cada 60 segundos
+      r && setInterval(() => r.update(), 60_000);
+    },
+  });
+  if (!needRefresh) return null;
+  return (
+    <div
+      style={{
+        position: "fixed", bottom: 88, left: 16, right: 16, zIndex: 9999,
+        background: "#C9A227", color: "#020207", borderRadius: 14,
+        padding: "12px 16px", display: "flex", alignItems: "center",
+        justifyContent: "space-between", boxShadow: "0 4px 24px rgba(0,0,0,0.5)",
+        fontFamily: "Manrope, sans-serif",
+      }}
+    >
+      <span style={{ fontSize: 13, fontWeight: 600 }}>Nueva versión disponible</span>
+      <button
+        onClick={() => updateServiceWorker(true)}
+        style={{
+          background: "#020207", color: "#C9A227", border: "none",
+          borderRadius: 8, padding: "6px 14px", fontSize: 12,
+          fontWeight: 700, cursor: "pointer",
+        }}
+      >
+        Actualizar
+      </button>
+    </div>
+  );
+}
 
 class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
   state: { error: Error | null } = { error: null };
@@ -41,6 +75,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
       <QueryClientProvider client={queryClient}>
         <BrowserRouter>
           <App />
+          <UpdateBanner />
         </BrowserRouter>
       </QueryClientProvider>
     </ErrorBoundary>
