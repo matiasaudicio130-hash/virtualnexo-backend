@@ -6,6 +6,17 @@ import { useRegisterSW } from "virtual:pwa-register/react";
 import App from "./App";
 import "./index.css";
 
+// Elimina service workers viejos que podrían servir código cacheado
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.getRegistrations().then(regs => {
+    regs.forEach(reg => {
+      if (reg.active?.scriptURL && !reg.active.scriptURL.includes("/sw.js")) {
+        reg.unregister();
+      }
+    });
+  });
+}
+
 function UpdateBanner() {
   const { needRefresh: [needRefresh], updateServiceWorker } = useRegisterSW({
     onRegistered(r) {
