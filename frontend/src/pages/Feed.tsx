@@ -21,27 +21,45 @@ const LIMIT = 12;
 // ── Photon (Komoot/OSM) geocoding ─────────────────────────────
 interface CityResult {
   name: string;
+  state: string;
   country: string;
   countryCode: string;
   lat: number;
   lng: number;
+  display: string;
 }
+
+const PLACE_TYPES = new Set([
+  "city","town","village","municipality","hamlet",
+  "suburb","borough","quarter","neighbourhood","locality",
+]);
 
 async function searchCities(q: string): Promise<CityResult[]> {
   if (q.length < 2) return [];
-  const url = `https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&lang=es&limit=6`;
+  const url = `https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&lang=es&limit=12`;
   try {
-    const res = await fetch(url);
+    const res  = await fetch(url, { signal: AbortSignal.timeout(6000) });
     const data = await res.json();
-    return (data.features || [])
-      .filter((f: any) => f.properties?.name && f.geometry?.coordinates)
-      .map((f: any) => ({
-        name:        f.properties.name,
-        country:     f.properties.country || "",
-        countryCode: (f.properties.countrycode || "").toLowerCase(),
-        lat:         f.geometry.coordinates[1],
-        lng:         f.geometry.coordinates[0],
-      }));
+    const results: CityResult[] = [];
+    for (const f of (data.features || [])) {
+      const p  = f.properties || {};
+      const co = f.geometry?.coordinates;
+      if (!p.name || !co) continue;
+      if (p.osm_key !== "place" || !PLACE_TYPES.has(p.osm_value || "")) continue;
+      const state   = p.state || p.county || "";
+      const country = p.country || "";
+      results.push({
+        name:        p.name,
+        state,
+        country,
+        countryCode: (p.countrycode || "").toLowerCase(),
+        lat:  co[1],
+        lng:  co[0],
+        display: [p.name, state, country].filter(Boolean).join(", "),
+      });
+      if (results.length === 6) break;
+    }
+    return results;
   } catch {
     return [];
   }
@@ -135,7 +153,7 @@ export default function Feed() {
 
   function selectCity(city: CityResult) {
     setSelectedCity(city);
-    setCityQuery(city.name);
+    setCityQuery(city.display);
     setCitySuggestions([]);
   }
 
@@ -149,7 +167,7 @@ export default function Feed() {
   const effectiveLat = selectedCity?.lat ?? userLat;
   const effectiveLng = selectedCity?.lng ?? userLng;
   const geoLabel = selectedCity
-    ? `${selectedCity.name} · ${mundial ? "Mundial" : `${radius}km`}`
+    ? `${selectedCity.display} · ${mundial ? "Mundial" : `${radius}km`}`
     : userLat ? `Mi ubicación · ${mundial ? "Mundial" : `${radius}km`}` : null;
 
   function buildParams(off: number) {
@@ -271,8 +289,13 @@ export default function Feed() {
                   value={cityQuery}
                   onChange={e => setCityQuery(e.target.value)}
                   placeholder="¿En qué ciudad querés buscar?"
-                  className="flex-1 bg-transparent text-sm outline-none placeholder:text-text-muted/60"
+                  className="flex-1 bg-transparent outline-none placeholder:text-text-muted/60"
+                  style={{ fontSize: "16px" }}
+                  inputMode="search"
                   autoComplete="off"
+                  autoCorrect="off"
+                  autoCapitalize="none"
+                  spellCheck={false}
                 />
                 {cityQuery && (
                   <button onClick={clearCity} className="text-text-muted hover:text-text-primary">
@@ -296,7 +319,9 @@ export default function Feed() {
                       <span className="text-lg leading-none flex-shrink-0">{flagEmoji(city.countryCode)}</span>
                       <div className="min-w-0">
                         <p className="text-sm font-medium truncate">{city.name}</p>
-                        <p className="text-xs text-text-muted truncate">{city.country}</p>
+                        <p className="text-xs text-text-muted truncate">
+                          {[city.state, city.country].filter(Boolean).join(", ")}
+                        </p>
                       </div>
                     </button>
                   ))}
