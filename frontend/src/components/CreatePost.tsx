@@ -1,38 +1,52 @@
 import { useRef, useState } from "react";
-import { Image as ImageIcon, X, MapPin, Clock, BarChart2, Plus, Trash2 } from "lucide-react";
-import { feedApi } from "@/lib/api";
+import { Image as ImageIcon, X, MapPin, Clock, BarChart2, Plus, Trash2, Pencil } from "lucide-react";
+import { feedApi, mediaApi } from "@/lib/api";
 import { Button } from "@/components/ui/Button";
 import { useAuthStore } from "@/store/authStore";
+import { ImageCropFilter } from "@/components/ImageCropFilter";
 
 interface Props {
   onCreated: () => void;
-  onClose: () => void;
+  onClose:   () => void;
 }
 
 type Mode = "post" | "story" | "poll";
 
+interface PollPhoto {
+  file:      File;
+  preview:   string;
+  processed: File | null;
+}
+
 const POLL_DURATIONS = [
-  { label: "1 hora",   hours: 1 },
-  { label: "24 horas", hours: 24 },
-  { label: "3 días",   hours: 72 },
+  { label: "1 hora",   hours: 1   },
+  { label: "24 horas", hours: 24  },
+  { label: "3 días",   hours: 72  },
   { label: "7 días",   hours: 168 },
 ];
 
 export function CreatePost({ onCreated, onClose }: Props) {
-  const { user } = useAuthStore();
-  const inputRef = useRef<HTMLInputElement>(null);
-  const [mode, setMode] = useState<Mode>("post");
+  const { user }    = useAuthStore();
+  const inputRef    = useRef<HTMLInputElement>(null);
+  const photoRef    = useRef<HTMLInputElement>(null);
+
+  const [mode,    setMode]    = useState<Mode>("post");
   const [caption, setCaption] = useState("");
-  const [file, setFile] = useState<File | null>(null);
+  const [file,    setFile]    = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [province, setProvince] = useState(user?.province || "");
-  // Poll state
-  const [pollQuestion, setPollQuestion] = useState("");
-  const [pollOptions, setPollOptions]   = useState(["", ""]);
-  const [pollDuration, setPollDuration] = useState(24);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
 
+  // Poll
+  const [pollQuestion, setPollQuestion] = useState("");
+  const [pollOptions,  setPollOptions]  = useState(["", ""]);
+  const [pollDuration, setPollDuration] = useState(24);
+  const [pollPhotos,   setPollPhotos]   = useState<PollPhoto[]>([]);
+  const [editingIdx,   setEditingIdx]   = useState<number | null>(null);
+
+  const [loading, setLoading] = useState(false);
+  const [error,   setError]   = useState("");
+
+  // ── handlers: post/story photo ───────────────────────────────
   function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
     if (!f) return;
@@ -42,30 +56,60 @@ export function CreatePost({ onCreated, onClose }: Props) {
     r.readAsDataURL(f);
   }
 
-  function addOption() {
-    if (pollOptions.length < 4) setPollOptions(p => [...p, ""]);
-  }
-  function removeOption(i: number) {
-    if (pollOptions.length > 2) setPollOptions(p => p.filter((_, idx) => idx !== i));
-  }
-  function setOption(i: number, v: string) {
-    setPollOptions(p => p.map((o, idx) => idx === i ? v : o));
+  // ── handlers: poll photos ────────────────────────────────────
+  function handlePollPhotos(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    e.target.value = "";
+    setPollPhotos(prev => {
+      const toAdd = files.slice(0, 10 - prev.length).map(f => ({
+        file:      f,
+        preview:   URL.createObjectURL(f),
+        processed: null,
+      }));
+      return [...prev, ...toAdd];
+    });
   }
 
+  function removePollPhoto(i: number) {
+    setPollPhotos(prev => {
+      URL.revokeObjectURL(prev[i].preview);
+      return prev.filter((_, idx) => idx !== i);
+    });
+  }
+
+  function onCropDone(result: File) {
+    if (editingIdx === null) return;
+    setPollPhotos(prev => prev.map((p, i) => i === editingIdx ? { ...p, processed: result } : p));
+    setEditingIdx(null);
+  }
+
+  // ── handlers: poll options ───────────────────────────────────
+  function addOption()          { if (pollOptions.length < 10) setPollOptions(p => [...p, ""]); }
+  function removeOption(i: number) { if (pollOptions.length > 2) setPollOptions(p => p.filter((_, idx) => idx !== i)); }
+  function setOption(i: number, v: string) { setPollOptions(p => p.map((o, idx) => idx === i ? v : o)); }
+
+  // ── submit ───────────────────────────────────────────────────
   async function handleSubmit() {
     setError("");
 
     if (mode === "poll") {
-      if (!pollQuestion.trim()) { setError("Escribí la pregunta."); return; }
-      if (pollOptions.some(o => !o.trim())) { setError("Completá todas las opciones."); return; }
+      if (!pollQuestion.trim())                { setError("Escribí la pregunta."); return; }
+      if (pollOptions.some(o => !o.trim()))    { setError("Completá todas las opciones."); return; }
       setLoading(true);
       try {
+        const mediaUrls: string[] = [];
+        for (const p of pollPhotos) {
+          const { data } = await mediaApi.uploadPost(p.processed ?? p.file);
+          mediaUrls.push(data.signed_url);
+        }
         await feedApi.createPost({
-          type: "poll",
-          poll_question: pollQuestion.trim(),
-          poll_options: pollOptions.map(o => o.trim()),
+          type:                "poll",
+          poll_question:       pollQuestion.trim(),
+          poll_options:        pollOptions.map(o => o.trim()),
           poll_duration_hours: pollDuration,
           province,
+          ...(mediaUrls.length ? { media_urls: mediaUrls } : {}),
         });
         onCreated();
       } catch (e: any) {
@@ -91,164 +135,209 @@ export function CreatePost({ onCreated, onClose }: Props) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/70 backdrop-blur-sm">
-      <div className="w-full sm:max-w-md bg-bg-card border border-border rounded-t-3xl sm:rounded-2xl overflow-hidden max-h-[90vh] flex flex-col">
-        {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-border flex-shrink-0">
-          <h2 className="font-semibold text-sm">Nueva publicación</h2>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-bg-muted text-text-muted">
-            <X size={16} />
-          </button>
-        </div>
+    <>
+      {/* Crop/filter modal (por encima de todo) */}
+      {editingIdx !== null && (
+        <ImageCropFilter
+          file={pollPhotos[editingIdx].file}
+          onDone={onCropDone}
+          onCancel={() => setEditingIdx(null)}
+        />
+      )}
 
-        {/* Mode selector */}
-        <div className="flex border-b border-border flex-shrink-0">
-          {([
-            { id: "post",  label: "Post",    icon: ImageIcon },
-            { id: "story", label: "Story",   icon: Clock },
-            { id: "poll",  label: "Encuesta",icon: BarChart2 },
-          ] as const).map(({ id, label, icon: Icon }) => (
-            <button
-              key={id}
-              onClick={() => setMode(id)}
-              className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-medium border-b-2 transition-colors ${
-                mode === id
-                  ? "border-accent-purple text-accent-purple"
-                  : "border-transparent text-text-muted hover:text-text-primary"
-              }`}
-            >
-              <Icon size={13} /> {label}
+      <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/70 backdrop-blur-sm">
+        <div className="w-full sm:max-w-md bg-bg-card border border-border rounded-t-3xl sm:rounded-2xl overflow-hidden max-h-[90vh] flex flex-col">
+
+          {/* Header */}
+          <div className="flex items-center justify-between px-4 py-3 border-b border-border flex-shrink-0">
+            <h2 className="font-semibold text-sm">Nueva publicación</h2>
+            <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-bg-muted text-text-muted">
+              <X size={16} />
             </button>
-          ))}
-        </div>
-
-        <div className="p-4 space-y-4 overflow-y-auto flex-1">
-
-          {/* ── POST / STORY ── */}
-          {mode !== "poll" && (
-            <>
-              {preview ? (
-                <div className="relative rounded-xl overflow-hidden">
-                  <img src={preview} alt="preview" className="w-full max-h-60 object-cover" />
-                  <button
-                    onClick={() => { setFile(null); setPreview(null); }}
-                    className="absolute top-2 right-2 p-1.5 bg-black/60 rounded-full"
-                  >
-                    <X size={14} className="text-white" />
-                  </button>
-                </div>
-              ) : (
-                <button
-                  onClick={() => inputRef.current?.click()}
-                  className="w-full border-2 border-dashed border-border rounded-xl p-6 flex flex-col items-center gap-2 text-text-muted hover:border-accent-purple/50 transition-colors"
-                >
-                  <ImageIcon size={28} className="opacity-50" />
-                  <span className="text-xs">Tap para agregar foto (opcional)</span>
-                </button>
-              )}
-              <input ref={inputRef} type="file" accept="image/*" onChange={handleFile} className="hidden" />
-
-              <textarea
-                value={caption}
-                onChange={e => setCaption(e.target.value)}
-                placeholder="¿Qué querés compartir?"
-                rows={3}
-                maxLength={500}
-                className="w-full px-4 py-3 rounded-xl bg-bg-muted border border-border text-sm resize-none focus:outline-none focus:ring-2 focus:ring-accent-purple placeholder-text-muted"
-              />
-              <p className="text-xs text-text-muted text-right -mt-2">{caption.length}/500</p>
-
-              {mode === "story" && (
-                <p className="text-xs text-accent-purple/80">
-                  Las stories desaparecen a las 24 horas.
-                </p>
-              )}
-            </>
-          )}
-
-          {/* ── POLL ── */}
-          {mode === "poll" && (
-            <>
-              <div>
-                <label className="text-xs text-text-secondary mb-1 block">Pregunta *</label>
-                <textarea
-                  value={pollQuestion}
-                  onChange={e => setPollQuestion(e.target.value)}
-                  placeholder="Ej: ¿Cuál es tu favorito?"
-                  rows={2}
-                  maxLength={200}
-                  className="w-full px-4 py-3 rounded-xl bg-bg-muted border border-border text-sm resize-none focus:outline-none focus:ring-2 focus:ring-accent-purple placeholder-text-muted"
-                />
-                <p className="text-xs text-text-muted text-right mt-0.5">{pollQuestion.length}/200</p>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-xs text-text-secondary block">Opciones (2–4)</label>
-                {pollOptions.map((opt, i) => (
-                  <div key={i} className="flex items-center gap-2">
-                    <input
-                      value={opt}
-                      onChange={e => setOption(i, e.target.value)}
-                      placeholder={`Opción ${i + 1}`}
-                      maxLength={80}
-                      className="flex-1 px-3 py-2.5 rounded-xl bg-bg-muted border border-border text-sm focus:outline-none focus:ring-2 focus:ring-accent-purple"
-                    />
-                    {pollOptions.length > 2 && (
-                      <button onClick={() => removeOption(i)} className="p-1.5 text-text-muted hover:text-status-error">
-                        <Trash2 size={14} />
-                      </button>
-                    )}
-                  </div>
-                ))}
-                {pollOptions.length < 4 && (
-                  <button
-                    onClick={addOption}
-                    className="flex items-center gap-1.5 text-xs text-accent-purple hover:opacity-80 transition-opacity"
-                  >
-                    <Plus size={13} /> Agregar opción
-                  </button>
-                )}
-              </div>
-
-              <div>
-                <label className="text-xs text-text-secondary mb-1 block">Duración</label>
-                <div className="flex gap-2 flex-wrap">
-                  {POLL_DURATIONS.map(d => (
-                    <button
-                      key={d.hours}
-                      onClick={() => setPollDuration(d.hours)}
-                      className={`px-3 py-1.5 rounded-lg text-xs border transition-all ${
-                        pollDuration === d.hours
-                          ? "border-accent-purple bg-accent-purple/10 text-accent-purple"
-                          : "border-border text-text-muted hover:border-accent-purple/40"
-                      }`}
-                    >
-                      {d.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </>
-          )}
-
-          {/* Provincia (en todos los modos) */}
-          <div className="flex items-center gap-2 px-3 py-2 bg-bg-muted border border-border rounded-xl text-sm">
-            <MapPin size={14} className="text-text-muted flex-shrink-0" />
-            <input
-              value={province}
-              onChange={e => setProvince(e.target.value)}
-              placeholder="Provincia (opcional)"
-              className="bg-transparent flex-1 focus:outline-none text-xs"
-            />
           </div>
 
-          {error && <p className="text-xs text-status-error">{error}</p>}
+          {/* Mode tabs */}
+          <div className="flex border-b border-border flex-shrink-0">
+            {([
+              { id: "post",  label: "Post",     icon: ImageIcon },
+              { id: "story", label: "Story",    icon: Clock     },
+              { id: "poll",  label: "Encuesta", icon: BarChart2 },
+            ] as const).map(({ id, label, icon: Icon }) => (
+              <button key={id} onClick={() => setMode(id)}
+                className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-medium border-b-2 transition-colors ${
+                  mode === id
+                    ? "border-accent-purple text-accent-purple"
+                    : "border-transparent text-text-muted hover:text-text-primary"
+                }`}>
+                <Icon size={13} /> {label}
+              </button>
+            ))}
+          </div>
 
-          <Button onClick={handleSubmit} loading={loading} className="w-full">
-            {mode === "poll" ? "Publicar encuesta" : mode === "story" ? "Publicar story" : "Publicar"}
-          </Button>
+          <div className="p-4 space-y-4 overflow-y-auto flex-1">
+
+            {/* ── POST / STORY ── */}
+            {mode !== "poll" && (
+              <>
+                {preview ? (
+                  <div className="relative rounded-xl overflow-hidden">
+                    <img src={preview} alt="preview" className="w-full max-h-60 object-cover" />
+                    <button onClick={() => { setFile(null); setPreview(null); }}
+                      className="absolute top-2 right-2 p-1.5 bg-black/60 rounded-full">
+                      <X size={14} className="text-white" />
+                    </button>
+                  </div>
+                ) : (
+                  <button onClick={() => inputRef.current?.click()}
+                    className="w-full border-2 border-dashed border-border rounded-xl p-6 flex flex-col items-center gap-2 text-text-muted hover:border-accent-purple/50 transition-colors">
+                    <ImageIcon size={28} className="opacity-50" />
+                    <span className="text-xs">Tap para agregar foto (opcional)</span>
+                  </button>
+                )}
+                <input ref={inputRef} type="file" accept="image/*" onChange={handleFile} className="hidden" />
+
+                <textarea
+                  value={caption}
+                  onChange={e => setCaption(e.target.value)}
+                  placeholder="¿Qué querés compartir?"
+                  rows={3}
+                  maxLength={500}
+                  className="w-full px-4 py-3 rounded-xl bg-bg-muted border border-border text-sm resize-none focus:outline-none focus:ring-2 focus:ring-accent-purple placeholder-text-muted"
+                />
+                <p className="text-xs text-text-muted text-right -mt-2">{caption.length}/500</p>
+
+                {mode === "story" && (
+                  <p className="text-xs text-accent-purple/80">Las stories desaparecen a las 24 horas.</p>
+                )}
+              </>
+            )}
+
+            {/* ── POLL ── */}
+            {mode === "poll" && (
+              <>
+                {/* Poll photos */}
+                <div>
+                  <label className="text-xs text-text-secondary mb-2 block">
+                    Fotos <span className="text-text-muted">(opcional · hasta 10)</span>
+                  </label>
+
+                  {pollPhotos.length > 0 && (
+                    <div className="grid grid-cols-5 gap-1.5 mb-2">
+                      {pollPhotos.map((p, i) => (
+                        <div key={i} className="relative aspect-square rounded-lg overflow-hidden bg-bg-muted group">
+                          <img src={p.preview} alt="" className="w-full h-full object-cover" />
+                          {/* Edit overlay */}
+                          <button onClick={() => setEditingIdx(i)}
+                            className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Pencil size={14} className="text-white" />
+                          </button>
+                          {/* Remove */}
+                          <button onClick={() => removePollPhoto(i)}
+                            className="absolute top-0.5 right-0.5 w-5 h-5 bg-black/70 rounded-full flex items-center justify-center">
+                            <X size={9} className="text-white" />
+                          </button>
+                          {/* Edited badge */}
+                          {p.processed && (
+                            <span className="absolute bottom-0.5 left-0.5 text-[8px] bg-amber-500/80 text-black rounded px-1">✓</span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {pollPhotos.length < 10 && (
+                    <button onClick={() => photoRef.current?.click()}
+                      className="flex items-center gap-1.5 text-xs text-text-muted border border-dashed border-border rounded-xl px-3 py-2 hover:border-accent-purple/40 transition-colors">
+                      <Plus size={13} />
+                      {pollPhotos.length === 0 ? "Agregar fotos" : "Agregar más"}
+                    </button>
+                  )}
+                  <input ref={photoRef} type="file" accept="image/*" multiple onChange={handlePollPhotos} className="hidden" />
+                </div>
+
+                {/* Question */}
+                <div>
+                  <label className="text-xs text-text-secondary mb-1 block">Pregunta *</label>
+                  <textarea
+                    value={pollQuestion}
+                    onChange={e => setPollQuestion(e.target.value)}
+                    placeholder="Ej: ¿Cuál es tu favorito?"
+                    rows={2}
+                    maxLength={200}
+                    className="w-full px-4 py-3 rounded-xl bg-bg-muted border border-border text-sm resize-none focus:outline-none focus:ring-2 focus:ring-accent-purple placeholder-text-muted"
+                  />
+                  <p className="text-xs text-text-muted text-right mt-0.5">{pollQuestion.length}/200</p>
+                </div>
+
+                {/* Options */}
+                <div className="space-y-2">
+                  <label className="text-xs text-text-secondary block">
+                    Opciones <span className="text-text-muted">(2–10)</span>
+                  </label>
+                  {pollOptions.map((opt, i) => (
+                    <div key={i} className="flex items-center gap-2">
+                      <span className="text-xs text-text-muted w-4 text-center flex-shrink-0">{i + 1}</span>
+                      <input
+                        value={opt}
+                        onChange={e => setOption(i, e.target.value)}
+                        placeholder={`Opción ${i + 1}`}
+                        maxLength={100}
+                        className="flex-1 px-3 py-2.5 rounded-xl bg-bg-muted border border-border text-sm focus:outline-none focus:ring-2 focus:ring-accent-purple"
+                      />
+                      {pollOptions.length > 2 && (
+                        <button onClick={() => removeOption(i)}
+                          className="p-1.5 text-text-muted hover:text-status-error flex-shrink-0">
+                          <Trash2 size={14} />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                  {pollOptions.length < 10 && (
+                    <button onClick={addOption}
+                      className="flex items-center gap-1.5 text-xs text-accent-purple hover:opacity-80 transition-opacity">
+                      <Plus size={13} /> Agregar opción
+                    </button>
+                  )}
+                </div>
+
+                {/* Duration */}
+                <div>
+                  <label className="text-xs text-text-secondary mb-1 block">Duración</label>
+                  <div className="flex gap-2 flex-wrap">
+                    {POLL_DURATIONS.map(d => (
+                      <button key={d.hours} onClick={() => setPollDuration(d.hours)}
+                        className={`px-3 py-1.5 rounded-lg text-xs border transition-all ${
+                          pollDuration === d.hours
+                            ? "border-accent-purple bg-accent-purple/10 text-accent-purple"
+                            : "border-border text-text-muted hover:border-accent-purple/40"
+                        }`}>
+                        {d.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* Province (todos los modos) */}
+            <div className="flex items-center gap-2 px-3 py-2 bg-bg-muted border border-border rounded-xl">
+              <MapPin size={14} className="text-text-muted flex-shrink-0" />
+              <input
+                value={province}
+                onChange={e => setProvince(e.target.value)}
+                placeholder="Provincia (opcional)"
+                className="bg-transparent flex-1 focus:outline-none text-xs"
+              />
+            </div>
+
+            {error && <p className="text-xs text-status-error">{error}</p>}
+
+            <Button onClick={handleSubmit} loading={loading} className="w-full">
+              {mode === "poll" ? "Publicar encuesta" : mode === "story" ? "Publicar story" : "Publicar"}
+            </Button>
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }

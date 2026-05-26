@@ -34,8 +34,9 @@ class CreatePostBody(BaseModel):
     is_story: bool = False
     # Poll fields (solo cuando type="poll")
     poll_question: Optional[str] = None
-    poll_options: Optional[List[str]] = None   # 2-4 opciones
+    poll_options: Optional[List[str]] = None   # 2-10 opciones
     poll_duration_hours: int = 24              # 1-168 horas
+    media_urls: Optional[List[str]] = None     # fotos pre-subidas para polls
 
 
 class PollVoteBody(BaseModel):
@@ -119,8 +120,8 @@ async def create_text_post(body: CreatePostBody, request: Request):
         if not body.poll_question or not body.poll_question.strip():
             raise HTTPException(400, "poll_question es requerido")
         opts = body.poll_options or []
-        if len(opts) < 2 or len(opts) > 4:
-            raise HTTPException(400, "Un poll necesita entre 2 y 4 opciones")
+        if len(opts) < 2 or len(opts) > 10:
+            raise HTTPException(400, "Un poll necesita entre 2 y 10 opciones")
         if not all(o.strip() for o in opts):
             raise HTTPException(400, "Todas las opciones deben tener texto")
         dur = max(1, min(168, body.poll_duration_hours))
@@ -147,8 +148,15 @@ async def create_text_post(body: CreatePostBody, request: Request):
 
     if extra_data:
         from app.db.supabase import get_supabase
-        get_supabase().table("posts").update({"extra_data": extra_data}).eq("id", post["id"]).execute()
+        update_payload: dict = {"extra_data": extra_data}
+        if body.media_urls:
+            update_payload["media_url"] = body.media_urls[0]
+            if len(body.media_urls) > 1:
+                update_payload["media_urls"] = [{"url": u, "type": "image"} for u in body.media_urls]
+        get_supabase().table("posts").update(update_payload).eq("id", post["id"]).execute()
         post["extra_data"] = extra_data
+        if body.media_urls:
+            post["media_url"] = body.media_urls[0]
 
     return post
 
