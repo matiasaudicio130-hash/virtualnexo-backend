@@ -32,6 +32,7 @@ class CreatePostBody(BaseModel):
     city: Optional[str] = None
     province: Optional[str] = None
     is_story: bool = False
+    story_audience: str = "all"  # all | followers | partner
     # Poll fields (solo cuando type="poll")
     poll_question: Optional[str] = None
     poll_options: Optional[List[str]] = None   # 2-10 opciones
@@ -144,6 +145,7 @@ async def create_text_post(body: CreatePostBody, request: Request):
         city=body.city,
         province=body.province,
         is_story=body.is_story,
+        story_audience=body.story_audience,
     )
 
     if extra_data:
@@ -170,6 +172,7 @@ async def create_photo_post(
     lat: Optional[float] = None,
     lng: Optional[float] = None,
     is_story: bool = False,
+    story_audience: str = "all",
     file: UploadFile = File(...),
 ):
     """Crea un post con imagen. Aplica watermarks antes de subir."""
@@ -200,6 +203,7 @@ async def create_photo_post(
         city=city or None,
         province=province or None,
         is_story=is_story,
+        story_audience=story_audience,
     )
     return {**post, "upload": upload_result}
 

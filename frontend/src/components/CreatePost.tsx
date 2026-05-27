@@ -45,6 +45,7 @@ export function CreatePost({ onCreated, onClose }: Props) {
 
   const [loading, setLoading] = useState(false);
   const [error,   setError]   = useState("");
+  const [storyAudience, setStoryAudience] = useState<"all"|"followers"|"partner">("all");
 
   // ── handlers: post/story photo ───────────────────────────────
   function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
@@ -123,9 +124,9 @@ export function CreatePost({ onCreated, onClose }: Props) {
     setLoading(true);
     try {
       if (file) {
-        await feedApi.uploadPost(file, { caption, province, is_story: mode === "story" });
+        await feedApi.uploadPost(file, { caption, province, is_story: mode === "story", story_audience: storyAudience });
       } else {
-        await feedApi.createPost({ type: "text", caption, province, is_story: mode === "story" });
+        await feedApi.createPost({ type: "text", caption, province, is_story: mode === "story", story_audience: storyAudience });
       }
       onCreated();
     } catch (e: any) {
@@ -207,7 +208,31 @@ export function CreatePost({ onCreated, onClose }: Props) {
                 <p className="text-xs text-text-muted text-right -mt-2">{caption.length}/500</p>
 
                 {mode === "story" && (
-                  <p className="text-xs text-accent-purple/80">Las stories desaparecen a las 24 horas.</p>
+                  <div className="space-y-2">
+                    <p className="text-xs text-accent-purple/80">Las stories desaparecen a las 24 horas.</p>
+                    <div>
+                      <p className="text-[10px] text-text-muted uppercase tracking-widest mb-1.5">¿Quién puede ver esta story?</p>
+                      <div className="flex gap-2">
+                        {([
+                          { id: "all",       label: "Todos" },
+                          { id: "followers", label: "Seguidores" },
+                          { id: "partner",   label: "Mi pareja" },
+                        ] as const).map(({ id, label }) => (
+                          <button
+                            key={id}
+                            onClick={() => setStoryAudience(id)}
+                            className={`flex-1 py-1.5 rounded-lg text-xs font-medium border transition-all ${
+                              storyAudience === id
+                                ? "border-accent-purple/60 bg-accent-purple/10 text-accent-purple"
+                                : "border-border text-text-muted hover:border-accent-purple/30"
+                            }`}
+                          >
+                            {label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
                 )}
               </>
             )}

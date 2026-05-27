@@ -171,7 +171,7 @@ class FeedService:
         cutoff = (datetime.now(timezone.utc) - timedelta(hours=24)).isoformat()
 
         q = db.table("posts").select(
-            "id,user_id,media_url,storage_path,created_at,expires_at,"
+            "id,user_id,media_url,storage_path,created_at,expires_at,extra_data,"
             "users!posts_user_id_fkey(id,first_name,last_name,profile_photo_url,username,is_shadow_banned)"
         ).eq("type", "story").eq("status", "active").gt("created_at", cutoff).order("created_at", desc=True)
 
@@ -183,25 +183,51 @@ class FeedService:
         banned_r = db.table("users").select("id").eq("is_shadow_banned", True).execute()
         banned_ids = {u["id"] for u in banned_r.data if u["id"] != viewer_id}
 
+        # Batch: viewer's follows + viewer's partner_id
+        follows_r = db.table("user_follows").select("following_id").eq("follower_id", viewer_id).execute()
+        viewer_follows = {f["following_id"] for f in follows_r.data}
+
+        # Batch: partner_id for each story author (for "partner" audience stories)
+        author_ids = list({p["user_id"] for p in raw})
+        author_ext_map: dict = {}
+        if author_ids:
+            ae_r = db.table("users").select("id,profile_extended").in_("id", author_ids).execute()
+            author_ext_map = {
+                row["id"]: (row.get("profile_extended") or {}).get("partner_id")
+                for row in ae_r.data
+            }
+
         stories_by_user: dict = {}
         for p in raw:
             user = p.get("users") or {}
             uid = user.get("id")
             if uid in banned_ids:
                 continue
+
+            # Audience gate (skip own stories)
+            if uid != viewer_id:
+                audience = (p.get("extra_data") or {}).get("audience", "all")
+                if audience == "followers" and uid not in viewer_follows:
+                    continue
+                if audience == "partner":
+                    # Visible only to the author's linked partner
+                    if author_ext_map.get(uid) != viewer_id:
+                        continue
+
             if uid not in stories_by_user:
                 stories_by_user[uid] = {
-                    "user_id": uid,
-                    "name":    f"{user.get('first_name','')} {user.get('last_name','')}".strip(),
-                    "username": user.get('username'),
-                    "avatar":  user.get("profile_photo_url"),
-                    "stories": [],
+                    "user_id":  uid,
+                    "name":     f"{user.get('first_name','')} {user.get('last_name','')}".strip(),
+                    "username": user.get("username"),
+                    "avatar":   user.get("profile_photo_url"),
+                    "stories":  [],
                 }
             stories_by_user[uid]["stories"].append({
                 "id":           p["id"],
                 "media_url":    p["media_url"],
                 "storage_path": p.get("storage_path"),
                 "created_at":   p["created_at"],
+                "audience":     (p.get("extra_data") or {}).get("audience", "all"),
             })
 
         # Refresh signed URLs para stories
@@ -240,12 +266,14 @@ class FeedService:
         city: Optional[str] = None,
         province: Optional[str] = None,
         is_story: bool = False,
+        story_audience: str = "all",
     ) -> dict:
         db = get_supabase()
         expires_at = (
             (datetime.now(timezone.utc) + timedelta(hours=24)).isoformat()
             if is_story else None
         )
+        extra_data = {"audience": story_audience} if is_story else None
         result = db.table("posts").insert({
             "user_id":      user_id,
             "type":         "story" if is_story else post_type,
@@ -257,6 +285,7 @@ class FeedService:
             "city":         city,
             "province":     province,
             "expires_at":   expires_at,
+            "extra_data":   extra_data,
             "status":       "active",
         }).execute()
         return result.data[0]
