@@ -11,6 +11,7 @@ import {
   Shield, Key, Users, BarChart3, LogOut, Plus, CheckCircle, XCircle,
   Wallet, History, Settings as SettingsIcon, TrendingUp, AlertCircle,
   FileText, Download, Share2, Megaphone, Search, Ban, Eye, EyeOff, Crown,
+  UserPlus, ExternalLink,
 } from "lucide-react";
 import type { MasterKey, Payment, RevenueStats, AuditLogEntry, SystemSetting, Plan } from "@/types";
 
@@ -92,6 +93,95 @@ export default function AdminPanel() {
         {tab === "audit"    && <AuditTab />}
       </main>
     </div>
+  );
+}
+
+// ============================================================
+// NUEVOS USUARIOS (semillas)
+// ============================================================
+function NewUsersSection() {
+  const navigate = useNavigate();
+  const [users, setUsers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [copied, setCopied] = useState<string | null>(null);
+
+  useEffect(() => {
+    adminApi.listUsers({ limit: 50 })
+      .then(r => {
+        const cutoff = Date.now() - 7 * 24 * 60 * 60 * 1000;
+        setUsers((r.data as any[]).filter(u =>
+          u.status === "active" && new Date(u.created_at).getTime() > cutoff
+        ));
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  function copyId(id: string) {
+    navigator.clipboard.writeText(id).then(() => {
+      setCopied(id);
+      setTimeout(() => setCopied(null), 2000);
+    });
+  }
+
+  if (loading) return null;
+  if (users.length === 0) return (
+    <Card className="p-5">
+      <p className="text-sm font-semibold flex items-center gap-2 mb-1">
+        <UserPlus size={15} className="text-accent-purple"/> Nuevos usuarios (últimos 7 días)
+      </p>
+      <p className="text-xs text-text-muted">Sin nuevos usuarios activos esta semana.</p>
+    </Card>
+  );
+
+  return (
+    <Card className="overflow-hidden">
+      <div className="p-4 border-b border-border flex items-center justify-between">
+        <div>
+          <h3 className="font-semibold text-sm flex items-center gap-2">
+            <UserPlus size={15} className="text-accent-purple"/> Nuevos usuarios (últimos 7 días)
+          </h3>
+          <p className="text-[11px] text-text-muted mt-0.5">
+            Seguí a estas personas desde tus cuentas semilla para que el feed se sienta activo.
+          </p>
+        </div>
+        <span className="text-xs px-2.5 py-1 bg-accent-purple/10 text-accent-purple rounded-full font-medium">
+          {users.length}
+        </span>
+      </div>
+      <div className="divide-y divide-border">
+        {users.map(u => (
+          <div key={u.id} className="flex items-center gap-3 px-4 py-3">
+            {u.profile_photo_url
+              ? <img src={u.profile_photo_url} alt="" className="w-9 h-9 rounded-full object-cover border border-border/40 flex-shrink-0"/>
+              : <div className="w-9 h-9 rounded-full bg-bg-muted border border-border/40 flex items-center justify-center flex-shrink-0 text-text-muted text-xs font-medium">{u.first_name?.[0]}</div>
+            }
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium truncate">{u.first_name} {u.last_name}</p>
+              <p className="text-[11px] text-text-muted">
+                {u.username ? `@${u.username} · ` : ""}{u.city || u.province || "Sin ubicación"} · {new Date(u.created_at).toLocaleDateString("es-AR")}
+              </p>
+            </div>
+            <div className="flex items-center gap-1.5 flex-shrink-0">
+              <button
+                onClick={() => copyId(u.id)}
+                className="text-[10px] px-2 py-1 rounded-lg border border-border text-text-muted hover:border-accent-purple/40 hover:text-accent-purple transition-colors"
+                title="Copiar ID para vincular/seguir"
+              >
+                {copied === u.id ? "✓ Copiado" : "ID"}
+              </button>
+              <button
+                onClick={() => navigate(`/profile/${u.id}`)}
+                className="p-1.5 rounded-lg border border-border text-text-muted hover:border-accent-purple/40 hover:text-accent-purple transition-colors"
+                title="Ver perfil"
+              >
+                <ExternalLink size={13}/>
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </Card>
   );
 }
 
@@ -184,6 +274,8 @@ function StatsTab() {
           ))}
         </div>
       </div>
+
+      <NewUsersSection />
     </div>
   );
 }

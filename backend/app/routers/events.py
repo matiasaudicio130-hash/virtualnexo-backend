@@ -44,7 +44,8 @@ async def list_events(
     offset: int = Query(0, ge=0),
     upcoming_only: bool = Query(True),
 ):
-    _require_auth(request)
+    payload = _require_auth(request)
+    me = payload["sub"]
     from app.db.supabase import get_supabase
     db  = get_supabase()
     q   = db.table("events").select(
@@ -57,13 +58,36 @@ async def list_events(
         q = q.eq("province", province)
 
     events = q.order("event_date").range(offset, offset + limit - 1).execute().data
+    if not events:
+        return {"events": [], "total": 0}
 
-    # Contar going por evento
+    event_ids = [e["id"] for e in events]
+
+    # Batch: going counts + user's own RSVP + attendee previews
+    attendees_r = db.table("event_attendees").select(
+        "event_id, user_id, status, users!event_attendees_user_id_fkey(id,first_name,profile_photo_url)"
+    ).in_("event_id", event_ids).eq("status", "going").execute().data
+
+    # Build maps
+    going_counts: dict = {}
+    my_rsvp_map: dict = {}
+    preview_map: dict = {}
+
+    for row in attendees_r:
+        eid = row["event_id"]
+        going_counts[eid] = going_counts.get(eid, 0) + 1
+        if row["user_id"] == me:
+            my_rsvp_map[eid] = row["status"]
+        if eid not in preview_map:
+            preview_map[eid] = []
+        if len(preview_map[eid]) < 4 and row.get("users"):
+            preview_map[eid].append(row["users"])
+
     for e in events:
-        cnt = db.table("event_attendees").select("id", count="exact").eq(
-            "event_id", e["id"]
-        ).eq("status", "going").execute()
-        e["going_count"] = cnt.count or 0
+        eid = e["id"]
+        e["going_count"]      = going_counts.get(eid, 0)
+        e["my_rsvp"]          = my_rsvp_map.get(eid)
+        e["attendee_preview"] = preview_map.get(eid, [])
 
     return {"events": events, "total": len(events)}
 

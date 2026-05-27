@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   ArrowLeft, Plus, Calendar, MapPin, Users,
-  Check, Star, X as XIcon,
+  Check, Star, X as XIcon, ShieldCheck,
 } from "lucide-react";
 import { eventsApi } from "@/lib/api";
 import { useAuthStore } from "@/store/authStore";
@@ -53,7 +53,12 @@ export default function Events() {
         setEvents([...data.created, ...data.attending].filter((e, i, a) => a.findIndex(x => x.id === e.id) === i));
       } else {
         const { data } = await eventsApi.list({ upcoming_only: true });
-        setEvents(data.events || []);
+        const evs: any[] = data.events || [];
+        setEvents(evs);
+        // Pre-populate RSVP state from server
+        const serverMap: Record<string, string> = {};
+        evs.forEach((e: any) => { if (e.my_rsvp) serverMap[e.id] = e.my_rsvp; });
+        setRsvpMap(serverMap);
       }
     } catch { /* ignore */ }
     setLoading(false);
@@ -156,10 +161,35 @@ export default function Events() {
                       <MapPin size={11}/> {event.city || event.location_name}
                     </span>
                   )}
-                  <span className="flex items-center gap-1">
-                    <Users size={11}/> {event.going_count || 0} van
-                  </span>
+                  {(event.going_count || 0) > 0 ? (
+                    <span className="flex items-center gap-1 text-status-success">
+                      <ShieldCheck size={11}/> {event.going_count} verificado{event.going_count !== 1 ? "s" : ""} van
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-1">
+                      <Users size={11}/> Sé el primero
+                    </span>
+                  )}
                 </div>
+
+                {/* Attendee avatar preview */}
+                {(event.attendee_preview?.length || 0) > 0 && (
+                  <div className="flex items-center gap-1.5 mb-3">
+                    <div className="flex -space-x-2">
+                      {event.attendee_preview.map((a: any) => (
+                        <div key={a.id} className="w-7 h-7 rounded-full border-2 border-bg-card overflow-hidden flex-shrink-0">
+                          {a.profile_photo_url
+                            ? <img src={a.profile_photo_url} alt="" className="w-full h-full object-cover"/>
+                            : <div className="w-full h-full bg-bg-muted flex items-center justify-center text-[10px] text-text-muted font-medium">{a.first_name?.[0]}</div>
+                          }
+                        </div>
+                      ))}
+                    </div>
+                    {event.going_count > event.attendee_preview.length && (
+                      <span className="text-[10px] text-text-muted">+{event.going_count - event.attendee_preview.length} más</span>
+                    )}
+                  </div>
+                )}
 
                 {/* RSVP buttons */}
                 {!past && (
