@@ -52,7 +52,7 @@ export default function KYCVerification() {
           clearInterval(pollingRef.current);
           setState("verified");
           updateStatus("active");
-          setTimeout(() => navigate("/dashboard"), 2500);
+          setTimeout(() => navigate("/onboarding"), 2500);
         } else if (data.status === "rejected" || data.status === "expired") {
           clearInterval(pollingRef.current);
           setState("rejected");

@@ -143,6 +143,24 @@ class MessagingService:
             data={"conversation_id": conv_id, "sender_id": sender_id},
         )
 
+        # Push al destinatario
+        try:
+            from app.services.push_service import send_push
+            sender_r = get_supabase().table("users").select("username,first_name").eq("id", sender_id).execute().data
+            if sender_r:
+                handle = sender_r[0].get("username") or sender_r[0]["first_name"]
+                sender_display = f"@{handle}" if sender_r[0].get("username") else handle
+            else:
+                sender_display = "Alguien"
+            send_push(
+                user_id=recipient_id,
+                title=f"Nuevo mensaje de {sender_display}",
+                body=preview or "📷 Imagen",
+                url="/messages",
+            )
+        except Exception:
+            pass
+
         return msg
 
     def get_conversations(self, user_id: str) -> list:

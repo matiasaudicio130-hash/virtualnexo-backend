@@ -15,6 +15,8 @@ class UpdateProfileTypeBody(BaseModel):
     bio: Optional[str] = None
     province: Optional[str] = None
     city: Optional[str] = None
+    lat: Optional[float] = None
+    lng: Optional[float] = None
     identity_description: Optional[str] = None
     profile_extended: Optional[dict] = None
 

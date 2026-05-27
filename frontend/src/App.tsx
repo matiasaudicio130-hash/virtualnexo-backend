@@ -13,8 +13,9 @@ import Privacidad  from "@/pages/Privacidad";
 import Terminos    from "@/pages/Terminos";
 
 // Páginas de onboarding (autenticado, pero no activo aún)
-import KYCVerification from "@/pages/KYCVerification";
-import PendingApproval from "@/pages/PendingApproval";
+import KYCVerification  from "@/pages/KYCVerification";
+import PendingApproval  from "@/pages/PendingApproval";
+import OnboardingWizard from "@/pages/OnboardingWizard";
 
 // App principal
 import Dashboard from "@/pages/Dashboard";
@@ -66,6 +67,7 @@ export default function App() {
 
       {/* Dashboard: solo usuarios activos */}
       <Route element={<ProtectedRoute allowedStatuses={["active"]} />}>
+        <Route path="/onboarding" element={<OnboardingWizard />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/feed" element={<Feed />} />
         <Route path="/profile/:userId" element={<ProfileView />} />

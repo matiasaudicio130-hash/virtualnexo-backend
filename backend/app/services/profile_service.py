@@ -30,6 +30,29 @@ class ProfileService:
             {"viewer_id": viewer_id, "viewed_id": viewed_id, "viewed_at": datetime.now(timezone.utc).isoformat()},
             on_conflict="viewer_id,viewed_id",
         ).execute()
+        # Push diario — máximo 1 por día por usuario
+        try:
+            from app.services.push_service import send_push
+            today = datetime.now(timezone.utc).date().isoformat()
+            already = db.table("notifications").select("id").eq("user_id", viewed_id).eq(
+                "type", "profile_view_daily"
+            ).gte("created_at", f"{today}T00:00:00+00:00").limit(1).execute()
+            if not already.data:
+                db.table("notifications").insert({
+                    "user_id": viewed_id,
+                    "type": "profile_view_daily",
+                    "title": "Vieron tu perfil",
+                    "body": "Alguien verificado vio tu perfil hoy.",
+                    "data": {},
+                }).execute()
+                send_push(
+                    user_id=viewed_id,
+                    title="Vieron tu perfil",
+                    body="Alguien verificado vio tu perfil hoy",
+                    url="/dashboard",
+                )
+        except Exception:
+            pass
 
     def get_viewers(self, user_id: str, limit: int = 50) -> list:
         db = get_supabase()

@@ -285,14 +285,22 @@ async def request_access(album_id: str, request: Request):
 
     req_user = db.table("users").select("first_name, last_name, username").eq("id", requester_id).execute().data
     name = req_user[0].get("username") or f"{req_user[0]['first_name']}" if req_user else "Alguien"
+    display = f"@{name}" if req_user and req_user[0].get("username") else name
     try:
         db.table("notifications").insert({
             "user_id": a["user_id"],
             "type": "album_access_request",
             "title": "Solicitud de acceso exclusivo",
-            "body": f"{name} quiere ver tu album '{a['title']}'",
+            "body": f"{display} quiere ver tu album '{a['title']}'",
             "data": {"album_id": album_id, "requester_id": requester_id},
         }).execute()
+        from app.services.push_service import send_push
+        send_push(
+            user_id=a["user_id"],
+            title="Solicitud de acceso exclusivo",
+            body=f"{display} quiere ver tu album '{a['title']}'",
+            url="/dashboard",
+        )
     except Exception:
         pass
 
@@ -343,14 +351,22 @@ async def approve_request(album_id: str, request_id: str, request: Request):
 
     owner = db.table("users").select("username, first_name").eq("id", payload["sub"]).execute().data
     owner_name = owner[0].get("username") or owner[0]["first_name"] if owner else "El usuario"
+    display = f"@{owner_name}" if owner and owner[0].get("username") else owner_name
     try:
         db.table("notifications").insert({
             "user_id": req[0]["requester_id"],
             "type": "album_access_approved",
             "title": "Acceso exclusivo aprobado",
-            "body": f"{owner_name} te dio acceso a su album privado.",
+            "body": f"{display} te dio acceso a su album privado.",
             "data": {"album_id": album_id},
         }).execute()
+        from app.services.push_service import send_push
+        send_push(
+            user_id=req[0]["requester_id"],
+            title="Acceso exclusivo aprobado ✓",
+            body=f"{display} te dio acceso a su album '{album[0]['title']}'",
+            url=f"/profile/{payload['sub']}",
+        )
     except Exception:
         pass
 

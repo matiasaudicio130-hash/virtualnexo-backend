@@ -105,8 +105,10 @@ export const notificationsApi = {
 };
 
 export const profileApi = {
-  updateType: (body: object) => api.patch("/auth/me/profile-type", body),
+  updateType:    (body: object) => api.patch("/auth/me/profile-type", body),
+  updateProfile: (body: object) => api.patch("/auth/me/profile-type", body),
 };
+
 
 export const adsApi = {
   feedAds: (type = "banner", limit = 3) =>

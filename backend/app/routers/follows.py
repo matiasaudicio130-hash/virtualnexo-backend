@@ -41,9 +41,10 @@ async def follow_user(user_id: str, request: Request):
 
     # Notificar al seguido
     try:
-        me_data = db.table("users").select("first_name,last_name").eq("id", me).execute().data
+        me_data = db.table("users").select("first_name,last_name,username").eq("id", me).execute().data
         if me_data:
-            name = f"{me_data[0]['first_name']} {me_data[0]['last_name']}"
+            handle = me_data[0].get("username") or me_data[0]["first_name"]
+            name = f"@{handle}" if me_data[0].get("username") else me_data[0]["first_name"]
             db.table("notifications").insert({
                 "user_id": user_id,
                 "type": "new_follower",
@@ -51,6 +52,13 @@ async def follow_user(user_id: str, request: Request):
                 "body": f"{name} empezó a seguirte",
                 "data": {"follower_id": me},
             }).execute()
+            from app.services.push_service import send_push
+            send_push(
+                user_id=user_id,
+                title="Nuevo seguidor",
+                body=f"{name} empezó a seguirte",
+                url=f"/profile/{me}",
+            )
     except Exception:
         pass
 
