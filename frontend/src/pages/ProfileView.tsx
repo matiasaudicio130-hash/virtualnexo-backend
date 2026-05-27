@@ -345,9 +345,15 @@ export default function ProfileView() {
             <p className="brand-eyebrow" style={{ marginBottom: 10 }}>Qué buscás</p>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
               {seekingTags.map(tag => (
-                <span key={tag} style={{ fontFamily: "var(--font-sans)", fontSize: 12, color: "var(--paper)", padding: "4px 12px", border: "1px solid var(--gold-deep)", borderRadius: "var(--radius-pill)", background: "rgba(201,162,39,0.06)" }}>
+                <button
+                  key={tag}
+                  onClick={() => navigate(`/explore?tab=interes&tag=${encodeURIComponent(tag)}`)}
+                  style={{ fontFamily: "var(--font-sans)", fontSize: 12, color: "var(--paper)", padding: "4px 12px", border: "1px solid var(--gold-deep)", borderRadius: "var(--radius-pill)", background: "rgba(201,162,39,0.06)", cursor: "pointer", transition: "background 0.15s" }}
+                  onMouseEnter={e => (e.currentTarget.style.background = "rgba(201,162,39,0.14)")}
+                  onMouseLeave={e => (e.currentTarget.style.background = "rgba(201,162,39,0.06)")}
+                >
                   {SEEKING_LABELS[tag] || tag}
-                </span>
+                </button>
               ))}
             </div>
             {profile.seeking_text && (

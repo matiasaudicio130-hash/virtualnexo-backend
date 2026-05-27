@@ -87,6 +87,33 @@ async def nearby_users(
     return {"users": nearby[:limit], "total": len(nearby[:limit])}
 
 
+@router.get("/by-tag")
+async def profiles_by_tag(
+    request: Request,
+    tag:   str = Query(...),
+    limit: int = Query(20, le=50),
+):
+    """Perfiles que tienen un seeking_tag específico, ordenados por cercanía provincial."""
+    payload = _require_auth(request)
+    from app.db.supabase import get_supabase
+    db = get_supabase()
+
+    viewer_r = db.table("users").select("province").eq("id", payload["sub"]).execute()
+    province = viewer_r.data[0].get("province") if viewer_r.data else None
+
+    # Supabase supports @> (contains) operator for arrays via filter
+    rows = db.table("users").select(
+        "id,first_name,last_name,profile_photo_url,profile_type,province,city,bio,seeking_tags,seeking_text,username"
+    ).eq("status", "active").neq("id", payload["sub"]).contains("seeking_tags", [tag]).limit(100).execute().data
+
+    # Province first, then shuffle the rest
+    same = [u for u in rows if u.get("province") == province]
+    rest = [u for u in rows if u.get("province") != province]
+    import random
+    random.shuffle(rest)
+    return {"users": (same + rest)[:limit], "total": len(rows)}
+
+
 @router.get("/suggestions")
 async def profile_suggestions(
     request: Request,

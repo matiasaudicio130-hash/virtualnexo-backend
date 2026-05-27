@@ -12,27 +12,47 @@ interface SuggestedUser {
   profile_photo_url?: string;
   profile_type?:     string;
   province?:         string;
+  city?:             string;
   bio?:              string;
+  seeking_tags?:     string[];
+  username?:         string;
 }
 
-export function ProfileSuggestions() {
+interface Props {
+  tag?: string;
+}
+
+export function ProfileSuggestions({ tag }: Props = {}) {
   const navigate              = useNavigate();
   const [users, setUsers]     = useState<SuggestedUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    discoveryApi.suggestions()
-      .then(r => setUsers((r.data.users || []).slice(0, 8)))
+    setLoading(true);
+    setUsers([]);
+    const req = tag
+      ? discoveryApi.byTag(tag)
+      : discoveryApi.suggestions();
+    req
+      .then(r => setUsers((r.data.users || []).slice(0, tag ? 20 : 8)))
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, []);
+  }, [tag]);
 
   const visible = users.filter(u => !dismissed.has(u.id));
-  if (loading) return null;
+
+  if (loading) return (
+    <div className="mx-4 my-3 py-6 text-center">
+      <p className="text-xs text-text-muted">Buscando...</p>
+    </div>
+  );
+
   if (visible.length === 0) return (
     <div className="mx-4 my-3 py-6 text-center">
-      <p className="text-xs text-text-muted">No hay sugerencias por ahora. Completá tu perfil para aparecer en Explorar.</p>
+      <p className="text-xs text-text-muted">
+        {tag ? "Nadie tiene este interés todavía. ¡Sé el primero!" : "No hay sugerencias por ahora. Completá tu perfil para aparecer en Explorar."}
+      </p>
     </div>
   );
 
@@ -40,12 +60,15 @@ export function ProfileSuggestions() {
     <div className="mx-4 my-3 bg-bg-card border border-border/50 rounded-2xl overflow-hidden">
       <div className="flex items-center gap-2 px-4 py-3 border-b border-border/40">
         <Sparkles size={14} className="text-accent-purple"/>
-        <span className="text-xs font-semibold text-text-primary">Quizás te interese</span>
+        <span className="text-xs font-semibold text-text-primary">
+          {tag ? `${visible.length} persona${visible.length !== 1 ? "s" : ""} con este interés` : "Quizás te interese"}
+        </span>
       </div>
 
       <div className="divide-y divide-border/40">
-        {visible.slice(0, 4).map(u => {
+        {visible.slice(0, tag ? 20 : 4).map(u => {
           const cfg = u.profile_type ? PROFILE_TYPE_CONFIG[u.profile_type as ProfileType] : null;
+          const displayName = u.username ? `@${u.username}` : `${u.first_name} ${u.last_name}`;
           return (
             <div key={u.id} className="flex items-center gap-3 px-4 py-3">
               <button onClick={() => navigate(`/profile/${u.id}`)} className="flex-shrink-0">
@@ -65,12 +88,12 @@ export function ProfileSuggestions() {
                     onClick={() => navigate(`/profile/${u.id}`)}
                     className="text-sm font-medium text-text-primary truncate hover:text-accent-purple transition-colors"
                   >
-                    {u.first_name} {u.last_name}
+                    {displayName}
                   </button>
                   {cfg && <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${cfg.dot}`}/>}
                 </div>
                 <p className="text-[11px] text-text-muted truncate">
-                  {u.bio?.slice(0, 45) || (u.province ?? "")}
+                  {u.bio?.slice(0, 45) || [u.city, u.province].filter(Boolean).join(", ")}
                 </p>
               </div>
 

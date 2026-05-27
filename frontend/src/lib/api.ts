@@ -265,6 +265,7 @@ export const discoveryApi = {
   nearby:         (lat: number, lng: number, radius_km = 50) =>
                     api.get("/discovery/nearby", { params: { lat, lng, radius_km } }),
   suggestions:    ()                          => api.get("/discovery/suggestions"),
+  byTag:          (tag: string)              => api.get("/discovery/by-tag", { params: { tag } }),
   toggleAnonymous: ()                         => api.post("/discovery/anonymous-mode"),
 };
 
