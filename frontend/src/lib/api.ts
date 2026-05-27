@@ -260,6 +260,14 @@ export const messagingV2Api = {
   clearHistory:     (convId: string)                    => api.delete(`/messages/conversations/${convId}/history`),
 };
 
+export const couplesApi = {
+  status:  ()                    => api.get("/couples/me"),
+  request: (targetId: string)    => api.post(`/couples/request/${targetId}`),
+  accept:  (requesterId: string) => api.post(`/couples/accept/${requesterId}`),
+  decline: (requesterId: string) => api.post(`/couples/decline/${requesterId}`),
+  unlink:  ()                    => api.delete("/couples/unlink"),
+};
+
 export const discoveryApi = {
   updateLocation: (lat: number, lng: number) => api.post("/discovery/location", { lat, lng }),
   nearby:         (lat: number, lng: number, radius_km = 50) =>

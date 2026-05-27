@@ -24,6 +24,7 @@ import { InstallPrompt } from "@/components/InstallPrompt";
 import { SecuritySettings } from "@/components/SecuritySettings";
 import { EditProfileModal } from "@/components/EditProfileModal";
 import { MyProfileSection } from "@/components/MyProfileSection";
+import { CoupleSection } from "@/components/CoupleSection";
 import { NavLogo } from "@/components/AuraLogo";
 import { StoryHighlights } from "@/components/StoryHighlights";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
@@ -331,6 +332,9 @@ export default function Dashboard() {
             )}
           </Card>
         )}
+
+        {/* Perfil de pareja */}
+        <CoupleSection />
 
         {user.membership_type === "none" && <MembershipCTA />}
 

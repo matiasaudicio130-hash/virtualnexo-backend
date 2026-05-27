@@ -289,6 +289,14 @@ export default function ProfileView() {
                 Match
               </span>
             )}
+            {profile.profile_extended?.partner_id && (
+              <button
+                onClick={() => navigate(`/profile/${profile.profile_extended.partner_id}`)}
+                style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.16em", textTransform: "uppercase", color: "#C9A227", padding: "3px 8px", border: "1px solid rgba(201,162,39,0.4)", borderRadius: "var(--radius-pill)", background: "rgba(201,162,39,0.06)", cursor: "pointer" }}
+              >
+                ♥ Pareja verificada
+              </button>
+            )}
           </div>
 
           {/* ── ZONA 1b: Botones de acción ── */}
