@@ -75,14 +75,18 @@ class ProfileService:
     def get_public_profile(self, target_id: str, viewer_id: str) -> dict | None:
         db = get_supabase()
 
-        # ¿El viewer bloqueó al target o viceversa?
-        block = db.table("user_blocks").select("id").or_(
-            f"and(blocker_id.eq.{viewer_id},blocked_id.eq.{target_id}),"
-            f"and(blocker_id.eq.{target_id},blocked_id.eq.{viewer_id})"
-        ).limit(1).execute()
-        if block.data:
-            return {"blocked": True}
+        # ¿El viewer bloqueó al target o viceversa? (tabla opcional)
+        try:
+            block = db.table("user_blocks").select("id").or_(
+                f"and(blocker_id.eq.{viewer_id},blocked_id.eq.{target_id}),"
+                f"and(blocker_id.eq.{target_id},blocked_id.eq.{viewer_id})"
+            ).limit(1).execute()
+            if block.data:
+                return {"blocked": True}
+        except Exception:
+            pass
 
+        # Datos base del usuario — query core, si falla retornamos None
         r = db.table("users").select(
             "id,first_name,last_name,profile_photo_url,bio,province,city,"
             "profile_type,sexual_orientation,interested_in,visible_to,"
@@ -92,52 +96,79 @@ class ProfileService:
             return None
         user = r.data[0]
 
-        # Respetar visible_to
-        visible_to = user.get("visible_to") or []
-        if visible_to and viewer_id != target_id:
-            viewer_r = db.table("users").select("profile_type").eq("id", viewer_id).execute()
-            viewer_type = viewer_r.data[0]["profile_type"] if viewer_r.data else "solo_h"
-            viewer_cat  = _resolve_viewer_category(viewer_type)
-            if viewer_cat not in visible_to:
-                return {"private": True}
+        # Respetar visible_to (falla silenciosa = perfil visible)
+        try:
+            visible_to = user.get("visible_to") or []
+            if visible_to and viewer_id != target_id:
+                viewer_r = db.table("users").select("profile_type").eq("id", viewer_id).execute()
+                viewer_type = viewer_r.data[0]["profile_type"] if viewer_r.data else "solo_h"
+                viewer_cat  = _resolve_viewer_category(viewer_type)
+                if viewer_cat not in visible_to:
+                    return {"private": True}
+        except Exception:
+            pass
 
-        # Posts recientes
-        posts_r = db.table("posts").select(
-            "id,type,caption,media_url,storage_path,city,province,created_at,views_count"
-        ).eq("user_id", target_id).eq("status", "active").neq("type", "story").order(
-            "created_at", desc=True
-        ).limit(12).execute()
-        posts = posts_r.data
+        # Posts recientes (falla silenciosa = lista vacía)
+        posts: list = []
+        try:
+            posts_r = db.table("posts").select(
+                "id,type,caption,media_url,storage_path,city,province,created_at,views_count"
+            ).eq("user_id", target_id).eq("status", "active").neq("type", "story").order(
+                "created_at", desc=True
+            ).limit(12).execute()
+            posts = posts_r.data
+            self._refresh_urls(posts, db)
+        except Exception:
+            pass
 
-        # Refresh signed URLs para posts del perfil
-        self._refresh_urls(posts, db)
+        # Reseñas (falla silenciosa = lista vacía)
+        reviews: list = []
+        try:
+            reviews_r = db.table("reviews").select(
+                "id,rating,text,is_anonymous,created_at,"
+                "users!reviews_reviewer_id_fkey(first_name,last_name,profile_photo_url)"
+            ).eq("reviewed_id", target_id).order("created_at", desc=True).limit(10).execute()
+            reviews = reviews_r.data
+        except Exception:
+            pass
 
-        # Reseñas
-        reviews_r = db.table("reviews").select(
-            "id,rating,text,is_anonymous,created_at,"
-            "users!reviews_reviewer_id_fkey(first_name,last_name,profile_photo_url)"
-        ).eq("reviewed_id", target_id).order("created_at", desc=True).limit(10).execute()
+        # Stats de reseñas (falla silenciosa = None)
+        review_stats = None
+        try:
+            stats_r = db.table("review_stats").select("*").eq("user_id", target_id).execute()
+            review_stats = stats_r.data[0] if stats_r.data else None
+        except Exception:
+            pass
 
-        # Stats de reseñas
-        stats_r = db.table("review_stats").select("*").eq("user_id", target_id).execute()
+        # Like del viewer (falla silenciosa = False)
+        viewer_liked = False
+        try:
+            like_r = db.table("profile_likes").select("id").eq("user_id", viewer_id).eq("target_id", target_id).execute()
+            viewer_liked = bool(like_r.data)
+        except Exception:
+            pass
 
-        # Like del viewer
-        like_r = db.table("profile_likes").select("id").eq("user_id", viewer_id).eq("target_id", target_id).execute()
-
-        # Match existente
-        match_r = db.table("matches").select("id,created_at").or_(
-            f"and(user_a_id.eq.{viewer_id},user_b_id.eq.{target_id}),"
-            f"and(user_a_id.eq.{target_id},user_b_id.eq.{viewer_id})"
-        ).limit(1).execute()
+        # Match existente (falla silenciosa = no match)
+        matched = False
+        match_at = None
+        try:
+            match_r = db.table("matches").select("id,created_at").or_(
+                f"and(user_a_id.eq.{viewer_id},user_b_id.eq.{target_id}),"
+                f"and(user_a_id.eq.{target_id},user_b_id.eq.{viewer_id})"
+            ).limit(1).execute()
+            matched  = bool(match_r.data)
+            match_at = match_r.data[0]["created_at"] if match_r.data else None
+        except Exception:
+            pass
 
         return {
             **user,
-            "posts":       posts,
-            "reviews":     reviews_r.data,
-            "review_stats": stats_r.data[0] if stats_r.data else None,
-            "viewer_liked": bool(like_r.data),
-            "matched":      bool(match_r.data),
-            "match_at":     match_r.data[0]["created_at"] if match_r.data else None,
+            "posts":        posts,
+            "reviews":      reviews,
+            "review_stats": review_stats,
+            "viewer_liked": viewer_liked,
+            "matched":      matched,
+            "match_at":     match_at,
         }
 
     def _refresh_urls(self, posts: list, db) -> None:
