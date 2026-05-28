@@ -333,13 +333,37 @@ async def upload_chat_media(
     ext = (file.filename or "file").rsplit(".", 1)[-1].lower() or "bin"
     path = f"{payload['sub']}/{uuid.uuid4().hex}.{ext}"
 
-    db.storage.from_("chat").upload(path, data, {
-        "content-type": file.content_type,
-        "upsert": "true",
-    })
+    # Crear bucket "chat" si no existe (idempotente)
+    try:
+        db.storage.create_bucket("chat", options={"public": False})
+    except Exception:
+        pass  # Ya existe o no se puede crear — intentar subir igual
 
-    signed = db.storage.from_("chat").create_signed_url(path, 86400 * 7)
-    url = signed.get("signedUrl") or signed.get("signedURL", "")
+    try:
+        db.storage.from_("chat").upload(path, data, {
+            "content-type": file.content_type,
+            "upsert": "true",
+        })
+    except Exception as e:
+        raise HTTPException(500, f"Error al subir archivo: {str(e)}")
+
+    # Generar signed URL (compatible con storage3 v0.x y v1.x)
+    url = ""
+    try:
+        signed = db.storage.from_("chat").create_signed_url(path, 86400 * 7)
+        if isinstance(signed, dict):
+            url = signed.get("signedUrl") or signed.get("signedURL") or ""
+        else:
+            url = (
+                getattr(signed, "signed_url", None)
+                or getattr(signed, "signedUrl", None)
+                or ""
+            )
+    except Exception:
+        pass
+
+    if not url:
+        raise HTTPException(500, "Archivo subido pero no se pudo generar la URL. Reintentá.")
 
     return {
         "url":   url,

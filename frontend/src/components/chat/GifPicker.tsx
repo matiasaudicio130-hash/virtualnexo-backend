@@ -13,15 +13,14 @@ interface Props {
   onClose: () => void;
 }
 
-// Usa la API pública de Giphy (reemplazar con key propia en producción)
-const GIPHY_KEY = "dc6zaTOxFJmzC";
+const TENOR_KEY = "LIVDSRZULELA";
 
 export function GifPicker({ onSelect, onClose }: Props) {
-  const [query, setQuery]   = useState("");
-  const [gifs, setGifs]     = useState<Gif[]>([]);
+  const [query, setQuery]     = useState("");
+  const [gifs, setGifs]       = useState<Gif[]>([]);
   const [loading, setLoading] = useState(false);
-  const ref                 = useRef<HTMLDivElement>(null);
-  const timerRef            = useRef<any>(null);
+  const ref                   = useRef<HTMLDivElement>(null);
+  const timerRef              = useRef<any>(null);
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -40,17 +39,21 @@ export function GifPicker({ onSelect, onClose }: Props) {
     setLoading(true);
     try {
       const endpoint = q === "trending"
-        ? `https://api.giphy.com/v1/gifs/trending?api_key=${GIPHY_KEY}&limit=20&rating=r`
-        : `https://api.giphy.com/v1/gifs/search?api_key=${GIPHY_KEY}&q=${encodeURIComponent(q)}&limit=20&rating=r`;
+        ? `https://api.tenor.com/v1/trending?key=${TENOR_KEY}&limit=20&contentfilter=off&media_filter=minimal`
+        : `https://api.tenor.com/v1/search?key=${TENOR_KEY}&q=${encodeURIComponent(q)}&limit=20&contentfilter=off&media_filter=minimal`;
 
       const res  = await fetch(endpoint);
       const json = await res.json();
-      setGifs((json.data || []).map((g: any) => ({
-        id:      g.id,
-        url:     g.images.original.url,
-        preview: g.images.fixed_width_small.url,
-        title:   g.title,
-      })));
+      setGifs(
+        ((json.results || []) as any[])
+          .map(g => ({
+            id:      String(g.id),
+            url:     g.media?.[0]?.gif?.url || g.media?.[0]?.tinygif?.url || "",
+            preview: g.media?.[0]?.tinygif?.url || g.media?.[0]?.gif?.url || "",
+            title:   g.title || "GIF",
+          }))
+          .filter(g => g.url)
+      );
     } catch { setGifs([]); }
     setLoading(false);
   }
@@ -76,7 +79,7 @@ export function GifPicker({ onSelect, onClose }: Props) {
       <div className="h-56 overflow-y-auto p-2">
         {loading ? (
           <div className="grid grid-cols-3 gap-1.5">
-            {Array.from({length:9}).map((_,i) => (
+            {Array.from({length: 9}).map((_, i) => (
               <div key={i} className="aspect-square bg-bg-muted rounded-lg animate-pulse"/>
             ))}
           </div>
@@ -97,9 +100,9 @@ export function GifPicker({ onSelect, onClose }: Props) {
         )}
       </div>
 
-      {/* Giphy credit */}
+      {/* Credit */}
       <div className="px-3 py-1.5 border-t border-border">
-        <p className="text-[9px] text-text-muted text-center tracking-wide">Powered by GIPHY</p>
+        <p className="text-[9px] text-text-muted text-center tracking-wide">Powered by Tenor</p>
       </div>
     </div>
   );

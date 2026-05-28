@@ -49,7 +49,10 @@ async def get_profile(user_id: str, request: Request):
 
     # Registrar visita (no registrar si es el propio perfil)
     if viewer_id != user_id:
-        profile_service.record_view(viewer_id, user_id)
+        try:
+            profile_service.record_view(viewer_id, user_id)
+        except Exception:
+            pass
 
     profile = profile_service.get_public_profile(user_id, viewer_id)
     if profile is None:

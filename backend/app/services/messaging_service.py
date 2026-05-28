@@ -28,9 +28,19 @@ class MessagingService:
         Returns (allowed, reason).
         """
         db = get_supabase()
-        users = db.table("users").select(
-            "id,profile_type,no_messages_from,visible_to,is_shadow_banned,status"
-        ).in_("id", [sender_id, recipient_id]).execute().data
+        # Seleccionamos columnas base; columnas opcionales se consultan con fallback
+        try:
+            users = db.table("users").select(
+                "id,profile_type,no_messages_from,visible_to,is_shadow_banned,status"
+            ).in_("id", [sender_id, recipient_id]).execute().data
+        except Exception:
+            # Columnas opcionales ausentes — reintentamos con columnas mínimas garantizadas
+            try:
+                users = db.table("users").select(
+                    "id,profile_type,status,is_shadow_banned"
+                ).in_("id", [sender_id, recipient_id]).execute().data
+            except Exception:
+                return True, "ok"  # No se puede verificar, permitir por defecto
 
         if len(users) < 2:
             return False, "Usuario no encontrado"
@@ -47,7 +57,7 @@ class MessagingService:
         if recipient.get("is_shadow_banned"):
             return False, "No se puede contactar a este usuario"
 
-        # Filtro no_messages_from
+        # Filtro no_messages_from (columna opcional)
         no_msg = recipient.get("no_messages_from") or []
         if no_msg:
             blocked_types = _resolve_blocked_types(no_msg)
@@ -55,7 +65,7 @@ class MessagingService:
             if sender_type in blocked_types:
                 return False, "Este usuario no acepta mensajes de tu tipo de perfil"
 
-        # Filtro visible_to (si no me puede ver, no me puede escribir)
+        # Filtro visible_to (columna opcional)
         visible_to = recipient.get("visible_to") or []
         if visible_to:
             allowed_viewer_types = set()

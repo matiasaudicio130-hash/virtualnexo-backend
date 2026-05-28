@@ -22,14 +22,21 @@ class ProfileService:
         if viewer_id == viewed_id:
             return
         db = get_supabase()
-        # Respetar modo anónimo del viewer
-        viewer_r = db.table("users").select("anonymous_mode").eq("id", viewer_id).execute()
-        if viewer_r.data and viewer_r.data[0].get("anonymous_mode"):
-            return  # Modo anónimo activo: no registrar la visita
-        db.table("profile_views").upsert(
-            {"viewer_id": viewer_id, "viewed_id": viewed_id, "viewed_at": datetime.now(timezone.utc).isoformat()},
-            on_conflict="viewer_id,viewed_id",
-        ).execute()
+        # Respetar modo anónimo del viewer (columna opcional)
+        try:
+            viewer_r = db.table("users").select("anonymous_mode").eq("id", viewer_id).execute()
+            if viewer_r.data and viewer_r.data[0].get("anonymous_mode"):
+                return
+        except Exception:
+            pass
+        # Registrar visita (tabla puede no existir en entornos sin migración)
+        try:
+            db.table("profile_views").upsert(
+                {"viewer_id": viewer_id, "viewed_id": viewed_id, "viewed_at": datetime.now(timezone.utc).isoformat()},
+                on_conflict="viewer_id,viewed_id",
+            ).execute()
+        except Exception:
+            pass
         # Push diario — máximo 1 por día por usuario
         try:
             from app.services.push_service import send_push
@@ -79,8 +86,7 @@ class ProfileService:
         r = db.table("users").select(
             "id,first_name,last_name,profile_photo_url,bio,province,city,"
             "profile_type,sexual_orientation,interested_in,visible_to,"
-            "identity_description,profile_extended,membership_type,"
-            "no_messages_from_solos"
+            "identity_description,profile_extended,membership_type"
         ).eq("id", target_id).eq("status", "active").execute()
         if not r.data:
             return None
