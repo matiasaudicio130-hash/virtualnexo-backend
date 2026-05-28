@@ -44,7 +44,9 @@ export function StoryHighlights({ userId, isOwn = false, onSelect }: Props) {
       setCoverFile(null);
       setCoverPreview(null);
       setShowCreate(false);
-    } catch { /* ignore */ }
+    } catch (e: any) {
+      alert(e?.response?.data?.detail ?? "No se pudo crear el highlight. Intentá de nuevo.");
+    }
     setCreating(false);
   }
 

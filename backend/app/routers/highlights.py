@@ -54,8 +54,6 @@ async def create_highlight(body: CreateHighlightBody, request: Request):
     payload = _require_auth(request)
     if not body.title.strip():
         raise HTTPException(400, "El título es obligatorio")
-    if not body.story_ids:
-        raise HTTPException(400, "Mínimo 1 story")
 
     from app.db.supabase import get_supabase
     db = get_supabase()
@@ -65,11 +63,12 @@ async def create_highlight(body: CreateHighlightBody, request: Request):
         "cover_url": body.cover_url,
     }).execute().data[0]
 
-    items = [
-        {"highlight_id": hl["id"], "story_id": sid, "sort_order": i}
-        for i, sid in enumerate(body.story_ids)
-    ]
-    db.table("story_highlight_items").insert(items).execute()
+    if body.story_ids:
+        items = [
+            {"highlight_id": hl["id"], "story_id": sid, "sort_order": i}
+            for i, sid in enumerate(body.story_ids)
+        ]
+        db.table("story_highlight_items").insert(items).execute()
     return hl
 
 
