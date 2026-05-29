@@ -62,12 +62,23 @@ async def list_conversations(request: Request):
 @router.post("/conversations/start")
 async def start_conversation(body: ConversationStartBody, request: Request):
     """Obtiene o inicia una conversación con otro usuario."""
+    from app.db.supabase import get_supabase
     payload = _require_auth(request)
-    if body.recipient_id == payload["sub"]:
+    user_id = payload["sub"]
+    if body.recipient_id == user_id:
         raise HTTPException(400, "No podés chatear con vos mismo")
     try:
-        conv = messaging_service.get_or_create_conversation(payload["sub"], body.recipient_id)
-        return conv
+        conv = messaging_service.get_or_create_conversation(user_id, body.recipient_id)
+        # Enrich with other_user so the frontend can render name/photo immediately
+        try:
+            db = get_supabase()
+            other_r = db.table("users").select(
+                "id,first_name,last_name,profile_photo_url,profile_type,province"
+            ).eq("id", body.recipient_id).execute()
+            other = other_r.data[0] if other_r.data else None
+        except Exception:
+            other = None
+        return {**conv, "other_user": other, "unread_count": 0, "blocked_me": False}
     except PermissionError as e:
         raise HTTPException(403, str(e))
 

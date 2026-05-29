@@ -77,12 +77,13 @@ class ProfileService:
 
         # ¿El viewer bloqueó al target o viceversa? (tabla opcional)
         try:
-            block = db.table("user_blocks").select("id").or_(
+            block = db.table("user_blocks").select("id,blocker_id").or_(
                 f"and(blocker_id.eq.{viewer_id},blocked_id.eq.{target_id}),"
                 f"and(blocker_id.eq.{target_id},blocked_id.eq.{viewer_id})"
             ).limit(1).execute()
             if block.data:
-                return {"blocked": True}
+                i_blocked = block.data[0]["blocker_id"] == viewer_id
+                return {"blocked": True, "i_blocked_them": i_blocked}
         except Exception:
             pass
 

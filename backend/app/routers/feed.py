@@ -80,7 +80,7 @@ async def get_user_posts(
     from app.db.supabase import get_supabase
     db = get_supabase()
     SELECT = (
-        "id,user_id,caption,media_url,type,created_at,city,reactions,expires_at,"
+        "id,user_id,caption,media_url,storage_path,type,created_at,city,reactions,expires_at,"
         "users!posts_user_id_fkey(id,first_name,last_name,profile_photo_url,profile_type,username)"
     )
     rows = (
@@ -97,6 +97,7 @@ async def get_user_posts(
     for r in rows:
         author_raw = r.pop("users!posts_user_id_fkey", None) or {}
         posts.append({**r, "author": author_raw, "viewer_reaction": None})
+    feed_service._refresh_signed_urls(posts, db)
     return {"posts": posts}
 
 

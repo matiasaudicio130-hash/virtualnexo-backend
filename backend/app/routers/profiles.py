@@ -58,7 +58,10 @@ async def get_profile(user_id: str, request: Request):
     if profile is None:
         raise HTTPException(404, "Perfil no encontrado")
     if profile.get("blocked"):
-        raise HTTPException(403, "Perfil bloqueado")
+        raise HTTPException(403, detail={
+            "message": "Perfil bloqueado",
+            "i_blocked_them": profile.get("i_blocked_them", False),
+        })
     if profile.get("private"):
         raise HTTPException(403, "Perfil privado")
     return profile

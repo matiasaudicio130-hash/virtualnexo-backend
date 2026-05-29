@@ -63,6 +63,18 @@ class FeedService:
         if interested_in:
             allowed_types = _resolve_interested_types(interested_in)
 
+        # IDs bloqueados en ambas direcciones — excluir del feed
+        blocked_ids: set = set()
+        try:
+            block_r = db.table("user_blocks").select("blocker_id,blocked_id").or_(
+                f"blocker_id.eq.{viewer_id},blocked_id.eq.{viewer_id}"
+            ).execute()
+            for b in block_r.data:
+                other = b["blocked_id"] if b["blocker_id"] == viewer_id else b["blocker_id"]
+                blocked_ids.add(other)
+        except Exception:
+            pass
+
         # 2. Query base — posts activos no expirados
         q = db.table("posts").select(
             "*, users!posts_user_id_fkey("
@@ -92,6 +104,10 @@ class FeedService:
             is_own = uid == viewer_id
 
             if not is_own:
+                # Bloqueos mutuos
+                if uid in blocked_ids:
+                    continue
+
                 # Shadow ban
                 if user.get("is_shadow_banned"):
                     continue

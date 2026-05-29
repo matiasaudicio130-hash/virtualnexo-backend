@@ -5,10 +5,11 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
-  ArrowLeft, Heart, ShieldOff, Flag, MapPin, Star,
-  Lock, Users, User, MessageSquare, Images, Plus, Flame,
+  ArrowLeft, Heart, ShieldOff, Flag, MapPin,
+  Lock, Users, User, MessageSquare, Images,
 } from "lucide-react";
 import { profilesApi, followsApi, albumsApi, feedApi } from "@/lib/api";
+import { Tooltip } from "@/components/ui/Tooltip";
 import { useAuthStore } from "@/store/authStore";
 import { useScreenCapture } from "@/hooks/useScreenCapture";
 import { VerifiedBadge } from "@/components/ui/VerifiedBadge";
@@ -25,16 +26,6 @@ const SEEKING_LABELS: Record<string, string> = {
   en_pareja_explorando:  "En pareja, explorando",
   solo_curiosidad:       "Solo curiosidad por ahora",
 };
-
-function timeAgo(d: string) {
-  const diff = Date.now() - new Date(d).getTime();
-  const days = Math.floor(diff / 86400000);
-  if (days === 0) return "Hoy";
-  if (days === 1) return "Ayer";
-  if (days < 30) return `Hace ${days} días`;
-  const months = Math.floor(days / 30);
-  return months === 1 ? "Hace 1 mes" : `Hace ${months} meses`;
-}
 
 /* ── Album card ─────────────────────────────────────────────── */
 function AlbumCard({ album, onRequestAccess }: { album: any; onRequestAccess: (id: string) => void }) {
@@ -99,10 +90,13 @@ export default function ProfileView() {
   const [profile, setProfile]         = useState<any>(null);
   const [loading, setLoading]         = useState(true);
   const [error, setError]             = useState<"blocked"|"private"|"notfound"|null>(null);
+  const [iBlockedThem, setIBlockedThem] = useState(false);
   const [liked, setLiked]             = useState(false);
   const [matched, setMatched]         = useState(false);
   const [blocked, setBlocked]         = useState(false);
   const [showReport, setShowReport]   = useState(false);
+  const [showBlockConfirm, setShowBlockConfirm] = useState(false);
+  const [showPhotoLightbox, setShowPhotoLightbox] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [isFollowing, setIsFollowing] = useState(false);
   const [followCounts, setFollowCounts] = useState({ followers: 0, following: 0 });
@@ -127,7 +121,13 @@ export default function ProfileView() {
         const status = e.response?.status;
         if (status === 403) {
           const detail = e.response?.data?.detail ?? "";
-          setError(detail.includes("bloqueado") ? "blocked" : "private");
+          const msg = typeof detail === "object" ? (detail.message ?? "") : detail;
+          if (msg.includes("bloqueado")) {
+            setError("blocked");
+            setIBlockedThem(typeof detail === "object" ? (detail.i_blocked_them ?? false) : false);
+          } else {
+            setError("private");
+          }
         } else {
           setError("notfound");
         }
@@ -186,8 +186,12 @@ export default function ProfileView() {
 
   async function handleBlock() {
     if (!userId || actionLoading) return;
-    const name = profile?.first_name || "este usuario";
-    if (!confirm(`¿Bloqueás a ${name}? No podrán ver tu perfil ni escribirte.`)) return;
+    setShowBlockConfirm(true);
+  }
+
+  async function confirmBlock() {
+    if (!userId) return;
+    setShowBlockConfirm(false);
     setActionLoading(true);
     try {
       const { data } = await profilesApi.block(userId);
@@ -195,6 +199,25 @@ export default function ProfileView() {
       if (data.blocked) navigate(-1);
     } catch {
       alert("No se pudo bloquear. Intentá de nuevo.");
+    }
+    setActionLoading(false);
+  }
+
+  async function handleUnblock() {
+    if (!userId) return;
+    setActionLoading(true);
+    try {
+      await profilesApi.block(userId);
+      setError(null);
+      setIBlockedThem(false);
+      setLoading(true);
+      profilesApi.get(userId).then(r => {
+        setProfile(r.data);
+        setLiked(r.data.viewer_liked ?? false);
+        setMatched(r.data.matched ?? false);
+      }).catch(() => setError("notfound")).finally(() => setLoading(false));
+    } catch {
+      alert("No se pudo desbloquear. Intentá de nuevo.");
     }
     setActionLoading(false);
   }
@@ -229,6 +252,15 @@ export default function ProfileView() {
       <h2 className="brand-title" style={{ fontSize: "var(--fs-display-m)", marginBottom: 8 }}>
         {error === "blocked" ? "Perfil bloqueado" : error === "private" ? "Perfil privado" : "Perfil no encontrado"}
       </h2>
+      {error === "blocked" && iBlockedThem && (
+        <button
+          onClick={handleUnblock}
+          disabled={actionLoading}
+          style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--paper)", letterSpacing: "0.14em", background: "var(--gold-deep)", border: "none", cursor: "pointer", textTransform: "uppercase", padding: "10px 20px", borderRadius: 8, marginBottom: 12, opacity: actionLoading ? 0.6 : 1 }}
+        >
+          {actionLoading ? "Desbloqueando..." : "Desbloquear"}
+        </button>
+      )}
       <button onClick={() => navigate(-1)} style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--gold)", letterSpacing: "0.14em", background: "none", border: "none", cursor: "pointer", textTransform: "uppercase" }}>
         Volver
       </button>
@@ -256,12 +288,16 @@ export default function ProfileView() {
         </p>
         {!isOwnProfile && (
           <div style={{ display: "flex", gap: 4 }}>
-            <button onClick={handleBlock} style={{ padding: 8, background: "none", border: "none", color: "var(--mist)", cursor: "pointer" }}>
-              <ShieldOff size={16} strokeWidth={1.5}/>
-            </button>
-            <button onClick={() => setShowReport(true)} style={{ padding: 8, background: "none", border: "none", color: "var(--mist)", cursor: "pointer" }}>
-              <Flag size={16} strokeWidth={1.5}/>
-            </button>
+            <Tooltip label="Bloquear" position="bottom">
+              <button onClick={handleBlock} style={{ padding: 8, background: "none", border: "none", color: "var(--mist)", cursor: "pointer" }}>
+                <ShieldOff size={16} strokeWidth={1.5}/>
+              </button>
+            </Tooltip>
+            <Tooltip label="Reportar" position="bottom">
+              <button onClick={() => setShowReport(true)} style={{ padding: 8, background: "none", border: "none", color: "var(--mist)", cursor: "pointer" }}>
+                <Flag size={16} strokeWidth={1.5}/>
+              </button>
+            </Tooltip>
           </div>
         )}
         {isOwnProfile && <div style={{ width: 40 }}/>}
@@ -271,13 +307,16 @@ export default function ProfileView() {
 
         {/* ── ZONA 1: Trust + Atracción ── */}
         <div style={{ position: "relative", textAlign: "center", padding: "32px 24px 0" }}>
-          {/* Foto grande */}
-          <div style={{ width: 110, height: 110, borderRadius: "50%", overflow: "hidden", margin: "0 auto 16px", border: "2px solid var(--gold-deep)", boxShadow: "0 0 24px rgba(201,162,39,0.25)" }}>
+          {/* Foto grande — click abre lightbox */}
+          <button
+            onClick={() => profile.profile_photo_url && setShowPhotoLightbox(true)}
+            style={{ width: 110, height: 110, borderRadius: "50%", overflow: "hidden", margin: "0 auto 16px", border: "2px solid var(--gold-deep)", boxShadow: "0 0 24px rgba(201,162,39,0.25)", display: "block", padding: 0, cursor: profile.profile_photo_url ? "zoom-in" : "default", background: "none" }}
+          >
             {profile.profile_photo_url
               ? <img src={profile.profile_photo_url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }}/>
               : <div style={{ width: "100%", height: "100%", background: "var(--pewter)", display: "flex", alignItems: "center", justifyContent: "center" }}><User size={44} style={{ color: "var(--mist)" }}/></div>
             }
-          </div>
+          </button>
 
           {/* Username + Badge — inseparables según La Estratega */}
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginBottom: 8 }}>
@@ -462,6 +501,51 @@ export default function ProfileView() {
           onClose={() => setShowReport(false)}
         />
       )}
+
+      {/* ── Confirmación de bloqueo ── */}
+      {showBlockConfirm && (
+        <div
+          style={{ position: "fixed", inset: 0, zIndex: 60, background: "rgba(2,2,7,0.85)", backdropFilter: "blur(6px)", display: "flex", alignItems: "flex-end", justifyContent: "center", padding: "0 0 env(safe-area-inset-bottom,0)" }}
+          onClick={() => setShowBlockConfirm(false)}
+        >
+          <div
+            style={{ width: "100%", maxWidth: 480, background: "var(--surface)", borderRadius: "20px 20px 0 0", padding: "24px 20px 32px", border: "1px solid var(--border-soft)" }}
+            onClick={e => e.stopPropagation()}
+          >
+            <p style={{ fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.18em", textTransform: "uppercase", color: "var(--danger, #c25a5a)", marginBottom: 8 }}>Bloquear usuario</p>
+            <p style={{ fontFamily: "var(--font-sans)", fontSize: 14, color: "var(--paper)", marginBottom: 20 }}>
+              ¿Bloqueás a <strong>{profile.first_name}</strong>? No podrán ver tu perfil ni escribirte.
+            </p>
+            <div style={{ display: "flex", gap: 10 }}>
+              <button onClick={() => setShowBlockConfirm(false)} style={{ flex: 1, padding: "12px 0", borderRadius: 12, border: "1px solid var(--border-soft)", background: "transparent", color: "var(--mist)", fontFamily: "var(--font-mono)", fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", cursor: "pointer" }}>
+                Cancelar
+              </button>
+              <button onClick={confirmBlock} style={{ flex: 1, padding: "12px 0", borderRadius: 12, border: "none", background: "var(--danger, #c25a5a)", color: "white", fontFamily: "var(--font-mono)", fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", cursor: "pointer" }}>
+                Bloquear
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Lightbox foto de perfil ── */}
+      {showPhotoLightbox && profile.profile_photo_url && (
+        <div
+          style={{ position: "fixed", inset: 0, zIndex: 80, background: "rgba(2,2,7,0.96)", display: "flex", alignItems: "center", justifyContent: "center" }}
+          onClick={() => setShowPhotoLightbox(false)}
+        >
+          <img
+            src={profile.profile_photo_url}
+            alt=""
+            draggable={false}
+            onContextMenu={e => e.preventDefault()}
+            style={{ maxWidth: "90vw", maxHeight: "90vh", borderRadius: 12, objectFit: "contain", userSelect: "none", pointerEvents: "none" }}
+          />
+          <button onClick={() => setShowPhotoLightbox(false)} style={{ position: "absolute", top: 16, right: 16, padding: 8, background: "rgba(255,255,255,0.1)", border: "none", borderRadius: 8, color: "white", cursor: "pointer" }}>
+            ✕
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -478,7 +562,7 @@ const REPORT_REASONS = [
 
 function ReportModal({
   name, onSubmit, onClose,
-}: { name: string; onSubmit: (reason: string, details: string) => void; onClose: () => void }) {
+}: { name: string; onSubmit: (reason: string, details: string) => Promise<void>; onClose: () => void }) {
   const [reason,  setReason]  = useState("");
   const [details, setDetails] = useState("");
   const [sending, setSending] = useState(false);

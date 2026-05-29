@@ -15,6 +15,7 @@ import { MessageBubble } from "@/components/chat/MessageBubble";
 import { GroupsSection } from "@/components/chat/GroupChat";
 import { usePresenceHeartbeat, useOnlineStatus, formatLastSeen } from "@/hooks/useOnlineStatus";
 import { BottomNav } from "@/components/BottomNav";
+import { Tooltip } from "@/components/ui/Tooltip";
 
 function timeAgo(d: string) {
   const diff = Date.now() - new Date(d).getTime();
@@ -154,17 +155,21 @@ function ChatWindow({
           </div>
         </div>
         <div className="flex items-center gap-1">
-          <button onClick={() => setShowSettings(v => !v)}
-            className="p-1.5 text-text-muted hover:text-text-primary rounded-xl transition-colors">
-            <Settings size={16}/>
-          </button>
-          {!blocked && (
-            <button onClick={async () => {
-              if (!confirm("¿Bloquear a este usuario?")) return;
-              await messagingApi.blockUser(conv.id); setBlocked(true);
-            }} className="p-1.5 text-text-muted hover:text-status-error rounded-xl transition-colors">
-              <Lock size={16}/>
+          <Tooltip label="Configuración" position="bottom">
+            <button onClick={() => setShowSettings(v => !v)}
+              className="p-1.5 text-text-muted hover:text-text-primary rounded-xl transition-colors">
+              <Settings size={16}/>
             </button>
+          </Tooltip>
+          {!blocked && (
+            <Tooltip label="Bloquear" position="bottom">
+              <button onClick={async () => {
+                if (!confirm("¿Bloquear a este usuario?")) return;
+                await messagingApi.blockUser(conv.id); setBlocked(true);
+              }} className="p-1.5 text-text-muted hover:text-status-error rounded-xl transition-colors">
+                <Lock size={16}/>
+              </button>
+            </Tooltip>
           )}
         </div>
       </div>
@@ -328,7 +333,7 @@ export default function Messages() {
     const withUser = params.get("with");
     if (withUser && user) {
       messagingApi.startConversation(withUser)
-        .then(r => setActiveConv({ ...r.data, other_user: null, unread_count: 0 }))
+        .then(r => setActiveConv(r.data))
         .catch(() => {});
     }
   }, []);
