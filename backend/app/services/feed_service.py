@@ -254,25 +254,43 @@ class FeedService:
 
     def _refresh_signed_urls(self, items: list, db) -> None:
         """
-        Refresca media_url de los items usando URL pública permanente.
-        Para posts sin storage_path extrae el path desde la media_url existente.
+        Refresca media_url y media_urls[] usando URLs públicas permanentes.
+        Para posts sin storage_path extrae el path desde la URL existente.
         """
         import re
         _PATH_RE = re.compile(r"/object/(?:public|sign)/media/([^?]+)")
 
+        def _public_for(path: str) -> str | None:
+            try:
+                return db.storage.from_("media").get_public_url(path)
+            except Exception:
+                return None
+
+        def _extract_path(url: str) -> str | None:
+            if not url:
+                return None
+            m = _PATH_RE.search(url)
+            return m.group(1) if m else None
+
         for item in items:
-            sp = item.get("storage_path")
-            if not sp:
-                # Intentar extraer path desde la media_url existente
-                url = item.get("media_url", "") or ""
-                m = _PATH_RE.search(url)
-                if m:
-                    sp = m.group(1)
+            # Cover (media_url + storage_path)
+            sp = item.get("storage_path") or _extract_path(item.get("media_url", "") or "")
             if sp:
-                try:
-                    item["media_url"] = db.storage.from_("media").get_public_url(sp)
-                except Exception:
-                    pass
+                refreshed = _public_for(sp)
+                if refreshed:
+                    item["media_url"] = refreshed
+
+            # Carrusel (media_urls JSONB array)
+            media_urls = item.get("media_urls")
+            if isinstance(media_urls, list):
+                for m_item in media_urls:
+                    if not isinstance(m_item, dict):
+                        continue
+                    msp = m_item.get("path") or _extract_path(m_item.get("url", "") or "")
+                    if msp:
+                        refreshed = _public_for(msp)
+                        if refreshed:
+                            m_item["url"] = refreshed
 
     def create_post(
         self,
