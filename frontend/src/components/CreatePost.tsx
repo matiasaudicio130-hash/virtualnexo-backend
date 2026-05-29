@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { Image as ImageIcon, X, MapPin, Clock, BarChart2, Plus, Trash2, Pencil } from "lucide-react";
+import { Image as ImageIcon, X, MapPin, Clock, BarChart2, Plus, Trash2, Pencil, Play } from "lucide-react";
 import { feedApi, mediaApi } from "@/lib/api";
 import { Button } from "@/components/ui/Button";
 import { useAuthStore } from "@/store/authStore";
@@ -34,6 +34,7 @@ export function CreatePost({ onCreated, onClose }: Props) {
   const [caption, setCaption] = useState("");
   const [file,    setFile]    = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
+  const [isVideo, setIsVideo] = useState(false);
   const [province, setProvince] = useState(user?.province || "");
 
   // Poll
@@ -47,14 +48,14 @@ export function CreatePost({ onCreated, onClose }: Props) {
   const [error,   setError]   = useState("");
   const [storyAudience, setStoryAudience] = useState<"all"|"followers"|"partner">("all");
 
-  // ── handlers: post/story photo ───────────────────────────────
+  // ── handlers: post/story media (foto o video) ───────────────
   function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
     if (!f) return;
+    const video = f.type.startsWith("video/");
+    setIsVideo(video);
     setFile(f);
-    const r = new FileReader();
-    r.onload = () => setPreview(r.result as string);
-    r.readAsDataURL(f);
+    setPreview(URL.createObjectURL(f));
   }
 
   // ── handlers: poll photos ────────────────────────────────────
@@ -181,21 +182,31 @@ export function CreatePost({ onCreated, onClose }: Props) {
             {mode !== "poll" && (
               <>
                 {preview ? (
-                  <div className="relative rounded-xl overflow-hidden">
-                    <img src={preview} alt="preview" className="w-full max-h-60 object-cover" />
-                    <button onClick={() => { setFile(null); setPreview(null); }}
+                  <div className="relative rounded-xl overflow-hidden bg-black">
+                    {isVideo ? (
+                      <video src={preview} controls playsInline className="w-full max-h-72 object-contain"/>
+                    ) : (
+                      <img src={preview} alt="preview" className="w-full max-h-60 object-cover" />
+                    )}
+                    <button onClick={() => { setFile(null); setPreview(null); setIsVideo(false); }}
                       className="absolute top-2 right-2 p-1.5 bg-black/60 rounded-full">
                       <X size={14} className="text-white" />
                     </button>
+                    {isVideo && (
+                      <div className="absolute top-2 left-2 flex items-center gap-1 px-2 py-0.5 bg-black/60 rounded-full">
+                        <Play size={11} className="text-white" fill="white"/>
+                        <span className="text-[10px] text-white font-medium">Video</span>
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <button onClick={() => inputRef.current?.click()}
                     className="w-full border-2 border-dashed border-border rounded-xl p-6 flex flex-col items-center gap-2 text-text-muted hover:border-accent-purple/50 transition-colors">
                     <ImageIcon size={28} className="opacity-50" />
-                    <span className="text-xs">Tap para agregar foto (opcional)</span>
+                    <span className="text-xs">Tap para agregar foto o video (opcional)</span>
                   </button>
                 )}
-                <input ref={inputRef} type="file" accept="image/*" onChange={handleFile} className="hidden" />
+                <input ref={inputRef} type="file" accept="image/*,video/*" onChange={handleFile} className="hidden" />
 
                 <textarea
                   value={caption}

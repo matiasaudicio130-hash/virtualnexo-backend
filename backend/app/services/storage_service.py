@@ -118,6 +118,64 @@ class StorageService:
             "size_bytes": meta["size_bytes"],
         }
 
+    async def upload_post_video(self, video_bytes: bytes, user_id: str, content_type: str, original_name: str = "video") -> dict:
+        """
+        Sube un video al bucket media (sin watermark — solo aplicable a imágenes).
+        Devuelve URL pública permanente.
+        """
+        db = self._supabase()
+
+        # Determinar extensión por content_type
+        ext_map = {
+            "video/mp4": "mp4",
+            "video/quicktime": "mov",
+            "video/webm": "webm",
+            "video/x-matroska": "mkv",
+            "video/mpeg": "mpeg",
+            "video/x-m4v": "m4v",
+            "video/x-msvideo": "avi",
+        }
+        ext = ext_map.get(content_type, "mp4")
+
+        ts = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+        uid = uuid.uuid4().hex[:8]
+        path = f"{user_id}/{ts}_{uid}.{ext}"
+
+        db.storage.from_("media").upload(
+            path=path,
+            file=video_bytes,
+            file_options={"content-type": content_type, "upsert": "true"},
+        )
+
+        public_url = db.storage.from_("media").get_public_url(path)
+
+        try:
+            db.table("media_uploads").insert({
+                "user_id": user_id,
+                "bucket": "media",
+                "storage_path": path,
+                "original_name": original_name,
+                "mime_type": content_type,
+                "size_bytes": len(video_bytes),
+                "width": 0,
+                "height": 0,
+                "has_visible_wm": False,
+                "has_stealth_wm": False,
+                "wm_payload": None,
+            }).execute()
+        except Exception:
+            pass  # no romper upload si la tabla falla
+
+        return {
+            "signed_url": public_url,
+            "url": public_url,
+            "path": path,
+            "is_video": True,
+            "size_bytes": len(video_bytes),
+            "width": 0,
+            "height": 0,
+        }
+
     def get_signed_url(self, path: str, bucket: BucketName = "media", expires: int = 3600) -> str:
         """Genera una nueva signed URL para una imagen ya subida."""
         db = self._supabase()

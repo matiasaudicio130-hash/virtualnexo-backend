@@ -166,6 +166,12 @@ async def create_text_post(body: CreatePostBody, request: Request):
     return post
 
 
+ALLOWED_IMAGE_MIMES = {"image/jpeg","image/jpg","image/png","image/webp","image/gif","image/heic","image/heif"}
+ALLOWED_VIDEO_MIMES = {"video/mp4","video/quicktime","video/webm","video/x-matroska","video/mpeg","video/x-m4v","video/x-msvideo"}
+MAX_IMAGE_BYTES = 20 * 1024 * 1024     # 20 MB
+MAX_VIDEO_BYTES = 200 * 1024 * 1024    # 200 MB
+
+
 @router.post("/posts/upload", status_code=201)
 async def create_photo_post(
     request: Request,
@@ -178,22 +184,29 @@ async def create_photo_post(
     story_audience: str = "all",
     file: UploadFile = File(...),
 ):
-    """Crea un post con imagen. Aplica watermarks antes de subir."""
+    """Crea un post con foto o video. Aplica watermarks a fotos."""
     payload = _require_auth(request)
+    ctype = (file.content_type or "").lower()
+    is_video = ctype.startswith("video/")
 
-    if file.content_type not in {"image/jpeg","image/jpg","image/png","image/webp"}:
-        raise HTTPException(400, "Solo JPEG/PNG/WebP")
-
-    image_bytes = await file.read()
-    if len(image_bytes) > 20 * 1024 * 1024:
-        raise HTTPException(413, "Máximo 20 MB")
-
-    # Upload a Supabase Storage con watermarks
-    upload_result = await storage_service.upload_post_image(
-        image_bytes=image_bytes,
-        user_id=payload["sub"],
-        original_name=file.filename or "post",
-    )
+    if is_video:
+        if ctype not in ALLOWED_VIDEO_MIMES:
+            raise HTTPException(400, f"Formato de video no soportado: {ctype}")
+        data = await file.read()
+        if len(data) > MAX_VIDEO_BYTES:
+            raise HTTPException(413, "Video demasiado grande. Máximo 200 MB.")
+        upload_result = await storage_service.upload_post_video(
+            video_bytes=data, user_id=payload["sub"], content_type=ctype, original_name=file.filename or "video",
+        )
+    else:
+        if ctype not in ALLOWED_IMAGE_MIMES:
+            raise HTTPException(400, f"Formato no soportado: {ctype}")
+        data = await file.read()
+        if len(data) > MAX_IMAGE_BYTES:
+            raise HTTPException(413, "Imagen demasiado grande. Máximo 20 MB.")
+        upload_result = await storage_service.upload_post_image(
+            image_bytes=data, user_id=payload["sub"], original_name=file.filename or "post",
+        )
 
     post = feed_service.create_post(
         user_id=payload["sub"],
@@ -208,6 +221,15 @@ async def create_photo_post(
         is_story=is_story,
         story_audience=story_audience,
     )
+
+    # Guardamos también el tipo per-item en media_urls para que el frontend lo
+    # renderice como video (sin esto rompería el constraint de posts.type)
+    if is_video:
+        from app.db.supabase import get_supabase
+        media_list = [{"url": upload_result["url"], "path": upload_result["path"], "type": "video"}]
+        get_supabase().table("posts").update({"media_urls": media_list}).eq("id", post["id"]).execute()
+        post["media_urls"] = media_list
+
     return {**post, "upload": upload_result}
 
 
@@ -315,20 +337,32 @@ async def upload_carousel(
 
     media_list = []
     for f in files:
-        if f.content_type not in {"image/jpeg","image/jpg","image/png","image/webp"}:
-            raise HTTPException(400, f"Archivo {f.filename}: solo JPEG/PNG/WebP")
-        data = await f.read()
-        if len(data) > 20 * 1024 * 1024:
-            raise HTTPException(413, "Máximo 20 MB por imagen")
-        result = await storage_service.upload_post_image(
-            image_bytes=data,
-            user_id=payload["sub"],
-            original_name=f.filename or "img",
-        )
+        ctype = (f.content_type or "").lower()
+        is_video_item = ctype.startswith("video/")
+        if is_video_item:
+            if ctype not in ALLOWED_VIDEO_MIMES:
+                raise HTTPException(400, f"Archivo {f.filename}: formato de video no soportado")
+            data = await f.read()
+            if len(data) > MAX_VIDEO_BYTES:
+                raise HTTPException(413, "Máximo 200 MB por video")
+            result = await storage_service.upload_post_video(
+                video_bytes=data, user_id=payload["sub"], content_type=ctype, original_name=f.filename or "video",
+            )
+            item_type = "video"
+        else:
+            if ctype not in ALLOWED_IMAGE_MIMES:
+                raise HTTPException(400, f"Archivo {f.filename}: formato no soportado")
+            data = await f.read()
+            if len(data) > MAX_IMAGE_BYTES:
+                raise HTTPException(413, "Máximo 20 MB por imagen")
+            result = await storage_service.upload_post_image(
+                image_bytes=data, user_id=payload["sub"], original_name=f.filename or "img",
+            )
+            item_type = "image"
         media_list.append({
             "url":  result["signed_url"],
             "path": result["path"],
-            "type": "image",
+            "type": item_type,
         })
 
     # Primera imagen como media_url principal (compatibilidad)
@@ -345,8 +379,9 @@ async def upload_carousel(
         province=province or None,
         is_story=is_story,
     )
-    # Guardar el array completo si hay más de 1
-    if len(media_list) > 1:
+    # Guardar el array completo si hay más de 1, o si hay un video (para preservar el tipo per-item)
+    has_video = any(m.get("type") == "video" for m in media_list)
+    if len(media_list) > 1 or has_video:
         db.table("posts").update({
             "media_urls": media_list,
             "allow_share": allow_share,

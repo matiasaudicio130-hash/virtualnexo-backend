@@ -581,15 +581,34 @@ export default function ProfileView() {
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 2 }}>
               {posts.map(post => {
                 const isPoll      = post.type === "poll";
-                const isCarousel  = Array.isArray(post.media_urls) && post.media_urls.length > 1;
-                const cover       = isCarousel ? (post.media_urls[0]?.url || post.media_url) : post.media_url;
+                const items       = Array.isArray(post.media_urls) ? post.media_urls : [];
+                const isCarousel  = items.length > 1;
+                const firstItem   = items[0];
+                const coverIsVideo = firstItem?.type === "video";
+                const cover       = firstItem?.url || post.media_url;
                 return (
                   <button
                     key={post.id}
                     onClick={() => setSelectedPost(post)}
                     style={{ position: "relative", aspectRatio: "1", overflow: "hidden", background: "var(--smoke)", cursor: "pointer", border: "none", padding: 0 }}
                   >
-                    {cover ? (
+                    {cover && coverIsVideo ? (
+                      <>
+                        <video
+                          src={cover}
+                          muted
+                          playsInline
+                          preload="metadata"
+                          onContextMenu={e => e.preventDefault()}
+                          style={{ width: "100%", height: "100%", objectFit: "cover", pointerEvents: "none" }}
+                        />
+                        <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.15)", pointerEvents: "none" }}>
+                          <div style={{ width: 34, height: 34, borderRadius: "50%", background: "rgba(0,0,0,0.55)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
+                          </div>
+                        </div>
+                      </>
+                    ) : cover ? (
                       <img
                         src={cover}
                         alt=""
