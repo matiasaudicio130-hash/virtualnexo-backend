@@ -5,14 +5,15 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
-  ArrowLeft, Heart, ShieldOff, Flag, MapPin,
-  Lock, Users, User, MessageSquare, Images,
+  ArrowLeft, Heart, ShieldOff, Flag, MapPin, Star, Share2, Pencil,
+  Lock, Users, User, MessageSquare, Images, ChevronLeft, ChevronRight, X,
 } from "lucide-react";
-import { profilesApi, followsApi, albumsApi, feedApi } from "@/lib/api";
+import { profilesApi, followsApi, albumsApi, feedApi, reviewsApi } from "@/lib/api";
 import { Tooltip } from "@/components/ui/Tooltip";
 import { useAuthStore } from "@/store/authStore";
 import { useScreenCapture } from "@/hooks/useScreenCapture";
 import { VerifiedBadge } from "@/components/ui/VerifiedBadge";
+import { ProtectedAvatar } from "@/components/ProtectedImage";
 import { Button } from "@/components/ui/Button";
 import { PROFILE_TYPE_CONFIG, ORIENTATION_CONFIG } from "@/types";
 import type { ProfileType, SexualOrientation } from "@/types";
@@ -28,13 +29,19 @@ const SEEKING_LABELS: Record<string, string> = {
 };
 
 /* ── Album card ─────────────────────────────────────────────── */
-function AlbumCard({ album, onRequestAccess }: { album: any; onRequestAccess: (id: string) => void }) {
-  const isPrivate = album.is_private;
-  const hasAccess = album.has_access;
-  const reqStatus = album.my_request_status;
+function AlbumCard({ album, onRequestAccess, onOpen }: { album: any; onRequestAccess: (id: string) => void; onOpen: (album: any) => void }) {
+  const isPrivate  = album.is_private;
+  const hasAccess  = album.has_access;
+  const reqStatus  = album.my_request_status;
+  const canOpen    = !isPrivate || hasAccess;
 
   return (
-    <div style={{ border: "1px solid var(--border-soft)", borderRadius: "var(--radius-lg)", overflow: "hidden", background: "var(--surface)" }}>
+    <div
+      onClick={() => canOpen && onOpen(album)}
+      style={{ border: "1px solid var(--border-soft)", borderRadius: "var(--radius-lg)", overflow: "hidden", background: "var(--surface)", cursor: canOpen ? "pointer" : "default", transition: "border-color 0.15s" }}
+      onMouseEnter={e => { if (canOpen) e.currentTarget.style.borderColor = "var(--gold-deep)"; }}
+      onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border-soft)"; }}
+    >
       {/* Preview */}
       <div style={{ height: 120, position: "relative", background: "var(--smoke)", display: "flex", alignItems: "center", justifyContent: "center" }}>
         {album.cover_blur_url ? (
@@ -56,7 +63,7 @@ function AlbumCard({ album, onRequestAccess }: { album: any; onRequestAccess: (i
         <p style={{ fontFamily: "var(--font-sans)", fontSize: 13, fontWeight: 500, color: "var(--paper)", marginBottom: 4 }}>{album.title}</p>
         {isPrivate && !hasAccess && (
           <button
-            onClick={() => onRequestAccess(album.id)}
+            onClick={e => { e.stopPropagation(); onRequestAccess(album.id); }}
             disabled={!!reqStatus}
             style={{
               fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.14em", textTransform: "uppercase",
@@ -102,6 +109,15 @@ export default function ProfileView() {
   const [followCounts, setFollowCounts] = useState({ followers: 0, following: 0 });
   const [albums, setAlbums]           = useState<any[]>([]);
   const [posts, setPosts]             = useState<any[]>([]);
+  const [reviews, setReviews]         = useState<any[]>([]);
+  const [followListType, setFollowListType] = useState<"followers"|"following"|null>(null);
+  const [followList, setFollowList]   = useState<any[]>([]);
+  const [followListLoading, setFollowListLoading] = useState(false);
+  const [selectedPost, setSelectedPost] = useState<any | null>(null);
+  const [selectedAlbum, setSelectedAlbum] = useState<any | null>(null);
+  const [albumPhotos, setAlbumPhotos] = useState<any[]>([]);
+  const [albumPhotoIdx, setAlbumPhotoIdx] = useState(0);
+  const [shareCopied, setShareCopied] = useState(false);
 
   const isOwnProfile = me?.id === userId;
 
@@ -149,8 +165,13 @@ export default function ProfileView() {
     albumsApi.listUser(userId).then(r => setAlbums(r.data)).catch(() => {});
 
     // Posts recientes del usuario
-    feedApi.getUserPosts(userId, { limit: 9 }).then(r => {
+    feedApi.getUserPosts(userId, { limit: 18 }).then(r => {
       setPosts(r.data.posts || []);
+    }).catch(() => {});
+
+    // Reseñas
+    reviewsApi.forUser(userId, { limit: 5 }).then(r => {
+      setReviews(r.data.reviews || r.data || []);
     }).catch(() => {});
 
   }, [userId, isOwnProfile]);
@@ -240,6 +261,50 @@ export default function ProfileView() {
     } catch { /* ignore */ }
   }
 
+  async function openFollowList(type: "followers" | "following") {
+    if (!userId) return;
+    setFollowListType(type);
+    setFollowList([]);
+    setFollowListLoading(true);
+    try {
+      const r = type === "followers"
+        ? await followsApi.followers(userId, { limit: 100 })
+        : await followsApi.following(userId, { limit: 100 });
+      setFollowList(r.data.users || r.data.items || []);
+    } catch { /* ignore */ }
+    setFollowListLoading(false);
+  }
+
+  async function openAlbum(album: any) {
+    if (album.is_private && !album.has_access) return;
+    setSelectedAlbum(album);
+    setAlbumPhotoIdx(0);
+    setAlbumPhotos([]);
+    try {
+      const r = await albumsApi.getPhotos(album.id);
+      setAlbumPhotos(r.data.photos || r.data || []);
+    } catch { /* ignore */ }
+  }
+
+  async function handleShare() {
+    if (!profile) return;
+    const url = `${window.location.origin}/profile/${userId}`;
+    const shareData = {
+      title: `${profile.first_name} en Aura SW`,
+      text: profile.bio ? profile.bio.slice(0, 100) : "Conocé este perfil en Aura SW",
+      url,
+    };
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+      } else {
+        await navigator.clipboard.writeText(url);
+        setShareCopied(true);
+        setTimeout(() => setShareCopied(false), 2000);
+      }
+    } catch { /* user cancelled */ }
+  }
+
   if (loading) return (
     <div className="min-h-screen bg-bg-base flex items-center justify-center">
       <div className="w-8 h-8 border-2 border-[var(--ash)] border-t-[var(--gold)] rounded-full animate-spin"/>
@@ -288,6 +353,11 @@ export default function ProfileView() {
         </p>
         {!isOwnProfile && (
           <div style={{ display: "flex", gap: 4 }}>
+            <Tooltip label={shareCopied ? "¡Link copiado!" : "Compartir"} position="bottom">
+              <button onClick={handleShare} style={{ padding: 8, background: "none", border: "none", color: "var(--mist)", cursor: "pointer" }}>
+                <Share2 size={16} strokeWidth={1.5}/>
+              </button>
+            </Tooltip>
             <Tooltip label="Bloquear" position="bottom">
               <button onClick={handleBlock} style={{ padding: 8, background: "none", border: "none", color: "var(--mist)", cursor: "pointer" }}>
                 <ShieldOff size={16} strokeWidth={1.5}/>
@@ -300,7 +370,20 @@ export default function ProfileView() {
             </Tooltip>
           </div>
         )}
-        {isOwnProfile && <div style={{ width: 40 }}/>}
+        {isOwnProfile && (
+          <div style={{ display: "flex", gap: 4 }}>
+            <Tooltip label={shareCopied ? "¡Link copiado!" : "Compartir"} position="bottom">
+              <button onClick={handleShare} style={{ padding: 8, background: "none", border: "none", color: "var(--mist)", cursor: "pointer" }}>
+                <Share2 size={16} strokeWidth={1.5}/>
+              </button>
+            </Tooltip>
+            <Tooltip label="Editar perfil" position="bottom">
+              <button onClick={() => navigate("/dashboard")} style={{ padding: 8, background: "none", border: "none", color: "var(--gold)", cursor: "pointer" }}>
+                <Pencil size={16} strokeWidth={1.5}/>
+              </button>
+            </Tooltip>
+          </div>
+        )}
       </header>
 
       <main style={{ maxWidth: 520, margin: "0 auto", padding: "0 0 80px" }}>
@@ -429,19 +512,26 @@ export default function ProfileView() {
         {/* ── ZONA 3: Stats + Racha ── */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 1, margin: "0 0 24px", borderTop: "1px solid var(--border-soft)", borderBottom: "1px solid var(--border-soft)", background: "var(--border-soft)" }}>
           {[
-            { value: followCounts.followers, label: "Seguidores" },
-            { value: followCounts.following, label: "Siguiendo" },
-            { value: profile.review_stats?.total_reviews || 0, label: "Reseñas" },
-            { value: (profile as any).current_streak || 0, label: "🔥 Racha", suffix: "d" },
+            { value: followCounts.followers, label: "Seguidores", onClick: () => openFollowList("followers") },
+            { value: followCounts.following, label: "Siguiendo",  onClick: () => openFollowList("following") },
+            { value: profile.review_stats?.total_reviews || 0, label: "Reseñas", onClick: () => navigate(`/reviews/${userId}`) },
+            { value: (profile as any).current_streak || 0, label: "🔥 Racha", suffix: "d", onClick: undefined as any },
           ].map((s, i) => (
-            <div key={i} style={{ background: "var(--obsidian)", padding: "14px 8px", textAlign: "center" }}>
+            <button
+              key={i}
+              onClick={s.onClick}
+              disabled={!s.onClick}
+              style={{ background: "var(--obsidian)", padding: "14px 8px", textAlign: "center", border: "none", color: "inherit", cursor: s.onClick ? "pointer" : "default", transition: "background 0.15s" }}
+              onMouseEnter={e => { if (s.onClick) e.currentTarget.style.background = "rgba(201,162,39,0.04)"; }}
+              onMouseLeave={e => { e.currentTarget.style.background = "var(--obsidian)"; }}
+            >
               <p style={{ fontFamily: "var(--font-display)", fontSize: 22, fontWeight: 400, color: "var(--paper)" }}>
                 {s.value}{s.suffix || ""}
               </p>
               <p style={{ fontFamily: "var(--font-mono)", fontSize: 8, color: "var(--mist)", letterSpacing: "0.12em", textTransform: "uppercase" }}>
                 {s.label}
               </p>
-            </div>
+            </button>
           ))}
         </div>
 
@@ -476,9 +566,10 @@ export default function ProfileView() {
               {posts.map(post => {
                 const isPoll = post.type === "poll";
                 return (
-                  <div
+                  <button
                     key={post.id}
-                    style={{ position: "relative", aspectRatio: "1", overflow: "hidden", background: "var(--smoke)", cursor: "pointer" }}
+                    onClick={() => setSelectedPost(post)}
+                    style={{ position: "relative", aspectRatio: "1", overflow: "hidden", background: "var(--smoke)", cursor: "pointer", border: "none", padding: 0 }}
                   >
                     {post.media_url ? (
                       <img
@@ -514,7 +605,7 @@ export default function ProfileView() {
                         </svg>
                       </div>
                     )}
-                  </div>
+                  </button>
                 );
               })}
             </div>
@@ -527,15 +618,62 @@ export default function ProfileView() {
             <p className="brand-eyebrow" style={{ marginBottom: 14 }}>Contenido exclusivo</p>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
               {albums.map(album => (
-                <AlbumCard key={album.id} album={album} onRequestAccess={handleRequestAlbumAccess}/>
+                <AlbumCard key={album.id} album={album} onRequestAccess={handleRequestAlbumAccess} onOpen={openAlbum}/>
               ))}
+            </div>
+          </div>
+        )}
+
+        {/* ── ZONA 6: Reseñas (preview) ── */}
+        {reviews.length > 0 && (
+          <div style={{ padding: "24px 16px", borderTop: "1px solid var(--border-soft)" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+              <p className="brand-eyebrow" style={{ margin: 0 }}>Reseñas recientes</p>
+              <button
+                onClick={() => navigate(`/reviews/${userId}`)}
+                style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--gold)", background: "none", border: "none", cursor: "pointer" }}
+              >
+                Ver todas →
+              </button>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              {reviews.slice(0, 3).map((r: any) => {
+                const reviewer = r.users || r.reviewer || {};
+                const displayName = r.is_anonymous
+                  ? "Anónimo"
+                  : (reviewer.first_name ? `${reviewer.first_name} ${reviewer.last_name?.[0] ?? ""}.` : "Usuario");
+                return (
+                  <div key={r.id} style={{ padding: "12px 14px", border: "1px solid var(--border-soft)", borderRadius: "var(--radius-lg)", background: "var(--surface)" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                      {!r.is_anonymous && reviewer.profile_photo_url ? (
+                        <ProtectedAvatar src={reviewer.profile_photo_url} size={22}/>
+                      ) : (
+                        <div style={{ width: 22, height: 22, borderRadius: "50%", background: "var(--pewter)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                          <User size={11} style={{ color: "var(--mist)" }}/>
+                        </div>
+                      )}
+                      <span style={{ fontFamily: "var(--font-sans)", fontSize: 12, fontWeight: 500, color: "var(--paper)" }}>{displayName}</span>
+                      <div style={{ marginLeft: "auto", display: "flex", gap: 1 }}>
+                        {[1,2,3,4,5].map(i => (
+                          <Star key={i} size={11} fill={i <= r.rating ? "var(--gold)" : "none"} stroke="var(--gold)" strokeWidth={1.5}/>
+                        ))}
+                      </div>
+                    </div>
+                    {r.text && (
+                      <p style={{ fontFamily: "var(--font-sans)", fontSize: 12, color: "var(--silver)", lineHeight: 1.55, margin: 0 }}>
+                        {r.text}
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}
 
         {/* Miembro desde */}
         {profile.created_at && (
-          <p style={{ textAlign: "center", fontFamily: "var(--font-mono)", fontSize: 9, color: "var(--fg-dim)", letterSpacing: "0.16em", textTransform: "uppercase", paddingBottom: 24 }}>
+          <p style={{ textAlign: "center", fontFamily: "var(--font-mono)", fontSize: 9, color: "var(--fg-dim)", letterSpacing: "0.16em", textTransform: "uppercase", paddingTop: 24, paddingBottom: 24 }}>
             Miembro desde {new Date(profile.created_at).toLocaleDateString("es-AR", { month: "long", year: "numeric" })}
           </p>
         )}
@@ -573,6 +711,177 @@ export default function ProfileView() {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* ── Modal lista de seguidores/siguiendo ── */}
+      {followListType && (
+        <div
+          style={{ position: "fixed", inset: 0, zIndex: 70, background: "rgba(2,2,7,0.85)", backdropFilter: "blur(6px)", display: "flex", alignItems: "flex-end", justifyContent: "center" }}
+          onClick={() => setFollowListType(null)}
+        >
+          <div
+            style={{ width: "100%", maxWidth: 480, maxHeight: "75vh", background: "var(--surface)", borderRadius: "20px 20px 0 0", padding: "20px 0 24px", border: "1px solid var(--border-soft)", display: "flex", flexDirection: "column" }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div style={{ padding: "0 20px 14px", display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "1px solid var(--border-soft)" }}>
+              <p style={{ fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.18em", textTransform: "uppercase", color: "var(--gold)" }}>
+                {followListType === "followers" ? `Seguidores (${followCounts.followers})` : `Siguiendo (${followCounts.following})`}
+              </p>
+              <button onClick={() => setFollowListType(null)} style={{ padding: 4, background: "none", border: "none", color: "var(--mist)", cursor: "pointer" }}>
+                <X size={16}/>
+              </button>
+            </div>
+            <div style={{ overflowY: "auto", flex: 1, padding: "8px 0" }}>
+              {followListLoading && (
+                <div style={{ padding: 40, textAlign: "center" }}>
+                  <div style={{ width: 24, height: 24, border: "2px solid var(--ash)", borderTop: "2px solid var(--gold)", borderRadius: "50%", margin: "0 auto", animation: "spin 1s linear infinite" }}/>
+                </div>
+              )}
+              {!followListLoading && followList.length === 0 && (
+                <p style={{ textAlign: "center", padding: 40, fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--mist)", letterSpacing: "0.14em" }}>
+                  {followListType === "followers" ? "Sin seguidores aún" : "No sigue a nadie aún"}
+                </p>
+              )}
+              {followList.map((u: any) => (
+                <button
+                  key={u.id}
+                  onClick={() => { setFollowListType(null); navigate(`/profile/${u.id}`); }}
+                  style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, padding: "10px 20px", background: "none", border: "none", cursor: "pointer", textAlign: "left", color: "inherit" }}
+                  onMouseEnter={e => (e.currentTarget.style.background = "rgba(201,162,39,0.04)")}
+                  onMouseLeave={e => (e.currentTarget.style.background = "none")}
+                >
+                  {u.profile_photo_url ? (
+                    <ProtectedAvatar src={u.profile_photo_url} size={40}/>
+                  ) : (
+                    <div style={{ width: 40, height: 40, borderRadius: "50%", background: "var(--pewter)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <User size={18} style={{ color: "var(--mist)" }}/>
+                    </div>
+                  )}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontFamily: "var(--font-sans)", fontSize: 13, fontWeight: 500, color: "var(--paper)" }}>
+                      {u.username ? `@${u.username}` : `${u.first_name} ${u.last_name}`}
+                    </p>
+                    {u.province && (
+                      <p style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "var(--mist)", letterSpacing: "0.12em", textTransform: "uppercase", marginTop: 2 }}>
+                        {u.province}
+                      </p>
+                    )}
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Modal detalle de publicación ── */}
+      {selectedPost && (
+        <div
+          style={{ position: "fixed", inset: 0, zIndex: 70, background: "rgba(2,2,7,0.92)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}
+          onClick={() => setSelectedPost(null)}
+        >
+          <button onClick={() => setSelectedPost(null)} style={{ position: "absolute", top: 16, right: 16, padding: 8, background: "rgba(255,255,255,0.1)", border: "none", borderRadius: 8, color: "white", cursor: "pointer", zIndex: 2 }}>
+            <X size={18}/>
+          </button>
+          <div
+            style={{ background: "var(--surface)", borderRadius: 16, maxWidth: 500, width: "100%", maxHeight: "92vh", overflow: "hidden", display: "flex", flexDirection: "column", border: "1px solid var(--border-soft)" }}
+            onClick={e => e.stopPropagation()}
+          >
+            {selectedPost.media_url && (
+              <div style={{ background: "black", display: "flex", alignItems: "center", justifyContent: "center", maxHeight: "60vh" }}>
+                <img
+                  src={selectedPost.media_url}
+                  alt=""
+                  draggable={false}
+                  onContextMenu={e => e.preventDefault()}
+                  style={{ maxWidth: "100%", maxHeight: "60vh", objectFit: "contain", userSelect: "none" }}
+                />
+              </div>
+            )}
+            <div style={{ padding: "16px 18px", overflowY: "auto", flex: 1 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+                {profile.profile_photo_url ? (
+                  <ProtectedAvatar src={profile.profile_photo_url} size={32}/>
+                ) : (
+                  <div style={{ width: 32, height: 32, borderRadius: "50%", background: "var(--pewter)" }}/>
+                )}
+                <div>
+                  <p style={{ fontFamily: "var(--font-sans)", fontSize: 13, fontWeight: 500, color: "var(--paper)" }}>{displayName}</p>
+                  <p style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "var(--mist)", letterSpacing: "0.12em" }}>
+                    {new Date(selectedPost.created_at).toLocaleDateString("es-AR", { day: "numeric", month: "short", year: "numeric" })}
+                  </p>
+                </div>
+              </div>
+              {selectedPost.caption && (
+                <p style={{ fontFamily: "var(--font-sans)", fontSize: 14, color: "var(--silver)", lineHeight: 1.6, whiteSpace: "pre-wrap" }}>
+                  {selectedPost.caption}
+                </p>
+              )}
+              {selectedPost.type === "poll" && selectedPost.poll_question && (
+                <p style={{ fontFamily: "var(--font-sans)", fontSize: 14, color: "var(--paper)", lineHeight: 1.6, fontWeight: 500 }}>
+                  {selectedPost.poll_question}
+                </p>
+              )}
+              {selectedPost.city && (
+                <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 10 }}>
+                  <MapPin size={11} style={{ color: "var(--mist)" }}/>
+                  <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--mist)", letterSpacing: "0.12em" }}>
+                    {selectedPost.city}
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Visor de álbum ── */}
+      {selectedAlbum && (
+        <div
+          style={{ position: "fixed", inset: 0, zIndex: 75, background: "rgba(2,2,7,0.96)", display: "flex", flexDirection: "column" }}
+          onClick={() => setSelectedAlbum(null)}
+        >
+          <div style={{ padding: "12px 16px", display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "1px solid var(--border-soft)" }} onClick={e => e.stopPropagation()}>
+            <p style={{ fontFamily: "var(--font-display)", fontSize: 16, color: "var(--paper)" }}>{selectedAlbum.title}</p>
+            <button onClick={() => setSelectedAlbum(null)} style={{ padding: 8, background: "none", border: "none", color: "var(--mist)", cursor: "pointer" }}>
+              <X size={18}/>
+            </button>
+          </div>
+          {albumPhotos.length === 0 ? (
+            <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }} onClick={e => e.stopPropagation()}>
+              <div style={{ width: 32, height: 32, border: "2px solid var(--ash)", borderTop: "2px solid var(--gold)", borderRadius: "50%", animation: "spin 1s linear infinite" }}/>
+            </div>
+          ) : (
+            <div style={{ flex: 1, position: "relative", display: "flex", alignItems: "center", justifyContent: "center" }} onClick={e => e.stopPropagation()}>
+              <img
+                src={albumPhotos[albumPhotoIdx]?.url || albumPhotos[albumPhotoIdx]?.media_url}
+                alt=""
+                draggable={false}
+                onContextMenu={e => e.preventDefault()}
+                style={{ maxWidth: "92vw", maxHeight: "75vh", objectFit: "contain", userSelect: "none" }}
+              />
+              {albumPhotoIdx > 0 && (
+                <button
+                  onClick={() => setAlbumPhotoIdx(i => Math.max(0, i - 1))}
+                  style={{ position: "absolute", left: 16, top: "50%", transform: "translateY(-50%)", padding: 10, background: "rgba(255,255,255,0.1)", border: "none", borderRadius: "50%", color: "white", cursor: "pointer" }}
+                >
+                  <ChevronLeft size={20}/>
+                </button>
+              )}
+              {albumPhotoIdx < albumPhotos.length - 1 && (
+                <button
+                  onClick={() => setAlbumPhotoIdx(i => Math.min(albumPhotos.length - 1, i + 1))}
+                  style={{ position: "absolute", right: 16, top: "50%", transform: "translateY(-50%)", padding: 10, background: "rgba(255,255,255,0.1)", border: "none", borderRadius: "50%", color: "white", cursor: "pointer" }}
+                >
+                  <ChevronRight size={20}/>
+                </button>
+              )}
+              <div style={{ position: "absolute", bottom: 20, left: "50%", transform: "translateX(-50%)", padding: "4px 12px", background: "rgba(2,2,7,0.7)", borderRadius: "var(--radius-pill)", fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--paper)", letterSpacing: "0.12em" }}>
+                {albumPhotoIdx + 1} / {albumPhotos.length}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
