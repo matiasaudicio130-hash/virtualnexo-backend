@@ -12,6 +12,7 @@ import { profilesApi, followsApi, albumsApi, feedApi, reviewsApi } from "@/lib/a
 import { Tooltip } from "@/components/ui/Tooltip";
 import { useAuthStore } from "@/store/authStore";
 import { useScreenCapture } from "@/hooks/useScreenCapture";
+import { useOnlineStatus, formatLastSeen } from "@/hooks/useOnlineStatus";
 import { VerifiedBadge } from "@/components/ui/VerifiedBadge";
 import { ProtectedAvatar } from "@/components/ProtectedImage";
 import { Button } from "@/components/ui/Button";
@@ -120,6 +121,7 @@ export default function ProfileView() {
   const [shareCopied, setShareCopied] = useState(false);
 
   const isOwnProfile = me?.id === userId;
+  const onlineStatus = useOnlineStatus(isOwnProfile ? undefined : userId);
 
   useEffect(() => {
     if (!userId) return;
@@ -270,7 +272,9 @@ export default function ProfileView() {
       const r = type === "followers"
         ? await followsApi.followers(userId, { limit: 100 })
         : await followsApi.following(userId, { limit: 100 });
-      setFollowList(r.data.users || r.data.items || []);
+      // Backend returns { followers: [...] } or { following: [...] }
+      const list = type === "followers" ? r.data.followers : r.data.following;
+      setFollowList(Array.isArray(list) ? list : []);
     } catch { /* ignore */ }
     setFollowListLoading(false);
   }
@@ -402,12 +406,26 @@ export default function ProfileView() {
           </button>
 
           {/* Username + Badge — inseparables según La Estratega */}
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginBottom: 8 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginBottom: 6 }}>
             <h1 style={{ fontFamily: "var(--font-display)", fontSize: "var(--fs-display-m)", fontWeight: 400, color: "var(--paper)" }}>
               {displayName}
             </h1>
             <VerifiedBadge size="sm"/>
           </div>
+
+          {/* Estado de conexión */}
+          {!isOwnProfile && onlineStatus.minutes_ago !== null && (
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 5, marginBottom: 10 }}>
+              <span style={{
+                width: 6, height: 6, borderRadius: "50%",
+                background: onlineStatus.online ? "#4ade80" : "var(--ash)",
+                boxShadow: onlineStatus.online ? "0 0 6px rgba(74,222,128,0.5)" : "none",
+              }}/>
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.16em", textTransform: "uppercase", color: onlineStatus.online ? "#4ade80" : "var(--mist)" }}>
+                {onlineStatus.online ? "En línea" : formatLastSeen(onlineStatus.minutes_ago)}
+              </span>
+            </div>
+          )}
 
           {/* Tipo de perfil + orientación */}
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
@@ -509,24 +527,22 @@ export default function ProfileView() {
           </div>
         )}
 
-        {/* ── ZONA 3: Stats + Racha ── */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 1, margin: "0 0 24px", borderTop: "1px solid var(--border-soft)", borderBottom: "1px solid var(--border-soft)", background: "var(--border-soft)" }}>
+        {/* ── ZONA 3: Stats ── */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 1, margin: "0 0 24px", borderTop: "1px solid var(--border-soft)", borderBottom: "1px solid var(--border-soft)", background: "var(--border-soft)" }}>
           {[
             { value: followCounts.followers, label: "Seguidores", onClick: () => openFollowList("followers") },
             { value: followCounts.following, label: "Siguiendo",  onClick: () => openFollowList("following") },
             { value: profile.review_stats?.total_reviews || 0, label: "Reseñas", onClick: () => navigate(`/reviews/${userId}`) },
-            { value: (profile as any).current_streak || 0, label: "🔥 Racha", suffix: "d", onClick: undefined as any },
           ].map((s, i) => (
             <button
               key={i}
               onClick={s.onClick}
-              disabled={!s.onClick}
-              style={{ background: "var(--obsidian)", padding: "14px 8px", textAlign: "center", border: "none", color: "inherit", cursor: s.onClick ? "pointer" : "default", transition: "background 0.15s" }}
-              onMouseEnter={e => { if (s.onClick) e.currentTarget.style.background = "rgba(201,162,39,0.04)"; }}
+              style={{ background: "var(--obsidian)", padding: "14px 8px", textAlign: "center", border: "none", color: "inherit", cursor: "pointer", transition: "background 0.15s" }}
+              onMouseEnter={e => { e.currentTarget.style.background = "rgba(201,162,39,0.04)"; }}
               onMouseLeave={e => { e.currentTarget.style.background = "var(--obsidian)"; }}
             >
               <p style={{ fontFamily: "var(--font-display)", fontSize: 22, fontWeight: 400, color: "var(--paper)" }}>
-                {s.value}{s.suffix || ""}
+                {s.value}
               </p>
               <p style={{ fontFamily: "var(--font-mono)", fontSize: 8, color: "var(--mist)", letterSpacing: "0.12em", textTransform: "uppercase" }}>
                 {s.label}
