@@ -173,21 +173,20 @@ class ProfileService:
         }
 
     def _refresh_urls(self, posts: list, db) -> None:
-        paths = [p["storage_path"] for p in posts if p.get("storage_path")]
-        if not paths:
-            return
-        try:
-            signed = db.storage.from_("media").create_signed_urls(paths, 86400)
-            url_map = {
-                r.get("path", "").lstrip("/"): (r.get("signedUrl") or r.get("signedURL", ""))
-                for r in (signed or [])
-            }
-            for p in posts:
-                sp = p.get("storage_path", "")
-                if sp and url_map.get(sp):
-                    p["media_url"] = url_map[sp]
-        except Exception:
-            pass
+        import re
+        _PATH_RE = re.compile(r"/object/(?:public|sign)/media/([^?]+)")
+        for p in posts:
+            sp = p.get("storage_path")
+            if not sp:
+                url = p.get("media_url", "") or ""
+                m = _PATH_RE.search(url)
+                if m:
+                    sp = m.group(1)
+            if sp:
+                try:
+                    p["media_url"] = db.storage.from_("media").get_public_url(sp)
+                except Exception:
+                    pass
 
     # ── Likes ────────────────────────────────────────────────────
     def toggle_like(self, user_id: str, target_id: str) -> dict:

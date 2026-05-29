@@ -445,38 +445,86 @@ export default function ProfileView() {
           ))}
         </div>
 
-        {/* Highlights */}
-        {userId && <div style={{ padding: "0 16px 16px" }}/>}
-
-        {/* ── ZONA 4: Galería (grid IG-style) ── */}
-        {posts.length > 0 && (
-          <div style={{ padding: "0 0 24px" }}>
-            <div style={{ padding: "0 16px 12px" }}>
-              <p className="brand-eyebrow">Publicaciones</p>
+        {/* ── ZONA 4: Galería IG-style ── */}
+        <div style={{ padding: "0 0 0" }}>
+          {/* Tab bar: Publicaciones / Albums */}
+          <div style={{ display: "flex", borderTop: "1px solid var(--border-soft)", borderBottom: "1px solid var(--border-soft)", marginBottom: 2 }}>
+            <div style={{ flex: 1, padding: "10px 0", textAlign: "center", borderBottom: "2px solid var(--gold)", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+              <Images size={13} style={{ color: "var(--gold)" }}/>
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.16em", textTransform: "uppercase", color: "var(--gold)" }}>
+                Publicaciones ({posts.length})
+              </span>
             </div>
+            {albums.length > 0 && (
+              <div style={{ flex: 1, padding: "10px 0", textAlign: "center", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+                <Lock size={12} style={{ color: "var(--mist)" }}/>
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.16em", textTransform: "uppercase", color: "var(--mist)" }}>
+                  Exclusivos ({albums.length})
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* Grid posts */}
+          {posts.length === 0 ? (
+            <div style={{ padding: "40px 0", textAlign: "center" }}>
+              <Images size={28} style={{ color: "var(--ash)", margin: "0 auto 8px" }}/>
+              <p style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "var(--mist)", letterSpacing: "0.14em", textTransform: "uppercase" }}>Sin publicaciones aún</p>
+            </div>
+          ) : (
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 2 }}>
-              {posts.map(post => (
-                <div key={post.id} style={{ aspectRatio: "1", overflow: "hidden", background: "var(--smoke)" }}>
-                  {post.media_url
-                    ? <img src={post.media_url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }}/>
-                    : (
-                      <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", padding: 12 }}>
-                        <p style={{ fontFamily: "var(--font-sans)", fontSize: 11, color: "var(--mist)", lineHeight: 1.4, textAlign: "center" }}>
-                          {post.caption?.slice(0, 60)}
+              {posts.map(post => {
+                const isPoll = post.type === "poll";
+                return (
+                  <div
+                    key={post.id}
+                    style={{ position: "relative", aspectRatio: "1", overflow: "hidden", background: "var(--smoke)", cursor: "pointer" }}
+                  >
+                    {post.media_url ? (
+                      <img
+                        src={post.media_url}
+                        alt=""
+                        draggable={false}
+                        onContextMenu={e => e.preventDefault()}
+                        style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                      />
+                    ) : (
+                      <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 10, background: isPoll ? "rgba(201,162,39,0.06)" : "var(--smoke)" }}>
+                        {isPoll && (
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" strokeWidth="1.5" style={{ marginBottom: 6, opacity: 0.7 }}>
+                            <rect x="3" y="3" width="18" height="18" rx="2"/>
+                            <line x1="8" y1="12" x2="16" y2="12"/>
+                            <line x1="8" y1="8" x2="13" y2="8"/>
+                            <line x1="8" y1="16" x2="11" y2="16"/>
+                          </svg>
+                        )}
+                        <p style={{ fontFamily: "var(--font-sans)", fontSize: 10, color: "var(--mist)", lineHeight: 1.4, textAlign: "center", overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical" }}>
+                          {(post.caption || post.poll_question)?.slice(0, 80)}
                         </p>
                       </div>
-                    )
-                  }
-                </div>
-              ))}
+                    )}
+                    {/* Overlay tipo */}
+                    {isPoll && post.media_url && (
+                      <div style={{ position: "absolute", top: 5, right: 5 }}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
+                          <rect x="3" y="3" width="18" height="18" rx="2"/>
+                          <line x1="8" y1="12" x2="16" y2="12"/>
+                          <line x1="8" y1="8" x2="13" y2="8"/>
+                          <line x1="8" y1="16" x2="11" y2="16"/>
+                        </svg>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
-        {/* ── ZONA 5: Albums ── */}
+        {/* ── ZONA 5: Albums exclusivos ── */}
         {albums.length > 0 && (
-          <div style={{ padding: "0 16px 24px" }}>
-            <p className="brand-eyebrow" style={{ marginBottom: 14 }}>Albums</p>
+          <div style={{ padding: "24px 16px" }}>
+            <p className="brand-eyebrow" style={{ marginBottom: 14 }}>Contenido exclusivo</p>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
               {albums.map(album => (
                 <AlbumCard key={album.id} album={album} onRequestAccess={handleRequestAlbumAccess}/>

@@ -253,22 +253,26 @@ class FeedService:
         return list(stories_by_user.values())
 
     def _refresh_signed_urls(self, items: list, db) -> None:
-        """Genera signed URLs frescas (24h) para items con storage_path."""
-        paths = [item["storage_path"] for item in items if item.get("storage_path")]
-        if not paths:
-            return
-        try:
-            signed = db.storage.from_("media").create_signed_urls(paths, 86400)
-            url_map = {
-                r.get("path", "").lstrip("/"): (r.get("signedUrl") or r.get("signedURL", ""))
-                for r in (signed or [])
-            }
-            for item in items:
-                sp = item.get("storage_path", "")
-                if sp and url_map.get(sp):
-                    item["media_url"] = url_map[sp]
-        except Exception:
-            pass
+        """
+        Refresca media_url de los items usando URL pública permanente.
+        Para posts sin storage_path extrae el path desde la media_url existente.
+        """
+        import re
+        _PATH_RE = re.compile(r"/object/(?:public|sign)/media/([^?]+)")
+
+        for item in items:
+            sp = item.get("storage_path")
+            if not sp:
+                # Intentar extraer path desde la media_url existente
+                url = item.get("media_url", "") or ""
+                m = _PATH_RE.search(url)
+                if m:
+                    sp = m.group(1)
+            if sp:
+                try:
+                    item["media_url"] = db.storage.from_("media").get_public_url(sp)
+                except Exception:
+                    pass
 
     def create_post(
         self,

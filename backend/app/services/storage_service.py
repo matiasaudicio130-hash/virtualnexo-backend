@@ -78,8 +78,8 @@ class StorageService:
 
     async def upload_post_image(self, image_bytes: bytes, user_id: str, original_name: str = "post") -> dict:
         """
-        Aplica watermarks y sube al bucket `media` (privado).
-        Devuelve una signed URL válida por 1 hora.
+        Aplica watermarks y sube al bucket `media` (público).
+        Devuelve URL pública permanente + path para identificación del archivo.
         """
         db = self._supabase()
 
@@ -92,9 +92,8 @@ class StorageService:
             file_options={"content-type": "image/png", "upsert": "true"},
         )
 
-        # Signed URL (3600 segundos = 1 hora)
-        signed = db.storage.from_("media").create_signed_url(path, 3600)
-        signed_url = signed["signedURL"] if isinstance(signed, dict) else signed.signed_url
+        # URL pública permanente (bucket media es público)
+        public_url = db.storage.from_("media").get_public_url(path)
 
         db.table("media_uploads").insert({
             "user_id": user_id,
@@ -111,9 +110,9 @@ class StorageService:
         }).execute()
 
         return {
-            "signed_url": signed_url,
+            "signed_url": public_url,   # alias para compatibilidad con frontend existente
+            "url": public_url,
             "path": path,
-            "expires_in": 3600,
             "width": meta["final_size"][0],
             "height": meta["final_size"][1],
             "size_bytes": meta["size_bytes"],
