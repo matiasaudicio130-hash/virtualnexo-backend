@@ -52,7 +52,10 @@ export function NearbyUsers({ lat, lng }: Props) {
           <span className="text-xs font-semibold text-text-primary tracking-wide">Cerca tuyo</span>
           <span className="text-[10px] text-text-muted ml-1">{users.length} {users.length === 1 ? "persona" : "personas"}</span>
         </div>
-        <button className="text-[10px] text-accent-purple flex items-center gap-0.5 hover:underline">
+        <button
+          onClick={() => navigate("/explore?tab=personas")}
+          className="text-[10px] text-accent-purple flex items-center gap-0.5 hover:underline"
+        >
           Ver más <ChevronRight size={11}/>
         </button>
       </div>
