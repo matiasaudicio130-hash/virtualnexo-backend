@@ -81,7 +81,7 @@ async def get_user_posts(
     db = get_supabase()
     SELECT = (
         "id,user_id,caption,media_url,media_urls,storage_path,type,created_at,city,province,"
-        "reactions,expires_at,extra_data,allow_share,"
+        "expires_at,extra_data,allow_share,"
         "users!posts_user_id_fkey(id,first_name,last_name,profile_photo_url,profile_type,username)"
     )
     rows = (

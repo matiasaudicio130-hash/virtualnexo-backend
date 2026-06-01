@@ -46,7 +46,7 @@ export function Carousel({ items, aspectRatio = "square" }: Props) {
       {/* Slides */}
       <div
         className="flex h-full transition-transform duration-300 ease-out"
-        style={{ transform: `translateX(-${idx * 100}%)`, width: `${items.length * 100}%` }}
+        style={{ transform: `translateX(-${idx * (100 / items.length)}%)`, width: `${items.length * 100}%` }}
       >
         {items.map((item, i) => (
           <div key={i} className="flex-shrink-0 h-full" style={{ width: `${100 / items.length}%` }}>
