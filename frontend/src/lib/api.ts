@@ -145,12 +145,12 @@ export const feedApi = {
   uploadPost:   (file: File, params: object) => {
     const form = new FormData();
     form.append("file", file);
-    return api.post("/feed/posts/upload", form, { params, headers: { "Content-Type": "multipart/form-data" } });
+    return api.post("/feed/posts/upload", form, { params });
   },
   uploadCarousel: (files: File[], params: object) => {
     const form = new FormData();
     files.forEach(f => form.append("files", f));
-    return api.post("/feed/posts/upload-carousel", form, { params, headers: { "Content-Type": "multipart/form-data" } });
+    return api.post("/feed/posts/upload-carousel", form, { params });
   },
   react:        (postId: string, type: string)   => api.post(`/feed/posts/${postId}/react`, { type }),
   viewStory:    (postId: string)                 => api.post(`/feed/posts/${postId}/view`),
@@ -173,18 +173,18 @@ export const mediaApi = {
   uploadAvatar: (file: File) => {
     const form = new FormData();
     form.append("file", file);
-    return api.post("/media/avatar", form, { headers: { "Content-Type": "multipart/form-data" } });
+    return api.post("/media/avatar", form);
   },
   uploadPost: (file: File) => {
     const form = new FormData();
     form.append("file", file);
-    return api.post("/media/post", form, { headers: { "Content-Type": "multipart/form-data" } });
+    return api.post("/media/post", form);
   },
   myUploads: () => api.get("/media/my-uploads"),
   verifyLeak: (file: File) => {
     const form = new FormData();
     form.append("file", file);
-    return api.post("/media/verify-leak", form, { headers: { "Content-Type": "multipart/form-data" } });
+    return api.post("/media/verify-leak", form);
   },
 };
 
