@@ -119,7 +119,7 @@ export const adsApi = {
   uploadImage: (file: File) => {
     const form = new FormData();
     form.append("file", file);
-    return api.post("/ads/admin/upload-image", form, { headers: { "Content-Type": "multipart/form-data" } });
+    return api.post("/ads/admin/upload-image", form, { headers: { "Content-Type": undefined } });
   },
   listAdvertisers: () => api.get("/ads/admin/advertisers"),
   createAdvertiser: (body: object) => api.post("/ads/admin/advertisers", body),
@@ -145,12 +145,13 @@ export const feedApi = {
   uploadPost:   (file: File, params: object) => {
     const form = new FormData();
     form.append("file", file);
-    return api.post("/feed/posts/upload", form, { params });
+    // Content-Type: undefined -> deja que el browser ponga multipart/form-data; boundary=...
+    return api.post("/feed/posts/upload", form, { params, headers: { "Content-Type": undefined } });
   },
   uploadCarousel: (files: File[], params: object) => {
     const form = new FormData();
     files.forEach(f => form.append("files", f));
-    return api.post("/feed/posts/upload-carousel", form, { params });
+    return api.post("/feed/posts/upload-carousel", form, { params, headers: { "Content-Type": undefined } });
   },
   react:        (postId: string, type: string)   => api.post(`/feed/posts/${postId}/react`, { type }),
   viewStory:    (postId: string)                 => api.post(`/feed/posts/${postId}/view`),
@@ -169,22 +170,25 @@ export const reviewsApi = {
   delete: (reviewId: string) => api.delete(`/reviews/${reviewId}`),
 };
 
+// Browser pone multipart/form-data; boundary=... cuando dejamos Content-Type undefined
+const MULTIPART = { headers: { "Content-Type": undefined } };
+
 export const mediaApi = {
   uploadAvatar: (file: File) => {
     const form = new FormData();
     form.append("file", file);
-    return api.post("/media/avatar", form);
+    return api.post("/media/avatar", form, MULTIPART);
   },
   uploadPost: (file: File) => {
     const form = new FormData();
     form.append("file", file);
-    return api.post("/media/post", form);
+    return api.post("/media/post", form, MULTIPART);
   },
   myUploads: () => api.get("/media/my-uploads"),
   verifyLeak: (file: File) => {
     const form = new FormData();
     form.append("file", file);
-    return api.post("/media/verify-leak", form);
+    return api.post("/media/verify-leak", form, MULTIPART);
   },
 };
 
@@ -244,7 +248,7 @@ export const chatMediaApi = {
   upload: (file: File) => {
     const form = new FormData();
     form.append("file", file);
-    return api.post("/messages/upload-media", form, { headers: { "Content-Type": "multipart/form-data" } });
+    return api.post("/messages/upload-media", form, { headers: { "Content-Type": undefined } });
   },
   updateOnline: () => api.post("/messages/online"),
   getOnline: (userId: string) => api.get(`/messages/online/${userId}`),
@@ -346,7 +350,7 @@ export const albumsApi = {
   // Photos
   addPhoto:        (id: string, file: File)           => {
     const form = new FormData(); form.append("file", file);
-    return api.post(`/albums/${id}/photos`, form, { headers: { "Content-Type": "multipart/form-data" } });
+    return api.post(`/albums/${id}/photos`, form, { headers: { "Content-Type": undefined } });
   },
   getPhotos:       (id: string)                       => api.get(`/albums/${id}/photos`),
   deletePhoto:     (albumId: string, photoId: string) => api.delete(`/albums/${albumId}/photos/${photoId}`),
