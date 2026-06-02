@@ -1,9 +1,33 @@
 import { useRef, useState } from "react";
-import { Image as ImageIcon, X, MapPin, Clock, BarChart2, Plus, Trash2, Pencil, Play } from "lucide-react";
+import { Image as ImageIcon, X, MapPin, Clock, BarChart2, Plus, Trash2, Pencil, Play, Scissors } from "lucide-react";
 import { feedApi, mediaApi } from "@/lib/api";
 import { Button } from "@/components/ui/Button";
 import { useAuthStore } from "@/store/authStore";
 import { ImageCropFilter } from "@/components/ImageCropFilter";
+import { VideoTrimmer } from "@/components/VideoTrimmer";
+import { toErrorMessage } from "@/lib/errors";
+
+const MAX_VIDEO_SECONDS = 120; // 2 minutos
+
+async function getVideoDuration(file: File): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const v = document.createElement("video");
+    v.preload = "metadata";
+    v.muted = true;
+    v.src = url;
+    const cleanup = () => { URL.revokeObjectURL(url); };
+    v.onloadedmetadata = () => {
+      const d = v.duration;
+      cleanup();
+      if (Number.isFinite(d) && d > 0) resolve(d);
+      else resolve(0);
+    };
+    v.onerror = () => { cleanup(); reject(new Error("no metadata")); };
+    // timeout de seguridad
+    setTimeout(() => { cleanup(); resolve(v.duration || 0); }, 8000);
+  });
+}
 
 interface Props {
   onCreated: () => void;
@@ -36,6 +60,9 @@ export function CreatePost({ onCreated, onClose }: Props) {
   const [preview, setPreview] = useState<string | null>(null);
   const [isVideo, setIsVideo] = useState(false);
   const [province, setProvince] = useState(user?.province || "");
+  const [pendingTrim, setPendingTrim] = useState<File | null>(null);
+  const [showTrimmer, setShowTrimmer] = useState(false);
+  const [overlongInfo, setOverlongInfo] = useState<{ duration: number; file: File } | null>(null);
 
   // Poll
   const [pollQuestion, setPollQuestion] = useState("");
@@ -49,13 +76,51 @@ export function CreatePost({ onCreated, onClose }: Props) {
   const [storyAudience, setStoryAudience] = useState<"all"|"followers"|"partner">("all");
 
   // ── handlers: post/story media (foto o video) ───────────────
-  function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
+    // reset el input para poder volver a elegir el mismo archivo
+    e.target.value = "";
     if (!f) return;
+
     const video = f.type.startsWith("video/");
-    setIsVideo(video);
+    if (!video) {
+      // Foto — flujo normal
+      setIsVideo(false);
+      setFile(f);
+      setPreview(URL.createObjectURL(f));
+      return;
+    }
+
+    // Video — chequear duración
+    setError("");
+    let duration = 0;
+    try {
+      duration = await getVideoDuration(f);
+    } catch {
+      duration = 0;
+    }
+
+    if (duration > MAX_VIDEO_SECONDS + 0.5) {
+      setOverlongInfo({ duration, file: f });
+      return;
+    }
+
+    setIsVideo(true);
     setFile(f);
     setPreview(URL.createObjectURL(f));
+  }
+
+  function applyVideoFile(f: File) {
+    setIsVideo(true);
+    setFile(f);
+    setPreview(URL.createObjectURL(f));
+  }
+
+  function startTrimming() {
+    if (!overlongInfo) return;
+    setPendingTrim(overlongInfo.file);
+    setOverlongInfo(null);
+    setShowTrimmer(true);
   }
 
   // ── handlers: poll photos ────────────────────────────────────
@@ -115,7 +180,7 @@ export function CreatePost({ onCreated, onClose }: Props) {
         });
         onCreated();
       } catch (e: any) {
-        setError(e.response?.data?.detail ?? "Error al publicar.");
+        setError(toErrorMessage(e, "Error al publicar."));
       }
       setLoading(false);
       return;
@@ -131,7 +196,7 @@ export function CreatePost({ onCreated, onClose }: Props) {
       }
       onCreated();
     } catch (e: any) {
-      setError(e.response?.data?.detail ?? "Error al publicar.");
+      setError(toErrorMessage(e, "Error al publicar."));
     }
     setLoading(false);
   }
@@ -144,6 +209,51 @@ export function CreatePost({ onCreated, onClose }: Props) {
           file={pollPhotos[editingIdx].file}
           onDone={onCropDone}
           onCancel={() => setEditingIdx(null)}
+        />
+      )}
+
+      {/* Aviso de video largo */}
+      {overlongInfo && (
+        <div className="fixed inset-0 z-[70] bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
+          <div className="w-full sm:max-w-sm bg-bg-card border border-border rounded-t-2xl sm:rounded-2xl p-5 space-y-4">
+            <div className="flex items-center gap-2">
+              <Scissors size={16} className="text-accent-purple"/>
+              <h3 className="font-semibold text-sm">Video demasiado largo</h3>
+            </div>
+            <p className="text-xs text-text-secondary leading-relaxed">
+              Tu video dura <strong>{Math.round(overlongInfo.duration)}s</strong>.
+              El máximo permitido es <strong>{MAX_VIDEO_SECONDS}s</strong> (2 min).
+              Recortá acá o desde tu app de fotos antes de subirlo.
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setOverlongInfo(null)}
+                className="flex-1 py-2.5 rounded-xl border border-border text-sm text-text-secondary"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={startTrimming}
+                className="flex-1 py-2.5 rounded-xl bg-accent-purple text-white text-sm font-medium flex items-center justify-center gap-1.5"
+              >
+                <Scissors size={13}/> Recortar acá
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Trimmer */}
+      {showTrimmer && pendingTrim && (
+        <VideoTrimmer
+          file={pendingTrim}
+          maxSeconds={MAX_VIDEO_SECONDS}
+          onCancel={() => { setShowTrimmer(false); setPendingTrim(null); }}
+          onDone={(trimmed) => {
+            applyVideoFile(trimmed);
+            setShowTrimmer(false);
+            setPendingTrim(null);
+          }}
         />
       )}
 
