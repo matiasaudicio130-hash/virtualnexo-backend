@@ -209,6 +209,92 @@ MAX_IMAGE_BYTES = 20 * 1024 * 1024     # 20 MB
 MAX_VIDEO_BYTES = 200 * 1024 * 1024    # 200 MB
 
 
+# ── Upload directo a Supabase (bypass Railway para archivos grandes) ──
+class SignedUploadBody(BaseModel):
+    kind:     Literal["image","video"] = "image"
+    filename: Optional[str] = None
+
+
+@router.post("/posts/signed-upload")
+async def get_signed_upload(body: SignedUploadBody, request: Request):
+    """
+    Devuelve una signed upload URL para subir DIRECTAMENTE a Supabase Storage.
+    El frontend usa esta URL via PUT, evitando el límite de body de Railway.
+    Después se llama /posts/from-storage para crear el post.
+    """
+    import uuid as _uuid
+    from datetime import datetime as _dt, timezone as _tz
+    from app.db.supabase import get_supabase
+
+    payload = _require_auth(request)
+    user_id = payload["sub"]
+
+    ext = "mp4" if body.kind == "video" else "png"
+    if body.filename and "." in body.filename:
+        ext = body.filename.rsplit(".", 1)[-1].lower()[:5]
+    ts  = _dt.now(_tz.utc).strftime("%Y%m%d_%H%M%S")
+    uid = _uuid.uuid4().hex[:8]
+    path = f"{user_id}/{ts}_{uid}.{ext}"
+
+    db = get_supabase()
+    signed = db.storage.from_("media").create_signed_upload_url(path)
+    # Resultado: {"signed_url": str, "token": str, "path": str}
+    return {
+        "upload_url": signed.get("signed_url") if isinstance(signed, dict) else getattr(signed, "signed_url", None),
+        "token":      signed.get("token")      if isinstance(signed, dict) else getattr(signed, "token", None),
+        "path":       path,
+    }
+
+
+class FromStorageBody(BaseModel):
+    path:       str                       # Path del archivo subido a Supabase
+    kind:       Literal["image","video"] = "image"
+    caption:    str = ""
+    province:   str = ""
+    city:       str = ""
+    lat:        Optional[float] = None
+    lng:        Optional[float] = None
+    is_story:   bool = False
+    story_audience: str = "all"
+
+
+@router.post("/posts/from-storage", status_code=201)
+async def create_post_from_storage(body: FromStorageBody, request: Request):
+    """Crea el post después de que el frontend ya subió el archivo a Supabase."""
+    from app.db.supabase import get_supabase
+    payload = _require_auth(request)
+    user_id = payload["sub"]
+
+    # Verificar que el path empieza con el user_id (seguridad)
+    if not body.path.startswith(f"{user_id}/"):
+        raise HTTPException(403, "Path inválido")
+
+    db = get_supabase()
+    public_url = db.storage.from_("media").get_public_url(body.path)
+
+    post = feed_service.create_post(
+        user_id=user_id,
+        post_type="story" if body.is_story else "photo",
+        caption=body.caption or None,
+        media_url=public_url,
+        storage_path=body.path,
+        lat=body.lat,
+        lng=body.lng,
+        city=body.city or None,
+        province=body.province or None,
+        is_story=body.is_story,
+        story_audience=body.story_audience,
+    )
+
+    # Si es video, marcar el tipo en media_urls
+    if body.kind == "video":
+        media_list = [{"url": public_url, "path": body.path, "type": "video"}]
+        db.table("posts").update({"media_urls": media_list}).eq("id", post["id"]).execute()
+        post["media_urls"] = media_list
+
+    return post
+
+
 @router.post("/posts/upload", status_code=201)
 async def create_photo_post(
     request: Request,

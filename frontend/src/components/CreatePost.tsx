@@ -7,7 +7,8 @@ import { ImageCropFilter } from "@/components/ImageCropFilter";
 import { VideoTrimmer } from "@/components/VideoTrimmer";
 import { toErrorMessage } from "@/lib/errors";
 
-const MAX_VIDEO_SECONDS = 120; // 2 minutos
+const MAX_VIDEO_SECONDS = 120;            // 2 minutos
+const MAX_FILE_BYTES    = 48 * 1024 * 1024; // 48 MB (Supabase Storage cap ~50MB)
 
 async function getVideoDuration(file: File): Promise<number> {
   return new Promise((resolve, reject) => {
@@ -82,9 +83,15 @@ export function CreatePost({ onCreated, onClose }: Props) {
     e.target.value = "";
     if (!f) return;
 
+    setError("");
     const video = f.type.startsWith("video/");
+
     if (!video) {
-      // Foto — flujo normal
+      // Foto — chequeo de tamaño
+      if (f.size > MAX_FILE_BYTES) {
+        setError(`La foto pesa ${(f.size/1024/1024).toFixed(1)} MB — máximo permitido: ${MAX_FILE_BYTES/1024/1024} MB.`);
+        return;
+      }
       setIsVideo(false);
       setFile(f);
       setPreview(URL.createObjectURL(f));
@@ -92,16 +99,19 @@ export function CreatePost({ onCreated, onClose }: Props) {
     }
 
     // Video — chequear duración
-    setError("");
     let duration = 0;
-    try {
-      duration = await getVideoDuration(f);
-    } catch {
-      duration = 0;
-    }
+    try { duration = await getVideoDuration(f); } catch { duration = 0; }
 
     if (duration > MAX_VIDEO_SECONDS + 0.5) {
+      // Forzamos recorte
       setOverlongInfo({ duration, file: f });
+      return;
+    }
+
+    if (f.size > MAX_FILE_BYTES) {
+      // Video corto pero pesado: ofrecer recortar/recomprimir
+      setOverlongInfo({ duration, file: f });
+      setError(`El video pesa ${(f.size/1024/1024).toFixed(1)} MB — máximo: ${MAX_FILE_BYTES/1024/1024} MB. Recortalo para reducir el tamaño.`);
       return;
     }
 
@@ -190,7 +200,27 @@ export function CreatePost({ onCreated, onClose }: Props) {
     setLoading(true);
     try {
       if (file) {
-        await feedApi.uploadPost(file, { caption, province, is_story: mode === "story", story_audience: storyAudience });
+        // 1) Pedir signed upload URL
+        const kind: "image" | "video" = isVideo ? "video" : "image";
+        const { data: signed } = await feedApi.signedUpload({ kind, filename: file.name });
+        // 2) Subir DIRECTAMENTE a Supabase (bypass Railway / sin límite de body)
+        const putRes = await fetch(signed.upload_url, {
+          method: "PUT",
+          headers: { "Content-Type": file.type || (isVideo ? "video/mp4" : "image/jpeg") },
+          body: file,
+        });
+        if (!putRes.ok) {
+          throw new Error(`Falló la subida del archivo (${putRes.status})`);
+        }
+        // 3) Crear el post con el path subido
+        await feedApi.createFromStorage({
+          path: signed.path,
+          kind,
+          caption,
+          province,
+          is_story: mode === "story",
+          story_audience: storyAudience,
+        });
       } else {
         await feedApi.createPost({ type: "text", caption, province, is_story: mode === "story", story_audience: storyAudience });
       }

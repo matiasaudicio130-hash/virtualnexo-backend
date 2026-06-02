@@ -162,6 +162,10 @@ export const feedApi = {
     files.forEach(f => form.append("files", f));
     return uploadApi.post("/feed/posts/upload-carousel", form, { params });
   },
+  // Upload directo a Supabase Storage (bypass Railway para archivos grandes)
+  signedUpload:   (body: { kind: "image"|"video"; filename?: string }) =>
+    api.post("/feed/posts/signed-upload", body),
+  createFromStorage: (body: object) => api.post("/feed/posts/from-storage", body),
   react:        (postId: string, type: string)   => api.post(`/feed/posts/${postId}/react`, { type }),
   viewStory:    (postId: string)                 => api.post(`/feed/posts/${postId}/view`),
   deletePost:   (postId: string)                 => api.delete(`/feed/posts/${postId}`),
