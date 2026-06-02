@@ -76,7 +76,8 @@ async def get_user_posts(
     offset: int = Query(0, ge=0),
 ):
     """Posts públicos de un usuario específico (para su perfil)."""
-    _require_auth(request)
+    payload = _require_auth(request)
+    viewer_id = payload["sub"]
     from app.db.supabase import get_supabase
     db = get_supabase()
     SELECT = (
@@ -95,10 +96,46 @@ async def get_user_posts(
         .execute()
         .data
     )
+
     posts = []
     for r in rows:
         author_raw = r.pop("users!posts_user_id_fkey", None) or {}
-        posts.append({**r, "author": author_raw, "viewer_reaction": None})
+        # Normalizar author al shape que espera PostCard
+        author = {
+            "id":           author_raw.get("id"),
+            "name":         f"{author_raw.get('first_name','')} {author_raw.get('last_name','')}".strip(),
+            "username":     author_raw.get("username"),
+            "avatar":       author_raw.get("profile_photo_url"),
+            "profile_type": author_raw.get("profile_type"),
+        }
+        posts.append({**r, "author": author, "viewer_reaction": None, "reactions": {}})
+
+    post_ids = [p["id"] for p in posts]
+
+    # Reacciones del viewer
+    if post_ids:
+        try:
+            rxn_r = db.table("post_reactions").select("post_id,type").eq("user_id", viewer_id).in_("post_id", post_ids).execute()
+            viewer_reactions = {r["post_id"]: r["type"] for r in rxn_r.data}
+            for p in posts:
+                p["viewer_reaction"] = viewer_reactions.get(p["id"])
+        except Exception:
+            pass
+
+    # Conteo de reacciones por post
+    if post_ids:
+        try:
+            from collections import Counter
+            for pid in post_ids:
+                rc = db.table("post_reactions").select("type").eq("post_id", pid).execute()
+                cnt = Counter(r["type"] for r in rc.data)
+                for p in posts:
+                    if p["id"] == pid:
+                        p["reactions"] = dict(cnt)
+                        break
+        except Exception:
+            pass
+
     feed_service._refresh_signed_urls(posts, db)
     return {"posts": posts}
 

@@ -2,7 +2,7 @@
  * ProfileView — perfil público rediseñado según La Estratega.
  * Orden: Trust (foto + badge) → Acción → Bio → Qué buscás → Stats/Racha → Galería → Albums
  */
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   ArrowLeft, Heart, ShieldOff, Flag, MapPin, Star, Share2, Pencil,
@@ -15,6 +15,7 @@ import { useScreenCapture } from "@/hooks/useScreenCapture";
 import { useOnlineStatus, formatLastSeen } from "@/hooks/useOnlineStatus";
 import { VerifiedBadge } from "@/components/ui/VerifiedBadge";
 import { ProtectedAvatar } from "@/components/ProtectedImage";
+import { PostCard } from "@/components/PostCard";
 import { Button } from "@/components/ui/Button";
 import { PROFILE_TYPE_CONFIG, ORIENTATION_CONFIG } from "@/types";
 import type { ProfileType, SexualOrientation } from "@/types";
@@ -824,55 +825,27 @@ export default function ProfileView() {
         </div>
       )}
 
-      {/* ── Modal detalle de publicación ── */}
-      {selectedPost && (
+      {/* ── Modal detalle de publicación: PostCard completo ── */}
+      {selectedPost && me && (
         <div
-          style={{ position: "fixed", inset: 0, zIndex: 70, background: "rgba(2,2,7,0.92)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}
+          style={{ position: "fixed", inset: 0, zIndex: 70, background: "rgba(2,2,7,0.92)", display: "flex", alignItems: "flex-start", justifyContent: "center", overflowY: "auto", padding: "32px 12px" }}
           onClick={() => setSelectedPost(null)}
         >
-          <button onClick={() => setSelectedPost(null)} style={{ position: "absolute", top: 16, right: 16, padding: 8, background: "rgba(255,255,255,0.1)", border: "none", borderRadius: 8, color: "white", cursor: "pointer", zIndex: 2 }}>
+          <button onClick={() => setSelectedPost(null)} style={{ position: "fixed", top: 16, right: 16, padding: 8, background: "rgba(255,255,255,0.12)", border: "none", borderRadius: "50%", color: "white", cursor: "pointer", zIndex: 72, width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center" }}>
             <X size={18}/>
           </button>
           <div
-            style={{ background: "var(--surface)", borderRadius: 16, maxWidth: 500, width: "100%", maxHeight: "92vh", overflow: "hidden", display: "flex", flexDirection: "column", border: "1px solid var(--border-soft)" }}
+            style={{ maxWidth: 520, width: "100%" }}
             onClick={e => e.stopPropagation()}
           >
-            {(selectedPost.media_url || (selectedPost.media_urls && selectedPost.media_urls.length > 0)) && (
-              <PostMediaViewer post={selectedPost}/>
-            )}
-            <div style={{ padding: "16px 18px", overflowY: "auto", flex: 1 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
-                {profile.profile_photo_url ? (
-                  <ProtectedAvatar src={profile.profile_photo_url} size={32}/>
-                ) : (
-                  <div style={{ width: 32, height: 32, borderRadius: "50%", background: "var(--pewter)" }}/>
-                )}
-                <div>
-                  <p style={{ fontFamily: "var(--font-sans)", fontSize: 13, fontWeight: 500, color: "var(--paper)" }}>{displayName}</p>
-                  <p style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "var(--mist)", letterSpacing: "0.12em" }}>
-                    {new Date(selectedPost.created_at).toLocaleDateString("es-AR", { day: "numeric", month: "short", year: "numeric" })}
-                  </p>
-                </div>
-              </div>
-              {selectedPost.caption && (
-                <p style={{ fontFamily: "var(--font-sans)", fontSize: 14, color: "var(--silver)", lineHeight: 1.6, whiteSpace: "pre-wrap" }}>
-                  {selectedPost.caption}
-                </p>
-              )}
-              {selectedPost.type === "poll" && selectedPost.poll_question && (
-                <p style={{ fontFamily: "var(--font-sans)", fontSize: 14, color: "var(--paper)", lineHeight: 1.6, fontWeight: 500 }}>
-                  {selectedPost.poll_question}
-                </p>
-              )}
-              {selectedPost.city && (
-                <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 10 }}>
-                  <MapPin size={11} style={{ color: "var(--mist)" }}/>
-                  <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--mist)", letterSpacing: "0.12em" }}>
-                    {selectedPost.city}
-                  </span>
-                </div>
-              )}
-            </div>
+            <PostCard
+              post={selectedPost}
+              currentUserId={me.id}
+              onDelete={() => {
+                setPosts(prev => prev.filter(p => p.id !== selectedPost.id));
+                setSelectedPost(null);
+              }}
+            />
           </div>
         </div>
       )}
@@ -1034,89 +1007,3 @@ function ReportModal({
   );
 }
 
-/* ── PostMediaViewer — soporta imagen única o carrusel swipeable ── */
-function PostMediaViewer({ post }: { post: any }) {
-  const [idx, setIdx] = useState(0);
-  const startX = useRef(0);
-  const items: { url: string; type?: string }[] = Array.isArray(post.media_urls) && post.media_urls.length > 0
-    ? post.media_urls.map((m: any) => ({ url: m.url, type: m.type || "image" }))
-    : post.media_url
-      ? [{ url: post.media_url, type: "image" }]
-      : [];
-
-  if (items.length === 0) return null;
-
-  function onTouchStart(e: React.TouchEvent) { startX.current = e.touches[0].clientX; }
-  function onTouchEnd(e: React.TouchEvent) {
-    const diff = startX.current - e.changedTouches[0].clientX;
-    if (diff > 40 && idx < items.length - 1) setIdx(idx + 1);
-    if (diff < -40 && idx > 0) setIdx(idx - 1);
-  }
-
-  const current = items[idx];
-
-  return (
-    <div
-      style={{ position: "relative", background: "black", display: "flex", alignItems: "center", justifyContent: "center", maxHeight: "60vh", overflow: "hidden", userSelect: "none" }}
-      onTouchStart={onTouchStart}
-      onTouchEnd={onTouchEnd}
-    >
-      {current.type === "video" ? (
-        <video
-          src={current.url}
-          controls
-          playsInline
-          onContextMenu={e => e.preventDefault()}
-          style={{ maxWidth: "100%", maxHeight: "60vh", objectFit: "contain" }}
-        />
-      ) : (
-        <img
-          src={current.url}
-          alt=""
-          draggable={false}
-          onContextMenu={e => e.preventDefault()}
-          style={{ maxWidth: "100%", maxHeight: "60vh", objectFit: "contain", userSelect: "none" }}
-        />
-      )}
-
-      {items.length > 1 && (
-        <>
-          {idx > 0 && (
-            <button
-              onClick={() => setIdx(i => Math.max(0, i - 1))}
-              style={{ position: "absolute", left: 8, top: "50%", transform: "translateY(-50%)", width: 32, height: 32, borderRadius: "50%", background: "rgba(0,0,0,0.5)", border: "none", color: "white", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
-            >
-              <ChevronLeft size={18}/>
-            </button>
-          )}
-          {idx < items.length - 1 && (
-            <button
-              onClick={() => setIdx(i => Math.min(items.length - 1, i + 1))}
-              style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", width: 32, height: 32, borderRadius: "50%", background: "rgba(0,0,0,0.5)", border: "none", color: "white", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
-            >
-              <ChevronRight size={18}/>
-            </button>
-          )}
-          {/* Dots */}
-          <div style={{ position: "absolute", bottom: 10, left: "50%", transform: "translateX(-50%)", display: "flex", gap: 5 }}>
-            {items.map((_, i) => (
-              <button
-                key={i}
-                onClick={() => setIdx(i)}
-                style={{
-                  width: i === idx ? 16 : 6, height: 6, borderRadius: 99,
-                  background: i === idx ? "white" : "rgba(255,255,255,0.5)",
-                  border: "none", padding: 0, cursor: "pointer", transition: "all 0.2s",
-                }}
-              />
-            ))}
-          </div>
-          {/* Counter */}
-          <div style={{ position: "absolute", top: 10, right: 10, padding: "2px 8px", background: "rgba(0,0,0,0.6)", borderRadius: 12, fontFamily: "var(--font-mono)", fontSize: 10, color: "white", letterSpacing: "0.06em" }}>
-            {idx + 1}/{items.length}
-          </div>
-        </>
-      )}
-    </div>
-  );
-}

@@ -70,10 +70,11 @@ export function useScreenCapture({ onDetected, warn = true }: Options = {}) {
   useEffect(() => {
     const overlay = getOverlay();
 
-    // ── 1. App switcher blur (iOS + Android) ─────────────────
+    // ── 1. App switcher (iOS + Android) ─────────────────
     // Cuando la app pasa al fondo, iOS/Android captura un snapshot
     // de la pantalla actual para mostrarlo en el switcher de apps.
-    // Mostrar el overlay negro ANTES de ese snapshot.
+    // Solo usamos visibilitychange — blur/pagehide disparan espuriamente
+    // en navegación SPA y focus shifts del teclado (caja negra falsa).
     const handleVisibility = () => {
       if (document.hidden) {
         overlay.style.display = "flex";
@@ -82,17 +83,7 @@ export function useScreenCapture({ onDetected, warn = true }: Options = {}) {
       }
     };
 
-    // pagehide es más confiable que visibilitychange en iOS PWA
-    const handlePageHide  = () => { overlay.style.display = "flex"; };
-    const handlePageShow  = () => { overlay.style.display = "none"; };
-    const handleBlur      = () => { overlay.style.display = "flex"; };
-    const handleFocus     = () => { overlay.style.display = "none"; };
-
     document.addEventListener("visibilitychange", handleVisibility);
-    window.addEventListener("pagehide",  handlePageHide);
-    window.addEventListener("pageshow",  handlePageShow);
-    window.addEventListener("blur",      handleBlur);
-    window.addEventListener("focus",     handleFocus);
 
     // ── 2. Print Screen key (PC) ─────────────────────────────
     const handleKey = (e: KeyboardEvent) => {
@@ -123,10 +114,6 @@ export function useScreenCapture({ onDetected, warn = true }: Options = {}) {
 
     return () => {
       document.removeEventListener("visibilitychange", handleVisibility);
-      window.removeEventListener("pagehide",  handlePageHide);
-      window.removeEventListener("pageshow",  handlePageShow);
-      window.removeEventListener("blur",      handleBlur);
-      window.removeEventListener("focus",     handleFocus);
       document.removeEventListener("keyup",   handleKey);
       document.removeEventListener("keydown", handleKeyCombo);
       if (navigator.mediaDevices && orig) {
