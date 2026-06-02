@@ -6,12 +6,22 @@ const api = axios.create({
   headers: { "Content-Type": "application/json" },
 });
 
-// Adjunta el access token automáticamente
-api.interceptors.request.use((config) => {
+// Cliente separado para uploads multipart: sin Content-Type default,
+// para que el browser ponga multipart/form-data; boundary=... automáticamente.
+// Timeout largo (5 min) para videos.
+const uploadApi = axios.create({
+  baseURL: API_BASE_URL,
+  timeout: 300_000,
+});
+
+// Adjunta el access token automáticamente en ambos clientes
+function attachToken(config: any) {
   const token = localStorage.getItem("access_token");
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
-});
+}
+api.interceptors.request.use(attachToken);
+uploadApi.interceptors.request.use(attachToken);
 
 // Refresca el token si expira (401)
 api.interceptors.response.use(
@@ -119,7 +129,7 @@ export const adsApi = {
   uploadImage: (file: File) => {
     const form = new FormData();
     form.append("file", file);
-    return api.post("/ads/admin/upload-image", form, { headers: { "Content-Type": undefined } });
+    return uploadApi.post("/ads/admin/upload-image", form);
   },
   listAdvertisers: () => api.get("/ads/admin/advertisers"),
   createAdvertiser: (body: object) => api.post("/ads/admin/advertisers", body),
@@ -145,13 +155,12 @@ export const feedApi = {
   uploadPost:   (file: File, params: object) => {
     const form = new FormData();
     form.append("file", file);
-    // Content-Type: undefined -> deja que el browser ponga multipart/form-data; boundary=...
-    return api.post("/feed/posts/upload", form, { params, headers: { "Content-Type": undefined } });
+    return uploadApi.post("/feed/posts/upload", form, { params });
   },
   uploadCarousel: (files: File[], params: object) => {
     const form = new FormData();
     files.forEach(f => form.append("files", f));
-    return api.post("/feed/posts/upload-carousel", form, { params, headers: { "Content-Type": undefined } });
+    return uploadApi.post("/feed/posts/upload-carousel", form, { params });
   },
   react:        (postId: string, type: string)   => api.post(`/feed/posts/${postId}/react`, { type }),
   viewStory:    (postId: string)                 => api.post(`/feed/posts/${postId}/view`),
@@ -170,25 +179,22 @@ export const reviewsApi = {
   delete: (reviewId: string) => api.delete(`/reviews/${reviewId}`),
 };
 
-// Browser pone multipart/form-data; boundary=... cuando dejamos Content-Type undefined
-const MULTIPART = { headers: { "Content-Type": undefined } };
-
 export const mediaApi = {
   uploadAvatar: (file: File) => {
     const form = new FormData();
     form.append("file", file);
-    return api.post("/media/avatar", form, MULTIPART);
+    return uploadApi.post("/media/avatar", form);
   },
   uploadPost: (file: File) => {
     const form = new FormData();
     form.append("file", file);
-    return api.post("/media/post", form, MULTIPART);
+    return uploadApi.post("/media/post", form);
   },
   myUploads: () => api.get("/media/my-uploads"),
   verifyLeak: (file: File) => {
     const form = new FormData();
     form.append("file", file);
-    return api.post("/media/verify-leak", form, MULTIPART);
+    return uploadApi.post("/media/verify-leak", form);
   },
 };
 
@@ -248,7 +254,7 @@ export const chatMediaApi = {
   upload: (file: File) => {
     const form = new FormData();
     form.append("file", file);
-    return api.post("/messages/upload-media", form, { headers: { "Content-Type": undefined } });
+    return uploadApi.post("/messages/upload-media", form);
   },
   updateOnline: () => api.post("/messages/online"),
   getOnline: (userId: string) => api.get(`/messages/online/${userId}`),
@@ -350,7 +356,7 @@ export const albumsApi = {
   // Photos
   addPhoto:        (id: string, file: File)           => {
     const form = new FormData(); form.append("file", file);
-    return api.post(`/albums/${id}/photos`, form, { headers: { "Content-Type": undefined } });
+    return uploadApi.post(`/albums/${id}/photos`, form);
   },
   getPhotos:       (id: string)                       => api.get(`/albums/${id}/photos`),
   deletePhoto:     (albumId: string, photoId: string) => api.delete(`/albums/${albumId}/photos/${photoId}`),
