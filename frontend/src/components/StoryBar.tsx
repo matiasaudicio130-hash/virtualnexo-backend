@@ -5,25 +5,29 @@ import type { Story } from "@/types";
 
 interface Props {
   province?: string;
-  onSelectStory: (story: Story) => void;
+  onSelectStory: (story: Story, idx: number) => void;
+  onStoriesLoaded?: (all: Story[]) => void;
 }
 
-export function StoryBar({ province, onSelectStory }: Props) {
+export function StoryBar({ province, onSelectStory, onStoriesLoaded }: Props) {
   const navigate = useNavigate();
   const [stories, setStories] = useState<Story[]>([]);
 
   useEffect(() => {
-    feedApi.getStories(province).then(r => setStories(r.data)).catch(() => {});
+    feedApi.getStories(province).then(r => {
+      setStories(r.data);
+      onStoriesLoaded?.(r.data);
+    }).catch(() => {});
   }, [province]);
 
   if (stories.length === 0) return null;
 
   return (
     <div className="flex gap-3 overflow-x-auto pb-1 px-1 scrollbar-none">
-      {stories.map((s) => (
+      {stories.map((s, i) => (
         <div key={s.user_id} className="flex flex-col items-center gap-1 flex-shrink-0 group">
           <button
-            onClick={() => onSelectStory(s)}
+            onClick={() => onSelectStory(s, i)}
             className="block"
             onContextMenu={e => { e.preventDefault(); navigate(`/profile/${s.user_id}`); }}
           >

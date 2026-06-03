@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { Plus, X } from "lucide-react";
-import { SlidersHorizontal, MagnifyingGlass, MapPin } from "@phosphor-icons/react";
+import { SlidersHorizontal, MagnifyingGlass, MapPin, PaperPlaneTilt } from "@phosphor-icons/react";
 import { NavLogo }    from "@/components/AuraLogo";
-import { feedApi, adsApi, followsApi } from "@/lib/api";
+import { feedApi, adsApi, followsApi, messagingApi } from "@/lib/api";
 import { useAuthStore } from "@/store/authStore";
 import { useScreenCapture } from "@/hooks/useScreenCapture";
 import { PostCard }   from "@/components/PostCard";
@@ -124,11 +125,12 @@ export default function Feed() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore]         = useState(true);
   const [offset, setOffset]           = useState(0);
-  const [showCreate, setShowCreate]   = useState(false);
-  const [feedTab, setFeedTab]         = useState<"all" | "following">("all");
-  const [feedAds, setFeedAds]         = useState<Ad[]>([]);
-  const [selectedStory, setSelectedStory] = useState<Story | null>(null);
-  const sentinelRef                   = useRef<HTMLDivElement>(null);
+  const [showCreate, setShowCreate]         = useState(false);
+  const [feedTab, setFeedTab]               = useState<"all" | "following">("all");
+  const [feedAds, setFeedAds]               = useState<Ad[]>([]);
+  const [allStories, setAllStories]         = useState<Story[]>([]);
+  const [selectedStoryIdx, setSelectedStoryIdx] = useState<number | null>(null);
+  const sentinelRef                         = useRef<HTMLDivElement>(null);
 
   // Filtros
   const [showFilters, setShowFilters] = useState(false);
@@ -403,7 +405,8 @@ export default function Feed() {
         <div className="px-4 pt-4 pb-2">
           <StoryBar
             province={selectedCity?.name || user.province || undefined}
-            onSelectStory={s => setSelectedStory(s)}
+            onStoriesLoaded={setAllStories}
+            onSelectStory={(_, i) => setSelectedStoryIdx(i)}
           />
         </div>
 
@@ -504,8 +507,12 @@ export default function Feed() {
         />
       )}
 
-      {selectedStory && (
-        <StoryViewer story={selectedStory} onClose={() => setSelectedStory(null)} />
+      {selectedStoryIdx !== null && allStories.length > 0 && (
+        <StoryViewer
+          stories={allStories}
+          initialUserIdx={selectedStoryIdx}
+          onClose={() => setSelectedStoryIdx(null)}
+        />
       )}
 
       <BottomNav />
@@ -515,109 +522,352 @@ export default function Feed() {
 
 // ── Story Viewer ──────────────────────────────────────────────
 const STORY_EMOJIS = ["❤️", "🔥", "😮", "😂", "👏", "💫"];
+const STORY_DURATION = 5000;
 
-function StoryViewer({ story, onClose }: { story: Story; onClose: () => void }) {
-  const [idx, setIdx]               = useState(0);
-  const [reacted, setReacted]       = useState<string | null>(null);
-  const [showEmojis, setShowEmojis] = useState(false);
-  const current                     = story.stories[idx];
+function storyTimeAgo(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const h = Math.floor(diff / 3600000);
+  const m = Math.floor(diff / 60000);
+  if (m < 1) return "Ahora";
+  if (m < 60) return `${m}m`;
+  if (h < 24) return `${h}h`;
+  return `${Math.floor(h / 24)}d`;
+}
 
+function isVideoUrl(url: string): boolean {
+  return /\.(mp4|mov|webm|m4v|mkv|avi|3gpp)(\?|$)/i.test(url);
+}
+
+function StoryViewer({
+  stories,
+  initialUserIdx,
+  onClose,
+}: {
+  stories: Story[];
+  initialUserIdx: number;
+  onClose: () => void;
+}) {
+  const navigate                      = useNavigate();
+  const [userIdx, setUserIdx]         = useState(initialUserIdx);
+  const [storyIdx, setStoryIdx]       = useState(0);
+  const [reacted, setReacted]         = useState<string | null>(null);
+  const [showEmojis, setShowEmojis]   = useState(false);
+  const [comment, setComment]         = useState("");
+  const [sending, setSending]         = useState(false);
+  const [sent, setSent]               = useState(false);
+  const [paused, _setPaused]          = useState(false);
+  const pausedRef                     = useRef(false);
+  const holdFired                     = useRef(false);
+  const holdTimer                     = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const touchStartX                   = useRef(0);
+  const inputRef                      = useRef<HTMLInputElement>(null);
+
+  function setPaused(v: boolean) { pausedRef.current = v; _setPaused(v); }
+
+  const currentUser = stories[userIdx];
+  const current     = currentUser?.stories[storyIdx];
+
+  function advance() {
+    const user = stories[userIdx];
+    if (storyIdx < user.stories.length - 1) {
+      setStoryIdx(s => s + 1);
+    } else if (userIdx < stories.length - 1) {
+      setUserIdx(u => u + 1);
+      setStoryIdx(0);
+    } else {
+      onClose();
+    }
+  }
+
+  function retreat() {
+    if (storyIdx > 0) {
+      setStoryIdx(s => s - 1);
+    } else if (userIdx > 0) {
+      const prevLen = stories[userIdx - 1].stories.length;
+      setUserIdx(u => u - 1);
+      setStoryIdx(prevLen - 1);
+    }
+  }
+
+  // Auto-advance timer
+  useEffect(() => {
+    if (paused || !current) return;
+    const t = setTimeout(advance, STORY_DURATION);
+    return () => clearTimeout(t);
+  }, [storyIdx, userIdx, paused]);
+
+  // Mark viewed
   useEffect(() => {
     if (current) feedApi.viewStory(current.id).catch(() => {});
-  }, [idx]);
+  }, [current?.id]);
 
-  function next() { idx < story.stories.length - 1 ? setIdx(i => i + 1) : onClose(); }
-  function prev() { idx > 0 && setIdx(i => i - 1); }
+  // Reset reaction/comment when user changes
+  useEffect(() => {
+    setReacted(null);
+    setSent(false);
+    setComment("");
+    setShowEmojis(false);
+  }, [userIdx]);
+
+  // Touch: hold to pause, tap to navigate
+  function handleTouchStart(e: React.TouchEvent) {
+    const target = e.target as HTMLElement;
+    if (target.closest("input,button,a")) return;
+    touchStartX.current = e.touches[0].clientX;
+    holdFired.current   = false;
+    holdTimer.current   = setTimeout(() => {
+      holdFired.current = true;
+      setPaused(true);
+    }, 180);
+  }
+
+  function handleTouchEnd(e: React.TouchEvent) {
+    const target = e.target as HTMLElement;
+    if (target.closest("input,button,a")) return;
+    if (holdTimer.current) clearTimeout(holdTimer.current);
+    if (holdFired.current) { setPaused(false); holdFired.current = false; return; }
+    const x = e.changedTouches[0].clientX;
+    if (x < window.innerWidth / 3) retreat(); else advance();
+  }
+
+  // Desktop click zones
+  function handleClickLeft()  { retreat(); }
+  function handleClickRight() { advance(); }
 
   async function handleReact(emoji: string) {
     if (!current) return;
     setReacted(emoji);
     setShowEmojis(false);
+    setPaused(false);
     try {
       const { highlightsApi } = await import("@/lib/api");
       await highlightsApi.reactStory(current.id, emoji);
     } catch { /* ignore */ }
   }
 
+  async function sendComment() {
+    if (!comment.trim() || !currentUser) return;
+    setSending(true);
+    try {
+      const { data: conv } = await messagingApi.startConversation(currentUser.user_id);
+      await messagingApi.sendMessage(conv.id, { content: comment.trim() });
+      setSent(true);
+      setComment("");
+      setTimeout(() => setSent(false), 2500);
+    } catch { /* ignore */ }
+    setSending(false);
+    setPaused(false);
+    inputRef.current?.blur();
+  }
+
   if (!current) { onClose(); return null; }
+
+  const isVideo = isVideoUrl(current.media_url);
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-black flex flex-col"
-      onTouchStart={() => {}}
-      onTouchEnd={() => {}}
+      className="fixed inset-0 z-50 bg-black flex flex-col select-none"
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
     >
-      <div className="flex-shrink-0 pt-safe"
-        style={{ background: "linear-gradient(to bottom,rgba(0,0,0,.75) 0%,transparent 100%)" }}>
+      {/* ── Header ─────────────────────────────────────────────── */}
+      <div
+        className="flex-shrink-0 pt-safe"
+        style={{ background: "linear-gradient(to bottom,rgba(0,0,0,.8) 0%,transparent 100%)" }}
+      >
+        {/* Progress bars — one per story of current user */}
         <div className="flex gap-1 px-3 pt-3 pb-1">
-          {story.stories.map((_, i) => (
+          {currentUser.stories.map((_, i) => (
             <div key={i} className="flex-1 h-0.5 rounded-full overflow-hidden bg-white/25">
-              <div className={`h-full bg-white ${i < idx ? "w-full" : i === idx ? "w-full animate-[story-progress_5s_linear]" : "w-0"}`}/>
+              {i < storyIdx ? (
+                <div className="h-full bg-white w-full" />
+              ) : i === storyIdx ? (
+                <div
+                  key={`${userIdx}-${storyIdx}`}
+                  className="h-full bg-white"
+                  style={{
+                    animation: "story-progress 5s linear forwards",
+                    animationPlayState: paused ? "paused" : "running",
+                  }}
+                />
+              ) : (
+                <div className="h-full w-0" />
+              )}
             </div>
           ))}
         </div>
+
+        {/* User row */}
         <div className="flex items-center justify-between px-3 py-2">
-          <button onClick={onClose} className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-full overflow-hidden border border-white/25 flex-shrink-0">
-              {story.avatar
-                ? <img src={story.avatar} alt="" className="w-full h-full object-cover"/>
-                : <div className="w-full h-full bg-white/10"/>}
+          <button
+            onClick={() => { onClose(); navigate(`/profile/${currentUser.user_id}`); }}
+            className="flex items-center gap-2.5"
+          >
+            <div className="w-9 h-9 rounded-full overflow-hidden border border-white/30 flex-shrink-0">
+              {currentUser.avatar
+                ? <img src={currentUser.avatar} alt="" className="w-full h-full object-cover" />
+                : <div className="w-full h-full bg-white/10" />}
             </div>
-            <span className="text-white text-sm font-semibold drop-shadow">{story.name}</span>
-          </button>
-          <button onClick={onClose} className="w-10 h-10 flex items-center justify-center text-white/80">
-            <X size={20} />
-          </button>
-        </div>
-      </div>
-
-      <div className="flex-1 relative overflow-hidden">
-        {current.media_url
-          ? <img src={current.media_url} alt="" draggable={false}
-              onContextMenu={e => e.preventDefault()}
-              className="w-full h-full object-contain select-none pointer-events-none"/>
-          : <div className="w-full h-full flex items-center justify-center text-white/30">Sin imagen</div>
-        }
-        <div className="absolute inset-0 flex" style={{ bottom: 80 }}>
-          <div className="w-1/3 h-full" onClick={prev}/>
-          <div className="w-2/3 h-full" onClick={next}/>
-        </div>
-      </div>
-
-      <div className="flex-shrink-0 pb-safe"
-        style={{ background: "linear-gradient(to top,rgba(0,0,0,.75) 0%,transparent 100%)" }}>
-        {showEmojis && (
-          <div className="flex justify-center gap-3 px-4 py-3 animate-fade-in">
-            {STORY_EMOJIS.map(e => (
-              <button key={e} onClick={() => handleReact(e)}
-                className="text-3xl hover:scale-125 transition-transform drop-shadow-lg">{e}</button>
-            ))}
-          </div>
-        )}
-        <div className="flex items-center gap-3 px-4 py-3">
-          {reacted ? (
-            <div className="flex items-center gap-2 flex-1">
-              <span className="text-2xl">{reacted}</span>
-              <span className="text-white/70 text-sm">Reaccionaste</span>
+            <div className="text-left">
+              <p className="text-white text-sm font-semibold leading-tight drop-shadow">
+                {currentUser.name}
+              </p>
+              <p className="text-white/50 text-[10px]">
+                {storyTimeAgo(current.created_at)}
+              </p>
             </div>
-          ) : (
-            <button
-              onClick={() => setShowEmojis(v => !v)}
-              className="flex items-center gap-2 flex-1 px-4 py-2.5 rounded-full bg-white/10 border border-white/20 text-white/70 text-sm hover:bg-white/15 transition-colors"
-            >
-              <span className="text-lg">😊</span>
-              <span>Reaccionar</span>
-            </button>
-          )}
-          {story.stories.length > 1 && (
-            <div className="flex gap-1.5">
-              {story.stories.map((_, i) => (
-                <div key={i} className={`h-1.5 rounded-full transition-all ${i === idx ? "bg-white w-3" : "bg-white/40 w-1.5"}`}/>
+          </button>
+
+          {/* User pagination dots (when multiple users) */}
+          {stories.length > 1 && (
+            <div className="flex gap-1 items-center">
+              {stories.map((_, i) => (
+                <div
+                  key={i}
+                  className={`rounded-full transition-all ${
+                    i === userIdx ? "bg-white w-2 h-2" : "bg-white/40 w-1.5 h-1.5"
+                  }`}
+                />
               ))}
             </div>
           )}
+
+          <button
+            onClick={onClose}
+            className="w-9 h-9 flex items-center justify-center text-white/80 hover:text-white"
+          >
+            <X size={18} />
+          </button>
         </div>
       </div>
+
+      {/* ── Media ──────────────────────────────────────────────── */}
+      <div className="flex-1 relative overflow-hidden">
+        {current.media_url ? (
+          isVideo ? (
+            <video
+              src={current.media_url}
+              className="w-full h-full object-contain"
+              autoPlay
+              muted
+              playsInline
+              loop={false}
+              onEnded={advance}
+            />
+          ) : (
+            <img
+              src={current.media_url}
+              alt=""
+              draggable={false}
+              onContextMenu={e => e.preventDefault()}
+              className="w-full h-full object-contain pointer-events-none"
+            />
+          )
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-white/30">
+            Sin imagen
+          </div>
+        )}
+
+        {/* Pause indicator */}
+        {paused && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div className="w-14 h-14 rounded-full bg-black/50 flex items-center justify-center">
+              <div className="flex gap-1.5">
+                <div className="w-1.5 h-6 bg-white rounded-full" />
+                <div className="w-1.5 h-6 bg-white rounded-full" />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Desktop click zones */}
+        <div className="hidden sm:flex absolute inset-0">
+          <div className="w-1/3 h-full cursor-pointer" onClick={handleClickLeft} />
+          <div className="flex-1 h-full cursor-pointer" onClick={handleClickRight} />
+        </div>
+      </div>
+
+      {/* ── Bottom bar ─────────────────────────────────────────── */}
+      <div
+        className="flex-shrink-0 pb-safe"
+        style={{ background: "linear-gradient(to top,rgba(0,0,0,.85) 0%,transparent 100%)" }}
+      >
+        {/* Emoji picker */}
+        {showEmojis && (
+          <div className="flex justify-center gap-3 px-4 py-2">
+            {STORY_EMOJIS.map(e => (
+              <button
+                key={e}
+                onClick={() => handleReact(e)}
+                className="text-3xl hover:scale-125 active:scale-110 transition-transform drop-shadow-lg"
+              >
+                {e}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Sent confirmation */}
+        {sent && (
+          <p className="text-center text-white/70 text-xs pb-1">Mensaje enviado ✓</p>
+        )}
+
+        <div className="flex items-center gap-2 px-3 py-2.5">
+          {/* Emoji react button */}
+          {reacted ? (
+            <span className="text-xl flex-shrink-0">{reacted}</span>
+          ) : (
+            <button
+              onClick={e => {
+                e.stopPropagation();
+                setShowEmojis(v => !v);
+                setPaused(!showEmojis);
+              }}
+              className="text-xl flex-shrink-0 opacity-80 hover:opacity-100 transition-opacity"
+            >
+              😊
+            </button>
+          )}
+
+          {/* Comment / reply input */}
+          <div className="flex-1 flex items-center gap-2 px-3 py-2 rounded-full border border-white/30 bg-white/10">
+            <input
+              ref={inputRef}
+              value={comment}
+              onChange={e => setComment(e.target.value)}
+              onFocus={() => setPaused(true)}
+              onBlur={() => { if (!comment.trim()) setPaused(false); }}
+              onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); sendComment(); } }}
+              placeholder={`Responder a ${currentUser.name}…`}
+              className="flex-1 bg-transparent outline-none text-white placeholder:text-white/40 text-sm min-w-0"
+              style={{ fontSize: "16px" }}
+            />
+            {comment.trim() && (
+              <button
+                onClick={e => { e.stopPropagation(); sendComment(); }}
+                disabled={sending}
+                className="text-white text-sm font-semibold flex-shrink-0 disabled:opacity-50"
+              >
+                {sending ? "…" : "Enviar"}
+              </button>
+            )}
+          </div>
+
+          {/* DM shortcut */}
+          <button
+            onClick={e => {
+              e.stopPropagation();
+              onClose();
+              navigate(`/messages?start=${currentUser.user_id}`);
+            }}
+            className="flex-shrink-0 text-white/70 hover:text-white transition-colors"
+          >
+            <PaperPlaneTilt size={22} weight="light" />
+          </button>
+        </div>
+      </div>
+
       <style>{`@keyframes story-progress { from { width: 0% } to { width: 100% } }`}</style>
     </div>
   );
