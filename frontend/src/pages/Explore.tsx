@@ -1,11 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { MapPin } from "lucide-react";
+import { X } from "lucide-react";
+import { MapPin, MagnifyingGlass, Clock, UserCircle } from "@phosphor-icons/react";
 import { useGeolocation } from "@/hooks/useGeolocation";
 import { NearbyUsers } from "@/components/NearbyUsers";
 import { ProfileSuggestions } from "@/components/ProfileSuggestions";
 import { BottomNav } from "@/components/BottomNav";
 import { useAuthStore } from "@/store/authStore";
+import { searchApi, followsApi } from "@/lib/api";
 import { Compass, CalendarBlank, Airplane, Tag } from "@phosphor-icons/react";
 
 type Tab = "personas" | "interes" | "eventos" | "viaje";
@@ -23,7 +25,6 @@ const SEEKING_TAGS = [
   { id: "eventos",              label: "Eventos" },
   { id: "discrecion",           label: "Discreción" },
   { id: "amistad",              label: "Amistad" },
-  // legacy tags from old SeekingEditor
   { id: "explorar_sin_apuro",   label: "Explorar sin apuro" },
   { id: "charlar_y_ver",        label: "Charlar y ver" },
   { id: "planes_y_salidas",     label: "Planes y salidas" },
@@ -33,6 +34,25 @@ const SEEKING_TAGS = [
   { id: "solo_curiosidad",      label: "Solo curiosidad" },
 ];
 
+const RECENT_KEY = "aura_recent_searches";
+const MAX_RECENT = 8;
+
+function getRecent(): string[] {
+  try { return JSON.parse(localStorage.getItem(RECENT_KEY) || "[]"); } catch { return []; }
+}
+function saveRecent(q: string) {
+  const prev = getRecent().filter(r => r !== q);
+  localStorage.setItem(RECENT_KEY, JSON.stringify([q, ...prev].slice(0, MAX_RECENT)));
+}
+function removeRecent(q: string) {
+  localStorage.setItem(RECENT_KEY, JSON.stringify(getRecent().filter(r => r !== q)));
+}
+function clearRecent() { localStorage.removeItem(RECENT_KEY); }
+
+interface SearchUser  { id: string; name: string; username: string; avatar?: string; profile_type?: string; province?: string; }
+interface SearchPost  { id: string; type: string; caption: string; thumb?: string; author: SearchUser; }
+interface SearchResults { users: SearchUser[]; posts: SearchPost[]; query: string; }
+
 export default function Explore() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -40,18 +60,86 @@ export default function Explore() {
   const { coords: geoCoords } = useGeolocation();
   const [manualCoords, setManualCoords] = useState<{ lat: number; lng: number } | null>(null);
 
+  // Search state
+  const [query,        setQuery]        = useState("");
+  const [searching,    setSearching]    = useState(false);
+  const [results,      setResults]      = useState<SearchResults | null>(null);
+  const [recentList,   setRecentList]   = useState<string[]>(getRecent());
+  const [inputFocused, setInputFocused] = useState(false);
+  const [followedIds,  setFollowedIds]  = useState<Set<string>>(new Set());
+  const inputRef     = useRef<HTMLInputElement>(null);
+  const debounceRef  = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Tabs
   const urlTab = searchParams.get("tab") as Tab | null;
   const urlTag = searchParams.get("tag") || "";
-  const [tab, setTab] = useState<Tab>(urlTab ?? "personas");
+  const [tab, setTab]         = useState<Tab>(urlTab ?? "personas");
   const [activeTag, setActiveTag] = useState<string>(urlTag);
 
-  // Sync URL params on mount (when coming from a profile tag click)
   useEffect(() => {
     if (urlTab) setTab(urlTab);
     if (urlTag) setActiveTag(urlTag);
   }, []);
 
   const coords = manualCoords ?? geoCoords;
+
+  // Debounced search
+  const runSearch = useCallback(async (q: string) => {
+    if (!q.trim()) { setResults(null); setSearching(false); return; }
+    setSearching(true);
+    try {
+      const { data } = await searchApi.search(q.trim());
+      setResults(data);
+    } catch {
+      setResults({ users: [], posts: [], query: q });
+    }
+    setSearching(false);
+  }, []);
+
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (!query.trim()) { setResults(null); return; }
+    debounceRef.current = setTimeout(() => runSearch(query), 300);
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+  }, [query]);
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!query.trim()) return;
+    saveRecent(query.trim());
+    setRecentList(getRecent());
+    runSearch(query.trim());
+    inputRef.current?.blur();
+  }
+
+  function pickRecent(q: string) {
+    setQuery(q);
+    runSearch(q);
+    inputRef.current?.blur();
+    setInputFocused(false);
+  }
+
+  function clearSearch() {
+    setQuery("");
+    setResults(null);
+    inputRef.current?.focus();
+  }
+
+  async function toggleFollow(userId: string) {
+    try {
+      if (followedIds.has(userId)) {
+        await followsApi.unfollow(userId);
+        setFollowedIds(prev => { const n = new Set(prev); n.delete(userId); return n; });
+      } else {
+        await followsApi.follow(userId);
+        setFollowedIds(prev => new Set([...prev, userId]));
+      }
+    } catch { /* ignore */ }
+  }
+
+  const showSearchOverlay = inputFocused && !query.trim();
+  const showResults       = !!results;
+
   if (!user) return null;
 
   const tabs: { id: Tab; label: string; Icon: any }[] = [
@@ -65,6 +153,9 @@ export default function Explore() {
     setTab(t);
     if (t !== "interes") setActiveTag("");
     setSearchParams(t === "interes" && activeTag ? { tab: t, tag: activeTag } : { tab: t });
+    setQuery("");
+    setResults(null);
+    setInputFocused(false);
   }
 
   function selectTag(id: string) {
@@ -75,82 +166,256 @@ export default function Explore() {
 
   function requestGPS() {
     navigator.geolocation.getCurrentPosition(
-      (pos) => setManualCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-      (err) => console.warn("GPS denegado:", err.message),
+      pos => setManualCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+      err => console.warn("GPS denegado:", err.message),
       { timeout: 8000, maximumAge: 60000 },
     );
   }
 
   return (
     <div className="min-h-screen bg-bg-base text-text-primary">
-      <header className="sticky top-0 z-20 bg-bg-base/90 backdrop-blur-md border-b border-border px-4 pt-safe-3 pb-3">
+
+      {/* ── Header + search bar ──────────────────────────────── */}
+      <header className="sticky top-0 z-20 bg-bg-base/95 backdrop-blur-md border-b border-border px-4 pt-safe-3 pb-3 space-y-3">
         <h1
           className="text-sm tracking-[0.2em] uppercase"
           style={{ color: "var(--gold, #C9A227)", fontFamily: "var(--font-display, 'Cormorant Garamond', serif)" }}
         >
           Explorar
         </h1>
+
+        {/* Search input */}
+        <form onSubmit={handleSubmit} className="relative">
+          <div className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border bg-bg-muted transition-colors ${
+            inputFocused || query ? "border-[rgba(201,162,39,0.45)]" : "border-border"
+          }`}>
+            <MagnifyingGlass
+              size={16} weight="light"
+              style={{ color: inputFocused || query ? "var(--gold,#C9A227)" : undefined }}
+              className="text-text-muted flex-shrink-0"
+            />
+            <input
+              ref={inputRef}
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              onFocus={() => setInputFocused(true)}
+              onBlur={() => setTimeout(() => setInputFocused(false), 200)}
+              placeholder="Buscar personas o publicaciones…"
+              className="flex-1 bg-transparent outline-none text-sm placeholder:text-text-muted/60"
+              style={{ fontSize: "16px" }}
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="none"
+              spellCheck={false}
+            />
+            {(query || searching) && (
+              <button
+                type="button"
+                onClick={clearSearch}
+                className="text-text-muted hover:text-text-primary transition-colors flex-shrink-0"
+              >
+                {searching
+                  ? <div className="w-3.5 h-3.5 border-2 border-accent-purple/30 border-t-accent-purple rounded-full animate-spin"/>
+                  : <X size={14} />
+                }
+              </button>
+            )}
+          </div>
+        </form>
       </header>
 
-      {/* Tab chips */}
-      <div className="flex gap-2 px-4 pt-4 pb-2 overflow-x-auto scrollbar-none">
-        {tabs.map(({ id, label, Icon }) => {
-          const active = tab === id;
-          return (
-            <button
-              key={id}
-              onClick={() => switchTab(id)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all whitespace-nowrap ${
-                active ? "border-transparent text-[#0a0a0f]" : "border-border text-text-muted hover:border-border/80 bg-transparent"
-              }`}
-              style={active ? { background: "var(--gold, #C9A227)", color: "#0a0a0f" } : {}}
-            >
-              <Icon size={13} weight={active ? "fill" : "light"} />
-              {label}
+      {/* ── Recent searches overlay ──────────────────────────── */}
+      {showSearchOverlay && recentList.length > 0 && (
+        <div className="bg-bg-card border-b border-border">
+          <div className="flex items-center justify-between px-4 py-2">
+            <p className="text-[10px] text-text-muted uppercase tracking-widest">Búsquedas recientes</p>
+            <button onClick={() => { clearRecent(); setRecentList([]); }} className="text-[10px] text-text-muted hover:text-accent-purple transition-colors">
+              Limpiar
             </button>
-          );
-        })}
-      </div>
+          </div>
+          {recentList.map(r => (
+            <button
+              key={r}
+              onClick={() => pickRecent(r)}
+              className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-bg-muted transition-colors text-left"
+            >
+              <Clock size={14} weight="light" className="text-text-muted flex-shrink-0" />
+              <span className="flex-1 text-sm truncate">{r}</span>
+              <button
+                onClick={e => { e.stopPropagation(); removeRecent(r); setRecentList(getRecent()); }}
+                className="text-text-muted hover:text-text-primary flex-shrink-0 p-1"
+              >
+                <X size={12} />
+              </button>
+            </button>
+          ))}
+        </div>
+      )}
 
-      <main className="max-w-lg mx-auto pb-[80px]">
-        {tab === "personas" && (
-          <>
-            {coords ? (
-              <NearbyUsers lat={coords.lat} lng={coords.lng} />
-            ) : (
-              <div className="mx-4 mt-3 p-4 rounded-xl border border-border text-center">
-                <MapPin size={20} className="mx-auto mb-2" style={{ color: "var(--gold, #C9A227)" }} />
-                <p className="text-sm text-text-muted mb-3">Activá tu ubicación para ver personas cerca</p>
+      {/* ── Search results ───────────────────────────────────── */}
+      {showResults && (
+        <div className="max-w-lg mx-auto pb-[80px]">
+          {results!.users.length === 0 && results!.posts.length === 0 ? (
+            <div className="py-20 text-center">
+              <MagnifyingGlass size={36} weight="light" className="mx-auto mb-3 opacity-20" />
+              <p className="text-sm text-text-muted">Sin resultados para <strong>"{results!.query}"</strong></p>
+              <p className="text-xs text-text-muted/60 mt-1">Probá con un nombre, username o tema</p>
+            </div>
+          ) : (
+            <div className="divide-y divide-border/60">
+              {/* Users section */}
+              {results!.users.length > 0 && (
+                <section className="px-4 pt-4 pb-3">
+                  <p className="text-[10px] text-text-muted uppercase tracking-widest mb-3">
+                    Personas · {results!.users.length}
+                  </p>
+                  <div className="space-y-1">
+                    {results!.users.map(u => (
+                      <div
+                        key={u.id}
+                        className="flex items-center gap-3 py-2 rounded-xl hover:bg-bg-muted px-2 -mx-2 transition-colors cursor-pointer"
+                        onClick={() => { saveRecent(query); setRecentList(getRecent()); navigate(`/profile/${u.id}`); }}
+                      >
+                        {/* Avatar */}
+                        <div className="w-11 h-11 rounded-full overflow-hidden bg-bg-muted flex-shrink-0 border border-border">
+                          {u.avatar
+                            ? <img src={u.avatar} alt={u.name} className="w-full h-full object-cover" />
+                            : <div className="w-full h-full flex items-center justify-center">
+                                <UserCircle size={28} weight="light" className="text-text-muted" />
+                              </div>
+                          }
+                        </div>
+                        {/* Info */}
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-sm truncate">{u.name}</p>
+                          <p className="text-xs text-text-muted truncate">
+                            {u.username ? `@${u.username}` : ""}
+                            {u.province ? ` · ${u.province}` : ""}
+                          </p>
+                        </div>
+                        {/* Follow button */}
+                        <button
+                          onClick={e => { e.stopPropagation(); toggleFollow(u.id); }}
+                          className={`flex-shrink-0 text-xs px-3 py-1.5 rounded-full border font-medium transition-all ${
+                            followedIds.has(u.id)
+                              ? "border-border text-text-muted"
+                              : "border-transparent text-[#0a0a0f]"
+                          }`}
+                          style={followedIds.has(u.id) ? {} : { background: "var(--gold,#C9A227)" }}
+                        >
+                          {followedIds.has(u.id) ? "Siguiendo" : "Seguir"}
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              )}
+
+              {/* Posts section */}
+              {results!.posts.length > 0 && (
+                <section className="px-4 pt-4 pb-3">
+                  <p className="text-[10px] text-text-muted uppercase tracking-widest mb-3">
+                    Publicaciones · {results!.posts.length}
+                  </p>
+                  <div className="grid grid-cols-3 gap-1">
+                    {results!.posts.map(p => (
+                      <button
+                        key={p.id}
+                        onClick={() => navigate(`/profile/${p.author.id}`)}
+                        className="aspect-square rounded-lg overflow-hidden bg-bg-muted relative group"
+                      >
+                        {p.thumb ? (
+                          <img
+                            src={p.thumb}
+                            alt=""
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center p-2">
+                            <p className="text-[10px] text-text-muted text-center line-clamp-4 leading-tight">
+                              {p.caption}
+                            </p>
+                          </div>
+                        )}
+                        {/* Author overlay */}
+                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-1.5">
+                          <p className="text-[9px] text-white truncate w-full">{p.author.name}</p>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </section>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Normal explore (no search active) ───────────────── */}
+      {!showResults && (
+        <>
+          {/* Tab chips */}
+          <div className="flex gap-2 px-4 pt-3 pb-2 overflow-x-auto scrollbar-none">
+            {tabs.map(({ id, label, Icon }) => {
+              const active = tab === id;
+              return (
                 <button
-                  onClick={requestGPS}
-                  className="text-xs px-4 py-1.5 rounded-full border transition-all hover:opacity-80"
-                  style={{ color: "var(--gold, #C9A227)", borderColor: "rgba(201,162,39,0.35)" }}
+                  key={id}
+                  onClick={() => switchTab(id)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all whitespace-nowrap ${
+                    active ? "border-transparent text-[#0a0a0f]" : "border-border text-text-muted hover:border-border/80 bg-transparent"
+                  }`}
+                  style={active ? { background: "var(--gold, #C9A227)", color: "#0a0a0f" } : {}}
                 >
-                  Activar GPS
+                  <Icon size={13} weight={active ? "fill" : "light"} />
+                  {label}
                 </button>
-              </div>
+              );
+            })}
+          </div>
+
+          <main className="max-w-lg mx-auto pb-[80px]">
+            {tab === "personas" && (
+              <>
+                {coords ? (
+                  <NearbyUsers lat={coords.lat} lng={coords.lng} />
+                ) : (
+                  <div className="mx-4 mt-3 p-4 rounded-xl border border-border text-center">
+                    <MapPin size={20} className="mx-auto mb-2" style={{ color: "var(--gold, #C9A227)" }} />
+                    <p className="text-sm text-text-muted mb-3">Activá tu ubicación para ver personas cerca</p>
+                    <button
+                      onClick={requestGPS}
+                      className="text-xs px-4 py-1.5 rounded-full border transition-all hover:opacity-80"
+                      style={{ color: "var(--gold, #C9A227)", borderColor: "rgba(201,162,39,0.35)" }}
+                    >
+                      Activar GPS
+                    </button>
+                  </div>
+                )}
+                <ProfileSuggestions />
+              </>
             )}
-            <ProfileSuggestions />
-          </>
-        )}
 
-        {tab === "interes" && (
-          <InteresesTab activeTag={activeTag} onSelectTag={selectTag} />
-        )}
+            {tab === "interes" && (
+              <InteresesTab activeTag={activeTag} onSelectTag={selectTag} />
+            )}
 
-        {tab === "eventos" && <EventosTab navigate={navigate} />}
-        {tab === "viaje"   && <ViajeTab   navigate={navigate} />}
-      </main>
+            {tab === "eventos" && <EventosTab navigate={navigate} />}
+            {tab === "viaje"   && <ViajeTab   navigate={navigate} />}
+          </main>
+        </>
+      )}
 
       <BottomNav />
     </div>
   );
 }
 
+// ── Sub-tabs ──────────────────────────────────────────────────────────────────
+
 function InteresesTab({ activeTag, onSelectTag }: { activeTag: string; onSelectTag: (id: string) => void }) {
   return (
     <div className="px-4 pt-4">
-      {/* Tag grid */}
       <p className="text-xs text-text-muted mb-3">
         {activeTag ? "Mostrando personas con este interés:" : "Elegí un interés para ver personas afines:"}
       </p>
@@ -174,8 +439,6 @@ function InteresesTab({ activeTag, onSelectTag }: { activeTag: string; onSelectT
           );
         })}
       </div>
-
-      {/* Results */}
       {activeTag ? (
         <ProfileSuggestions tag={activeTag} />
       ) : (

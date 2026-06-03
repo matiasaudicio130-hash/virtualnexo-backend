@@ -390,3 +390,8 @@ export const adminApi = {
     api.post(`/admin/users/${id}/membership`, { type, days }),
   stats: () => api.get("/admin/stats"),
 };
+
+export const searchApi = {
+  search: (q: string, limit = 20) =>
+    api.get("/search", { params: { q, limit } }),
+};
