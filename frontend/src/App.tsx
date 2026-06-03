@@ -29,6 +29,7 @@ import ProfileView from "@/pages/ProfileView";
 import Events      from "@/pages/Events";
 import Explore     from "@/pages/Explore";
 import Groups      from "@/pages/Groups";
+import Analytics   from "@/pages/Analytics";
 
 // Checkout
 import Checkout from "@/pages/Checkout";
@@ -77,7 +78,8 @@ export default function App() {
         <Route path="/messages" element={<Messages />} />
         <Route path="/events"   element={<Events />} />
         <Route path="/explore"  element={<Explore />} />
-        <Route path="/groups"   element={<Groups />} />
+        <Route path="/groups"    element={<Groups />} />
+        <Route path="/analytics" element={<Analytics />} />
         <Route path="/checkout" element={<Checkout />} />
         <Route path="/checkout/pay" element={<CheckoutPay />} />
         <Route path="/checkout/success" element={<CheckoutSuccess />} />

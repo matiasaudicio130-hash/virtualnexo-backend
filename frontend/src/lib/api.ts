@@ -395,3 +395,7 @@ export const searchApi = {
   search: (q: string, limit = 20) =>
     api.get("/search", { params: { q, limit } }),
 };
+
+export const analyticsApi = {
+  overview: () => api.get("/analytics/overview"),
+};

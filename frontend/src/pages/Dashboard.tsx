@@ -11,7 +11,7 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import {
   Shield, LogOut, User,
-  Settings, Check, Eye, Heart,
+  Settings, Check, Eye, Heart, BarChart2,
 } from "lucide-react";
 import { BottomNav } from "@/components/BottomNav";
 import { usePricingPlans, formatARS, formatUSD } from "@/hooks/useExchangeRate";
@@ -86,6 +86,13 @@ export default function Dashboard() {
       <header className="sticky top-0 z-20 bg-bg-base/85 backdrop-blur-md border-b border-border px-4 pt-safe-3 pb-3 flex items-center justify-between">
         <NavLogo />
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => navigate("/analytics")}
+            className="p-2 rounded-xl hover:bg-bg-muted transition-colors"
+            title="Mis estadísticas"
+          >
+            <BarChart2 size={17} className="text-text-muted" />
+          </button>
           <button
             onClick={() => setSettingsOpen(v => !v)}
             className="p-2 rounded-xl hover:bg-bg-muted transition-colors"
