@@ -238,10 +238,13 @@ async def get_signed_upload(body: SignedUploadBody, request: Request):
 
     db = get_supabase()
     signed = db.storage.from_("media").create_signed_upload_url(path)
-    # Resultado: {"signed_url": str, "token": str, "path": str}
+    raw_url = signed.get("signed_url") if isinstance(signed, dict) else getattr(signed, "signed_url", None)
+    # Normalizar doble // que genera storage3 en algunos setups
+    if raw_url:
+        raw_url = raw_url.replace("/v1//", "/v1/")
     return {
-        "upload_url": signed.get("signed_url") if isinstance(signed, dict) else getattr(signed, "signed_url", None),
-        "token":      signed.get("token")      if isinstance(signed, dict) else getattr(signed, "token", None),
+        "upload_url": raw_url,
+        "token":      signed.get("token") if isinstance(signed, dict) else getattr(signed, "token", None),
         "path":       path,
     }
 

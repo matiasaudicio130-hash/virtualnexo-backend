@@ -204,13 +204,19 @@ export function CreatePost({ onCreated, onClose }: Props) {
         const kind: "image" | "video" = isVideo ? "video" : "image";
         const { data: signed } = await feedApi.signedUpload({ kind, filename: file.name });
         // 2) Subir DIRECTAMENTE a Supabase (bypass Railway / sin límite de body)
+        // Supabase requiere el Content-Type exacto — iPhone graba video/quicktime (.mov)
+        const contentType = file.type || (isVideo ? "video/mp4" : "image/jpeg");
+        console.log("[upload] PUT", signed.upload_url.slice(0, 80), "type:", contentType, "size:", file.size);
         const putRes = await fetch(signed.upload_url, {
           method: "PUT",
-          headers: { "Content-Type": file.type || (isVideo ? "video/mp4" : "image/jpeg") },
+          headers: { "Content-Type": contentType },
           body: file,
         });
+        console.log("[upload] PUT status:", putRes.status);
         if (!putRes.ok) {
-          throw new Error(`Falló la subida del archivo (${putRes.status})`);
+          let detail = `${putRes.status}`;
+          try { const j = await putRes.json(); detail = j.message || j.error || detail; } catch {}
+          throw new Error(`No se pudo subir el archivo: ${detail}`);
         }
         // 3) Crear el post con el path subido
         await feedApi.createFromStorage({
