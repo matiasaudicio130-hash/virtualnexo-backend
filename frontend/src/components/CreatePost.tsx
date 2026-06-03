@@ -1,10 +1,11 @@
 import { useRef, useState } from "react";
-import { Image as ImageIcon, X, MapPin, Clock, BarChart2, Plus, Trash2, Pencil, Play, Scissors } from "lucide-react";
+import { Image as ImageIcon, X, MapPin, Clock, BarChart2, Plus, Trash2, Pencil, Play, Scissors, LayoutGrid } from "lucide-react";
 import { feedApi, mediaApi } from "@/lib/api";
 import { Button } from "@/components/ui/Button";
 import { useAuthStore } from "@/store/authStore";
 import { ImageCropFilter } from "@/components/ImageCropFilter";
 import { VideoTrimmer } from "@/components/VideoTrimmer";
+import { CollageMaker } from "@/components/CollageMaker";
 import { toErrorMessage } from "@/lib/errors";
 
 const MAX_VIDEO_SECONDS = 120;            // 2 minutos
@@ -35,7 +36,7 @@ interface Props {
   onClose:   () => void;
 }
 
-type Mode = "post" | "story" | "poll";
+type Mode = "post" | "story" | "poll" | "collage";
 
 interface PollPhoto {
   file:      File;
@@ -245,6 +246,19 @@ export function CreatePost({ onCreated, onClose }: Props) {
 
   return (
     <>
+      {/* Collage maker (full-screen) */}
+      {mode === "collage" && (
+        <CollageMaker
+          onDone={(collageFile) => {
+            setFile(collageFile);
+            setPreview(URL.createObjectURL(collageFile));
+            setIsVideo(false);
+            setMode("post");
+          }}
+          onCancel={() => setMode("post")}
+        />
+      )}
+
       {/* Editor de foto principal (post/story) */}
       {editingMainPhoto && (
         <ImageCropFilter
@@ -326,25 +340,38 @@ export function CreatePost({ onCreated, onClose }: Props) {
           {/* Mode tabs */}
           <div className="flex border-b border-border flex-shrink-0">
             {([
-              { id: "post",  label: "Post",     icon: ImageIcon },
-              { id: "story", label: "Story",    icon: Clock     },
-              { id: "poll",  label: "Encuesta", icon: BarChart2 },
+              { id: "post",    label: "Post",     icon: ImageIcon  },
+              { id: "story",   label: "Story",    icon: Clock      },
+              { id: "poll",    label: "Encuesta", icon: BarChart2  },
+              { id: "collage", label: "Collage",  icon: LayoutGrid },
             ] as const).map(({ id, label, icon: Icon }) => (
               <button key={id} onClick={() => setMode(id)}
-                className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-medium border-b-2 transition-colors ${
+                className={`flex-1 flex items-center justify-center gap-1 py-2.5 text-[11px] font-medium border-b-2 transition-colors ${
                   mode === id
                     ? "border-accent-purple text-accent-purple"
                     : "border-transparent text-text-muted hover:text-text-primary"
                 }`}>
-                <Icon size={13} /> {label}
+                <Icon size={12} /> {label}
               </button>
             ))}
           </div>
 
           <div className="p-4 space-y-4 overflow-y-auto flex-1">
 
+            {/* ── COLLAGE placeholder ── */}
+            {mode === "collage" && !preview && (
+              <button
+                onClick={() => setMode("collage")}
+                className="w-full border-2 border-dashed border-accent-purple/40 rounded-xl p-8 flex flex-col items-center gap-3 text-text-muted hover:border-accent-purple transition-colors bg-accent-purple/5"
+              >
+                <LayoutGrid size={32} className="text-accent-purple/60" />
+                <span className="text-sm font-medium text-accent-purple/80">Crear collage</span>
+                <span className="text-xs text-text-muted/70 text-center">Combiná 2, 3 o 4 fotos en un solo post</span>
+              </button>
+            )}
+
             {/* ── POST / STORY ── */}
-            {mode !== "poll" && (
+            {mode !== "poll" && mode !== "collage" && (
               <>
                 {preview ? (
                   <div className="relative rounded-xl overflow-hidden bg-black">

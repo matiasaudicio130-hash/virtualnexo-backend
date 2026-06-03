@@ -779,6 +779,28 @@ export function ImageCropFilter({ file, onDone, onCancel }: Props) {
               </>
             ) : (
               <>
+                {/* Quick stickers */}
+                <div>
+                  <p className="text-[10px] text-white/30 uppercase tracking-widest mb-2">Stickers rápidos</p>
+                  <div className="flex gap-1.5 overflow-x-auto scrollbar-none pb-1">
+                    {["❤️","🔥","✨","😍","💫","🎉","😂","💕","🌙","🦋","⚡","🌊","💎","🎸","🌺","👑","🫶","🥂","🌈","🎭"].map(emoji => (
+                      <button
+                        key={emoji}
+                        onClick={() => setTexts(prev => [...prev, {
+                          id: Math.random().toString(36).slice(2),
+                          content: emoji,
+                          x: 0.25 + Math.random() * 0.5,
+                          y: 0.25 + Math.random() * 0.5,
+                          color: "#FFFFFF", size: 96, font: "sans-serif", bg: false, align: "center" as Align,
+                        }])}
+                        className="text-2xl flex-shrink-0 hover:scale-125 active:scale-110 transition-transform"
+                      >
+                        {emoji}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 <button
                   onClick={() => { setSelTextId(null); setTInput(""); setAddingText(true); }}
                   className="w-full py-2.5 rounded-xl border border-dashed border-white/25 text-white/60 text-sm hover:border-amber-400/50 hover:text-amber-400 transition-all flex items-center justify-center gap-2"
