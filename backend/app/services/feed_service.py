@@ -80,7 +80,7 @@ class FeedService:
             "*, users!posts_user_id_fkey("
             "id,first_name,last_name,profile_photo_url,province,username,"
             "profile_type,is_shadow_banned,hide_from_solos,visible_to)"
-        ).eq("status", "active")
+        ).eq("status", "active").neq("type", "story")  # stories van al StoryBar, no al feed
 
         if post_type:
             q = q.eq("type", post_type)

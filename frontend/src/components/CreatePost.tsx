@@ -72,9 +72,10 @@ export function CreatePost({ onCreated, onClose }: Props) {
   const [pollPhotos,   setPollPhotos]   = useState<PollPhoto[]>([]);
   const [editingIdx,   setEditingIdx]   = useState<number | null>(null);
 
-  const [loading, setLoading] = useState(false);
-  const [error,   setError]   = useState("");
+  const [loading, setLoading]           = useState(false);
+  const [error,   setError]             = useState("");
   const [storyAudience, setStoryAudience] = useState<"all"|"followers"|"partner">("all");
+  const [editingMainPhoto, setEditingMainPhoto] = useState<File | null>(null);
 
   // ── handlers: post/story media (foto o video) ───────────────
   async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
@@ -93,8 +94,7 @@ export function CreatePost({ onCreated, onClose }: Props) {
         return;
       }
       setIsVideo(false);
-      setFile(f);
-      setPreview(URL.createObjectURL(f));
+      setEditingMainPhoto(f);  // abre editor antes de confirmar
       return;
     }
 
@@ -159,6 +159,12 @@ export function CreatePost({ onCreated, onClose }: Props) {
     if (editingIdx === null) return;
     setPollPhotos(prev => prev.map((p, i) => i === editingIdx ? { ...p, processed: result } : p));
     setEditingIdx(null);
+  }
+
+  function onMainPhotoCropDone(result: File) {
+    setFile(result);
+    setPreview(URL.createObjectURL(result));
+    setEditingMainPhoto(null);
   }
 
   // ── handlers: poll options ───────────────────────────────────
@@ -239,7 +245,20 @@ export function CreatePost({ onCreated, onClose }: Props) {
 
   return (
     <>
-      {/* Crop/filter modal (por encima de todo) */}
+      {/* Editor de foto principal (post/story) */}
+      {editingMainPhoto && (
+        <ImageCropFilter
+          file={editingMainPhoto}
+          onDone={onMainPhotoCropDone}
+          onCancel={() => {
+            setEditingMainPhoto(null);
+            // Si no había foto previa, limpiamos el estado
+            if (!file) { setIsVideo(false); }
+          }}
+        />
+      )}
+
+      {/* Crop/filter modal para fotos de encuesta */}
       {editingIdx !== null && (
         <ImageCropFilter
           file={pollPhotos[editingIdx].file}
@@ -334,10 +353,21 @@ export function CreatePost({ onCreated, onClose }: Props) {
                     ) : (
                       <img src={preview} alt="preview" className="w-full max-h-60 object-cover" />
                     )}
+                    {/* Botón cerrar */}
                     <button onClick={() => { setFile(null); setPreview(null); setIsVideo(false); }}
                       className="absolute top-2 right-2 p-1.5 bg-black/60 rounded-full">
                       <X size={14} className="text-white" />
                     </button>
+                    {/* Botón editar (solo fotos) */}
+                    {!isVideo && file && (
+                      <button
+                        onClick={() => setEditingMainPhoto(file)}
+                        className="absolute top-2 left-2 flex items-center gap-1.5 px-2.5 py-1.5 bg-black/60 rounded-full"
+                      >
+                        <Pencil size={11} className="text-white" />
+                        <span className="text-[10px] text-white font-medium">Editar</span>
+                      </button>
+                    )}
                     {isVideo && (
                       <div className="absolute top-2 left-2 flex items-center gap-1 px-2 py-0.5 bg-black/60 rounded-full">
                         <Play size={11} className="text-white" fill="white"/>
