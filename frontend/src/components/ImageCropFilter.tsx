@@ -4,7 +4,7 @@ import type { Area, Point } from "react-easy-crop";
 import {
   X, ZoomIn, Crop, SlidersHorizontal, Sparkles, Type,
   RotateCcw, Pencil, Undo2, Trash2, AlignLeft, AlignCenter, AlignRight,
-  Check, Minus, Plus as PlusIcon,
+  Check, Minus, Plus as PlusIcon, Shapes, Eye, EyeOff,
 } from "lucide-react";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -47,8 +47,93 @@ const ASPECTS = [
   { label: "16:9",  value: 16 / 9     },
 ];
 
-type Tab = "crop" | "adjust" | "filter" | "text" | "draw";
+type Tab = "crop" | "adjust" | "filter" | "text" | "draw" | "shapes";
 type Align = "left" | "center" | "right";
+type ShapeType = "circle" | "rect" | "heart" | "star" | "triangle" | "diamond" | "arrow" | "line";
+
+interface ShapeLayer {
+  id:       string;
+  type:     ShapeType;
+  x:        number;   // 0-1 center relative to PREVIEW
+  y:        number;
+  size:     number;   // in EXPORT canvas px
+  rotation: number;   // degrees
+  color:    string;
+  opacity:  number;
+  filled:   boolean;
+}
+
+const SHAPE_TYPES: { id: ShapeType; label: string }[] = [
+  { id: "circle",   label: "Círculo"   },
+  { id: "rect",     label: "Cuadrado"  },
+  { id: "heart",    label: "Corazón"   },
+  { id: "star",     label: "Estrella"  },
+  { id: "triangle", label: "Triángulo" },
+  { id: "diamond",  label: "Rombo"     },
+  { id: "arrow",    label: "Flecha"    },
+  { id: "line",     label: "Línea"     },
+];
+
+const SHAPE_COLORS = ["#FFFFFF","#000000","#FFE566","#FF6B9D","#A78BFA","#34D399","#FB923C","#60A5FA","#F87171"];
+
+// Generate inline SVG string for a shape (used both in preview and export)
+function makeShapeSVG(type: ShapeType, S: number, color: string, filled: boolean): string {
+  const sw = Math.max(4, S * 0.07);
+  const fill = filled ? color : "none";
+
+  let inner = "";
+  switch (type) {
+    case "circle":
+      inner = `<circle cx="${S/2}" cy="${S/2}" r="${S/2 - sw/2}" fill="${fill}" stroke="${color}" stroke-width="${sw}"/>`;
+      break;
+    case "rect":
+      inner = `<rect x="${sw/2}" y="${sw/2}" width="${S-sw}" height="${S-sw}" rx="${S*0.06}" fill="${fill}" stroke="${color}" stroke-width="${sw}"/>`;
+      break;
+    case "heart": {
+      const m = S/2;
+      inner = `<path d="M${m},${S*0.28} C${m},${S*0.09} ${S*0.04},${S*0.09} ${S*0.04},${S*0.28} C${S*0.04},${S*0.56} ${m},${S*0.82} ${m},${S*0.95} C${m},${S*0.82} ${S*0.96},${S*0.56} ${S*0.96},${S*0.28} C${S*0.96},${S*0.09} ${m},${S*0.09} ${m},${S*0.28}Z" fill="${color}" stroke="none"/>`;
+      break;
+    }
+    case "star": {
+      const cx = S/2, cy = S/2, ro = S/2 - sw/2, ri = ro * 0.38;
+      let pts = "";
+      for (let i = 0; i < 10; i++) {
+        const a = (i * Math.PI / 5) - Math.PI / 2;
+        const r = i % 2 === 0 ? ro : ri;
+        pts += `${(cx + Math.cos(a) * r).toFixed(1)},${(cy + Math.sin(a) * r).toFixed(1)} `;
+      }
+      inner = `<polygon points="${pts.trim()}" fill="${color}" stroke="none"/>`;
+      break;
+    }
+    case "triangle":
+      inner = `<polygon points="${S/2},${sw/2} ${S-sw/2},${S-sw/2} ${sw/2},${S-sw/2}" fill="${fill}" stroke="${color}" stroke-width="${sw}"/>`;
+      break;
+    case "diamond":
+      inner = `<polygon points="${S/2},${sw/2} ${S-sw/2},${S/2} ${S/2},${S-sw/2} ${sw/2},${S/2}" fill="${fill}" stroke="${color}" stroke-width="${sw}"/>`;
+      break;
+    case "arrow": {
+      const h = S * 0.32, p = S * 0.42;
+      inner = `<polygon points="${sw},${S/2-h/2} ${S-p},${S/2-h/2} ${S-p},${S*0.1} ${S-sw},${S/2} ${S-p},${S*0.9} ${S-p},${S/2+h/2} ${sw},${S/2+h/2}" fill="${color}" stroke="none"/>`;
+      break;
+    }
+    case "line":
+      inner = `<line x1="${S*0.05}" y1="${S/2}" x2="${S*0.95}" y2="${S/2}" stroke="${color}" stroke-width="${S*0.1}" stroke-linecap="round"/>`;
+      break;
+  }
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${S}" height="${S}" viewBox="0 0 ${S} ${S}">${inner}</svg>`;
+}
+
+// Load SVG string as HTMLImageElement for canvas export
+function svgToImage(svgStr: string, size: number): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const blob = new Blob([svgStr], { type: "image/svg+xml" });
+    const url  = URL.createObjectURL(blob);
+    const img  = new Image(size, size);
+    img.onload  = () => { URL.revokeObjectURL(url); resolve(img); };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("svg load failed")); };
+    img.src = url;
+  });
+}
 
 interface TextLayer {
   id: string;
@@ -133,6 +218,7 @@ export function ImageCropFilter({ file, onDone, onCancel }: Props) {
   const [sat,    setSat]    = useState(0);
   const [warm,   setWarm]   = useState(0);
   const [vignet, setVignet] = useState(0);  // 0-100
+  const [blur,   setBlur]   = useState(0);  // 0-20 (global blur)
 
   // Filter preset
   const [filterIdx, setFilterIdx] = useState(0);
@@ -160,8 +246,18 @@ export function ImageCropFilter({ file, onDone, onCancel }: Props) {
   const lastPoint   = useRef<{ x: number; y: number } | null>(null);
   const isDrawingNow = useRef(false);
 
+  // Shapes
+  const [shapes,    setShapes]   = useState<ShapeLayer[]>([]);
+  const [sType,     setSType]    = useState<ShapeType>("heart");
+  const [sColor,    setSColor]   = useState("#FF6B9D");
+  const [sSize,     setSSize]    = useState(160);
+  const [sFilled,   setSFilled]  = useState(true);
+  const [sOpacity,  setSOpacity] = useState(1);
+  const [sRotation, setSRotation] = useState(0);
+
   // Text drag
-  const txtDragRef = useRef<{ id: string; cx: number; cy: number; ox: number; oy: number } | null>(null);
+  const txtDragRef   = useRef<{ id: string; cx: number; cy: number; ox: number; oy: number } | null>(null);
+  const shapeDragRef = useRef<{ id: string; cx: number; cy: number; ox: number; oy: number } | null>(null);
 
   // UI
   const [tab,      setTab]      = useState<Tab>("crop");
@@ -189,11 +285,13 @@ export function ImageCropFilter({ file, onDone, onCancel }: Props) {
   const warmCss = warm !== 0
     ? (warm > 0 ? `sepia(${(warm * 0.6).toFixed(1)}%)` : `hue-rotate(${(-warm * 0.35).toFixed(1)}deg)`)
     : "";
-  const adjCss  = [
+  const blurCss  = blur > 0 ? `blur(${(blur * 0.5).toFixed(1)}px)` : "";
+  const adjCss   = [
     `brightness(${(1 + bright / 100).toFixed(3)})`,
     `contrast(${(1 + cont / 100).toFixed(3)})`,
     `saturate(${(1 + sat / 100).toFixed(3)})`,
     warmCss,
+    blurCss,
   ].filter(Boolean).join(" ");
   const presetCss      = FILTERS[filterIdx].css;
   const composedFilter = [adjCss, presetCss !== "none" ? presetCss : ""].filter(Boolean).join(" ");
@@ -206,17 +304,53 @@ export function ImageCropFilter({ file, onDone, onCancel }: Props) {
     txtDragRef.current = { id, cx, cy, ox, oy };
   }
   function onPreviewPointerMove(cx: number, cy: number) {
+    if (tab === "draw") return;
     const d = txtDragRef.current;
-    if (!d || tab === "draw") return;
-    const dx = (cx - d.cx) / PREVIEW;
-    const dy = (cy - d.cy) / PREVIEW;
-    setTexts(prev => prev.map(t => t.id !== d.id ? t : {
-      ...t,
-      x: Math.max(0.02, Math.min(0.98, d.ox + dx)),
-      y: Math.max(0.02, Math.min(0.98, d.oy + dy)),
-    }));
+    if (d) {
+      const dx = (cx - d.cx) / PREVIEW;
+      const dy = (cy - d.cy) / PREVIEW;
+      setTexts(prev => prev.map(t => t.id !== d.id ? t : {
+        ...t,
+        x: Math.max(0.02, Math.min(0.98, d.ox + dx)),
+        y: Math.max(0.02, Math.min(0.98, d.oy + dy)),
+      }));
+    }
+    const s = shapeDragRef.current;
+    if (s) {
+      const dx = (cx - s.cx) / PREVIEW;
+      const dy = (cy - s.cy) / PREVIEW;
+      setShapes(prev => prev.map(sh => sh.id !== s.id ? sh : {
+        ...sh,
+        x: Math.max(0.02, Math.min(0.98, s.ox + dx)),
+        y: Math.max(0.02, Math.min(0.98, s.oy + dy)),
+      }));
+    }
   }
-  function onPreviewPointerUp() { txtDragRef.current = null; }
+  function onPreviewPointerUp() { txtDragRef.current = null; shapeDragRef.current = null; }
+
+  function startShapeDrag(e: React.MouseEvent | React.TouchEvent, id: string, ox: number, oy: number) {
+    e.stopPropagation();
+    const cx = "touches" in e ? e.touches[0].clientX : (e as React.MouseEvent).clientX;
+    const cy = "touches" in e ? e.touches[0].clientY : (e as React.MouseEvent).clientY;
+    shapeDragRef.current = { id, cx, cy, ox, oy };
+  }
+
+  function addShape() {
+    setShapes(prev => [...prev, {
+      id:       Math.random().toString(36).slice(2),
+      type:     sType,
+      x: 0.5, y: 0.5,
+      size:     sSize,
+      rotation: sRotation,
+      color:    sColor,
+      opacity:  sOpacity,
+      filled:   sFilled,
+    }]);
+  }
+
+  function deleteShape(id: string) {
+    setShapes(prev => prev.filter(s => s.id !== id));
+  }
 
   // ── Drawing helpers ──────────────────────────────────────────────────────
   function canvasPoint(e: React.TouchEvent | React.MouseEvent): { x: number; y: number } {
@@ -368,13 +502,27 @@ export function ImageCropFilter({ file, onDone, onCancel }: Props) {
         ctx.fillRect(0, 0, W, H);
       }
 
-      // 4. Drawing layer (scale from PREVIEW to export size)
+      // 4. Shape layers (SVG rendered via image)
+      for (const sh of shapes) {
+        const svgStr = makeShapeSVG(sh.type, sh.size, sh.color, sh.filled);
+        try {
+          const shImg = await svgToImage(svgStr, sh.size);
+          ctx.save();
+          ctx.globalAlpha = sh.opacity;
+          ctx.translate(sh.x * W, sh.y * H);
+          ctx.rotate((sh.rotation * Math.PI) / 180);
+          ctx.drawImage(shImg, -sh.size / 2, -sh.size / 2, sh.size, sh.size);
+          ctx.restore();
+        } catch { /* ignore shape render error */ }
+      }
+
+      // 5. Drawing layer (scale from PREVIEW to export size)
       const dc = drawCanvasRef.current;
       if (dc && hasDrawing) {
         ctx.drawImage(dc, 0, 0, W, H);
       }
 
-      // 5. Text layers
+      // 6. Text layers
       for (const t of texts) {
         const fs = t.size;
         ctx.save();
@@ -402,7 +550,7 @@ export function ImageCropFilter({ file, onDone, onCancel }: Props) {
         ctx.restore();
       }
 
-      // 6. toBlob → File
+      // 7. toBlob → File
       out.toBlob(blob => {
         if (!blob) { setError("No se pudo exportar la imagen. Intentá de nuevo."); setApplying(false); return; }
         onDone(new File([blob], file.name.replace(/\.[^.]+$/, ".jpg"), { type: "image/jpeg" }));
@@ -526,6 +674,33 @@ export function ImageCropFilter({ file, onDone, onCancel }: Props) {
               onTouchEnd={endDraw}
             />
 
+            {/* Shape overlays */}
+            {shapes.map(sh => {
+              const pxSize = sh.size * (PREVIEW / EXPORT);
+              const svgStr = makeShapeSVG(sh.type, pxSize, sh.color, sh.filled);
+              return (
+                <div
+                  key={sh.id}
+                  onMouseDown={e => { if (!isDrawTab) startShapeDrag(e, sh.id, sh.x, sh.y); }}
+                  onTouchStart={e => { if (!isDrawTab) { e.stopPropagation(); startShapeDrag(e, sh.id, sh.x, sh.y); } }}
+                  style={{
+                    position:    "absolute",
+                    left:        `${sh.x * 100}%`,
+                    top:         `${sh.y * 100}%`,
+                    transform:   `translate(-50%,-50%) rotate(${sh.rotation}deg)`,
+                    opacity:     sh.opacity,
+                    cursor:      isDrawTab ? "default" : "grab",
+                    touchAction: "none",
+                    userSelect:  "none",
+                    width:       pxSize,
+                    height:      pxSize,
+                    flexShrink:  0,
+                  }}
+                  dangerouslySetInnerHTML={{ __html: svgStr }}
+                />
+              );
+            })}
+
             {/* Text overlays */}
             {texts.map(t => (
               <div
@@ -633,6 +808,7 @@ export function ImageCropFilter({ file, onDone, onCancel }: Props) {
                 { label: "Saturación", emoji: "🎨", val: sat,    set: setSat    },
                 { label: "Calidez",    emoji: "🌡",  val: warm,   set: setWarm   },
                 { label: "Viñeta",     emoji: "⬡",  val: vignet, set: setVignet, min: 0, max: 100 },
+                { label: "Desenfoque", emoji: "💧", val: blur,   set: setBlur,   min: 0, max: 20  },
               ] as { label: string; emoji: string; val: number; set: (n: number) => void; min?: number; max?: number }[]
             ).map(({ label, emoji, val, set, min = -100, max = 100 }) => (
               <div key={label} className="flex items-center gap-2.5">
@@ -891,23 +1067,135 @@ export function ImageCropFilter({ file, onDone, onCancel }: Props) {
           </div>
         )}
 
+        {/* ═══════════ SHAPES CONTROLS ═══════════ */}
+        {tab === "shapes" && (
+          <div className="px-4 py-3 space-y-3">
+            {/* Shape picker */}
+            <div className="flex gap-1.5 overflow-x-auto scrollbar-none pb-1">
+              {SHAPE_TYPES.map(s => (
+                <button
+                  key={s.id}
+                  onClick={() => setSType(s.id)}
+                  className={`flex-shrink-0 flex flex-col items-center gap-1 p-2 rounded-xl border transition-all ${
+                    sType === s.id
+                      ? "border-amber-400 bg-amber-400/10"
+                      : "border-white/10 hover:border-white/25"
+                  }`}
+                >
+                  <div
+                    style={{ width: 32, height: 32 }}
+                    dangerouslySetInnerHTML={{
+                      __html: makeShapeSVG(s.id, 32, sType === s.id ? "#fbbf24" : "#ffffff", true),
+                    }}
+                  />
+                  <span className={`text-[8px] font-medium ${sType === s.id ? "text-amber-400" : "text-white/40"}`}>
+                    {s.label}
+                  </span>
+                </button>
+              ))}
+            </div>
+
+            {/* Color */}
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] text-white/40 w-12 flex-shrink-0">Color</span>
+              <div className="flex gap-2 flex-wrap">
+                {SHAPE_COLORS.map(c => (
+                  <button
+                    key={c}
+                    onClick={() => setSColor(c)}
+                    style={{ background: c }}
+                    className={`w-7 h-7 rounded-full border-2 flex-shrink-0 transition-transform ${sColor === c ? "border-amber-400 scale-110" : "border-white/20"}`}
+                  />
+                ))}
+              </div>
+            </div>
+
+            {/* Fill / outline + opacity */}
+            <div className="flex items-center gap-3">
+              <div className="flex border border-white/15 rounded-lg overflow-hidden flex-shrink-0">
+                <button
+                  onClick={() => setSFilled(true)}
+                  className={`px-3 py-1.5 text-[10px] transition-colors ${sFilled ? "bg-amber-400/20 text-amber-400" : "text-white/40 hover:text-white"}`}
+                >
+                  Relleno
+                </button>
+                <button
+                  onClick={() => setSFilled(false)}
+                  className={`px-3 py-1.5 text-[10px] transition-colors ${!sFilled ? "bg-amber-400/20 text-amber-400" : "text-white/40 hover:text-white"}`}
+                >
+                  Contorno
+                </button>
+              </div>
+              <span className="text-[10px] text-white/40 flex-shrink-0">Opac.</span>
+              <input type="range" min={0.1} max={1} step={0.05}
+                value={sOpacity} onChange={e => setSOpacity(parseFloat(e.target.value))}
+                className="flex-1 accent-amber-400" />
+              <span className="text-[10px] text-white/40 w-7 tabular-nums">{Math.round(sOpacity * 100)}%</span>
+            </div>
+
+            {/* Size + rotation */}
+            <div className="flex items-center gap-3">
+              <span className="text-[10px] text-white/40 w-12 flex-shrink-0">Tamaño</span>
+              <input type="range" min={40} max={500} step={10}
+                value={sSize} onChange={e => setSSize(parseInt(e.target.value))}
+                className="flex-1 accent-amber-400" />
+              <span className="text-[10px] text-white/40 w-10 tabular-nums">{sSize}px</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="text-[10px] text-white/40 w-12 flex-shrink-0">Rotar</span>
+              <input type="range" min={0} max={360} step={1}
+                value={sRotation} onChange={e => setSRotation(parseInt(e.target.value))}
+                className="flex-1 accent-amber-400" />
+              <span className="text-[10px] text-white/40 w-10 tabular-nums">{sRotation}°</span>
+            </div>
+
+            {/* Add button */}
+            <button
+              onClick={addShape}
+              className="w-full py-2.5 rounded-xl bg-amber-400/15 border border-amber-400/40 text-amber-400 text-sm font-semibold hover:bg-amber-400/25 transition-colors flex items-center justify-center gap-2"
+            >
+              <Shapes size={16} /> Agregar forma
+            </button>
+
+            {/* Existing shapes list */}
+            {shapes.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {shapes.map(sh => (
+                  <div key={sh.id} className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/8 border border-white/10">
+                    <div
+                      style={{ width: 16, height: 16 }}
+                      dangerouslySetInnerHTML={{ __html: makeShapeSVG(sh.type, 16, sh.color, sh.filled) }}
+                    />
+                    <span className="text-[10px] text-white/60">{SHAPE_TYPES.find(s => s.id === sh.type)?.label}</span>
+                    <button onClick={() => deleteShape(sh.id)} className="text-white/30 hover:text-red-400 transition-colors">
+                      <X size={10} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            <p className="text-[9px] text-white/20 text-center">Arrastrá las formas en la imagen para moverlas</p>
+          </div>
+        )}
+
         {/* ═══════════ TAB BAR ═══════════ */}
-        <div className="flex border-t border-white/8">
+        <div className="flex border-t border-white/8 overflow-x-auto scrollbar-none">
           {([
             { id: "crop",   label: "Recortar", Icon: Crop              },
             { id: "adjust", label: "Ajustar",  Icon: SlidersHorizontal },
             { id: "filter", label: "Filtros",  Icon: Sparkles          },
             { id: "text",   label: "Texto",    Icon: Type              },
+            { id: "shapes", label: "Formas",   Icon: Shapes            },
             { id: "draw",   label: "Dibujar",  Icon: Pencil            },
           ] as const).map(({ id, label, Icon }) => (
             <button
               key={id}
               onClick={() => setTab(id)}
-              className={`flex-1 py-3 flex flex-col items-center gap-0.5 text-[9px] font-semibold transition-colors ${
+              className={`flex-1 min-w-[54px] py-2.5 flex flex-col items-center gap-0.5 text-[9px] font-semibold transition-colors ${
                 tab === id ? "text-amber-400" : "text-white/35 hover:text-white/60"
               }`}
             >
-              <Icon size={17} />
+              <Icon size={16} />
               {label}
             </button>
           ))}

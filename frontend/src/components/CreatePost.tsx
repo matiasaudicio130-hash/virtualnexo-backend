@@ -51,6 +51,39 @@ const POLL_DURATIONS = [
   { label: "7 días",   hours: 168 },
 ];
 
+interface GradientPreset {
+  label:   string;
+  preview: string;  // CSS background for the swatch
+  type:    "solid" | "linear" | "radial";
+  colors:  string[];
+  angle?:  number;
+}
+
+const GRADIENT_PRESETS: GradientPreset[] = [
+  // Sólidos
+  { label: "Negro",        type: "solid",  colors: ["#0a0a0f"],          preview: "#0a0a0f" },
+  { label: "Blanco",       type: "solid",  colors: ["#f0f0f0"],          preview: "#f0f0f0" },
+  { label: "Dorado",       type: "solid",  colors: ["#C9A227"],          preview: "#C9A227" },
+  { label: "Rosa oscuro",  type: "solid",  colors: ["#1a0010"],          preview: "#1a0010" },
+  { label: "Azul noche",  type: "solid",  colors: ["#050a1a"],          preview: "#050a1a" },
+  { label: "Vino",         type: "solid",  colors: ["#2d0a1a"],          preview: "#2d0a1a" },
+  // Degradados lineales
+  { label: "Sunset",       type: "linear", angle: 135, colors: ["#FF6B9D","#FFB347"],  preview: "linear-gradient(135deg,#FF6B9D,#FFB347)" },
+  { label: "Ocean",        type: "linear", angle: 135, colors: ["#0066FF","#00D4FF"],  preview: "linear-gradient(135deg,#0066FF,#00D4FF)" },
+  { label: "Aurora",       type: "linear", angle: 135, colors: ["#A78BFA","#34D399"],  preview: "linear-gradient(135deg,#A78BFA,#34D399)" },
+  { label: "Fuego",        type: "linear", angle: 180, colors: ["#FF4500","#FF6B9D"],  preview: "linear-gradient(180deg,#FF4500,#FF6B9D)" },
+  { label: "Menta",        type: "linear", angle: 135, colors: ["#00b09b","#96c93d"],  preview: "linear-gradient(135deg,#00b09b,#96c93d)" },
+  { label: "Crepúsculo",   type: "linear", angle: 135, colors: ["#1a1a2e","#C9A227"],  preview: "linear-gradient(135deg,#1a1a2e,#C9A227)" },
+  // Radiales
+  { label: "Rosa radial",  type: "radial", colors: ["#FF6B9D","#1a0010"],  preview: "radial-gradient(circle,#FF6B9D,#1a0010)" },
+  { label: "Blue radial",  type: "radial", colors: ["#60A5FA","#050a1a"],  preview: "radial-gradient(circle,#60A5FA,#050a1a)" },
+  { label: "Gold radial",  type: "radial", colors: ["#C9A227","#0a0a0f"],  preview: "radial-gradient(circle,#C9A227,#0a0a0f)" },
+  { label: "Purple radial",type: "radial", colors: ["#A78BFA","#1a0010"],  preview: "radial-gradient(circle,#A78BFA,#1a0010)" },
+  // Tricolores
+  { label: "Arcoíris",     type: "linear", angle: 135, colors: ["#FF6B9D","#A78BFA","#60A5FA"], preview: "linear-gradient(135deg,#FF6B9D,#A78BFA,#60A5FA)" },
+  { label: "Dorado rojizo",type: "linear", angle: 135, colors: ["#C9A227","#FF4500","#1a0010"], preview: "linear-gradient(135deg,#C9A227,#FF4500,#1a0010)" },
+];
+
 export function CreatePost({ onCreated, onClose }: Props) {
   const { user }    = useAuthStore();
   const inputRef    = useRef<HTMLInputElement>(null);
@@ -119,6 +152,41 @@ export function CreatePost({ onCreated, onClose }: Props) {
     setIsVideo(true);
     setFile(f);
     setPreview(URL.createObjectURL(f));
+  }
+
+  function applyGradient(g: GradientPreset) {
+    const W = 1080, H = 1920; // story 9:16
+    const canvas = document.createElement("canvas");
+    canvas.width = W; canvas.height = H;
+    const ctx = canvas.getContext("2d")!;
+
+    let fill: string | CanvasGradient;
+    if (g.type === "solid") {
+      fill = g.colors[0];
+    } else if (g.type === "linear") {
+      const rad = ((g.angle ?? 135) * Math.PI) / 180;
+      const grd = ctx.createLinearGradient(
+        W / 2 - Math.cos(rad) * W / 2, H / 2 - Math.sin(rad) * H / 2,
+        W / 2 + Math.cos(rad) * W / 2, H / 2 + Math.sin(rad) * H / 2,
+      );
+      g.colors.forEach((c, i) => grd.addColorStop(i / (g.colors.length - 1), c));
+      fill = grd;
+    } else {
+      const grd = ctx.createRadialGradient(W / 2, H / 2, 0, W / 2, H / 2, Math.max(W, H) * 0.7);
+      g.colors.forEach((c, i) => grd.addColorStop(i / (g.colors.length - 1), c));
+      fill = grd;
+    }
+
+    ctx.fillStyle = fill;
+    ctx.fillRect(0, 0, W, H);
+
+    canvas.toBlob(blob => {
+      if (!blob) return;
+      const f = new File([blob], "fondo.jpg", { type: "image/jpeg" });
+      setIsVideo(false);
+      setFile(f);
+      setPreview(URL.createObjectURL(f));
+    }, "image/jpeg", 0.92);
   }
 
   function applyVideoFile(f: File) {
@@ -403,11 +471,28 @@ export function CreatePost({ onCreated, onClose }: Props) {
                     )}
                   </div>
                 ) : (
-                  <button onClick={() => inputRef.current?.click()}
-                    className="w-full border-2 border-dashed border-border rounded-xl p-6 flex flex-col items-center gap-2 text-text-muted hover:border-accent-purple/50 transition-colors">
-                    <ImageIcon size={28} className="opacity-50" />
-                    <span className="text-xs">Tap para agregar foto o video (opcional)</span>
-                  </button>
+                  <div className="space-y-3">
+                    <button onClick={() => inputRef.current?.click()}
+                      className="w-full border-2 border-dashed border-border rounded-xl p-5 flex flex-col items-center gap-2 text-text-muted hover:border-accent-purple/50 transition-colors">
+                      <ImageIcon size={26} className="opacity-50" />
+                      <span className="text-xs">Tap para agregar foto o video (opcional)</span>
+                    </button>
+                    {/* Gradient backgrounds */}
+                    <div>
+                      <p className="text-[10px] text-text-muted uppercase tracking-widest mb-2">O elegí un fondo</p>
+                      <div className="grid grid-cols-6 gap-1.5">
+                        {GRADIENT_PRESETS.map((g, i) => (
+                          <button
+                            key={i}
+                            onClick={() => applyGradient(g)}
+                            className="h-10 rounded-lg hover:scale-105 active:scale-95 transition-transform border border-white/10"
+                            style={{ background: g.preview }}
+                            title={g.label}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
                 )}
                 <input ref={inputRef} type="file" accept="image/*,video/*" onChange={handleFile} className="hidden" />
 
