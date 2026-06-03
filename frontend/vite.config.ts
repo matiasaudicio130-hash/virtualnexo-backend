@@ -13,6 +13,10 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: "prompt",
+      // injectManifest permite usar un SW custom con push event handler
+      strategies: "injectManifest",
+      srcDir:     "src",
+      filename:   "sw.ts",
       includeAssets: ["icons/*.png", "icons/*.svg"],
       manifest: {
         name: "AURA — Exclusive Lifestyle",
@@ -29,18 +33,9 @@ export default defineConfig({
           { src: "/icons/icon-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
         ],
       },
-      workbox: {
-        skipWaiting: true,
-        clientsClaim: true,
-        cleanupOutdatedCaches: true,
-        globPatterns: ["**/*.{js,css,html,ico,png,svg}"],
-        runtimeCaching: [
-          {
-            urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,
-            handler: "NetworkFirst",
-            options: { cacheName: "supabase-cache" },
-          },
-        ],
+      injectManifest: {
+        // Copiar patrones del workbox anterior
+        globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
       },
     }),
   ],

@@ -363,7 +363,33 @@ async def create_photo_post(
 async def react_to_post(post_id: str, body: ReactionBody, request: Request):
     """Toggle reacción (fire|heart|star). Si ya existe, la quita."""
     payload = _require_auth(request)
-    return feed_service.toggle_reaction(post_id, payload["sub"], body.type)
+    actor_id = payload["sub"]
+    result   = feed_service.toggle_reaction(post_id, actor_id, body.type)
+
+    # Push al dueño del post sólo al AGREGAR (no al quitar)
+    if result.get("action") == "added":
+        try:
+            from app.db.supabase import get_supabase
+            from app.services.push_service import send_push
+            db = get_supabase()
+
+            post_r = db.table("posts").select("user_id").eq("id", post_id).maybe_single().execute()
+            post_author = post_r.data["user_id"] if post_r.data else None
+
+            if post_author and post_author != actor_id:
+                emoji = {"heart": "❤️", "fire": "🔥", "star": "⭐"}.get(body.type, "👍")
+                user_r = db.table("users").select("first_name").eq("id", actor_id).maybe_single().execute()
+                name = user_r.data.get("first_name", "Alguien") if user_r.data else "Alguien"
+                send_push(
+                    post_author,
+                    f"{emoji} Nueva reacción",
+                    f"{name} reaccionó a tu publicación.",
+                    url="/feed",
+                )
+        except Exception:
+            pass  # Push nunca bloquea la respuesta
+
+    return result
 
 
 @router.post("/posts/{post_id}/view")

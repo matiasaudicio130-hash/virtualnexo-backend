@@ -10,7 +10,8 @@ import { PostCard }   from "@/components/PostCard";
 import { StoryBar }   from "@/components/StoryBar";
 import { CreatePost } from "@/components/CreatePost";
 import { AdBanner }   from "@/components/AdBanner";
-import { BottomNav }  from "@/components/BottomNav";
+import { BottomNav }        from "@/components/BottomNav";
+import { PushPromptBanner } from "@/components/PushPromptBanner";
 import type { Post, Story } from "@/types";
 import type { Ad } from "@/components/AdBanner";
 
@@ -515,6 +516,7 @@ export default function Feed() {
         />
       )}
 
+      <PushPromptBanner />
       <BottomNav />
     </div>
   );
