@@ -14,7 +14,8 @@ from app.routers import search as search_router
 from app.routers import analytics  as analytics_router
 from app.routers import hashtags    as hashtags_router
 from app.routers import moderation  as moderation_router
-from app.routers import badges      as badges_router
+from app.routers import badges       as badges_router
+from app.routers import collections  as collections_router
 
 settings = get_settings()
 
@@ -71,7 +72,8 @@ app.include_router(search_router.router,   prefix="/api/v1")
 app.include_router(analytics_router.router, prefix="/api/v1")
 app.include_router(hashtags_router.router,    prefix="/api/v1")
 app.include_router(moderation_router.router, prefix="/api/v1")
-app.include_router(badges_router.router,    prefix="/api/v1")
+app.include_router(badges_router.router,       prefix="/api/v1")
+app.include_router(collections_router.router,  prefix="/api/v1")
 
 
 @app.get("/health")

@@ -416,6 +416,15 @@ export const badgesApi = {
   forUser: (userId: string) => api.get(`/badges/${userId}`),
 };
 
+export const collectionsApi = {
+  list:       ()                                         => api.get("/collections/"),
+  create:     (name: string)                             => api.post("/collections/", { name }),
+  rename:     (id: string, name: string)                 => api.patch(`/collections/${id}`, { name }),
+  remove:     (id: string)                               => api.delete(`/collections/${id}`),
+  addPost:    (colId: string, postId: string)            => api.post(`/collections/${colId}/posts/${postId}`),
+  removePost: (colId: string, postId: string)            => api.delete(`/collections/${colId}/posts/${postId}`),
+};
+
 export const moderationApi = {
   reasons:  ()                                     => api.get("/moderation/reasons"),
   report:   (body: { target_type: "post"|"user"; target_id: string; reason: string; details?: string }) =>
