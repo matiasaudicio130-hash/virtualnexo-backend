@@ -9,6 +9,7 @@ import {
   Lock, Users, User, MessageSquare, Images, ChevronLeft, ChevronRight, X,
 } from "lucide-react";
 import { profilesApi, followsApi, albumsApi, feedApi, reviewsApi } from "@/lib/api";
+import { ReportModal } from "@/components/ReportModal";
 import { Tooltip } from "@/components/ui/Tooltip";
 import { useAuthStore } from "@/store/authStore";
 import { useScreenCapture } from "@/hooks/useScreenCapture";
@@ -246,16 +247,7 @@ export default function ProfileView() {
     setActionLoading(false);
   }
 
-  async function handleReport(reason: string, details: string) {
-    if (!userId) return;
-    try {
-      await profilesApi.report(userId, { reason, details });
-      setShowReport(false);
-      alert("Reporte enviado. Lo revisaremos a la brevedad.");
-    } catch {
-      alert("No se pudo enviar el reporte. Intentá de nuevo.");
-    }
-  }
+  // handleReport is now handled inside ReportModal directly via moderationApi
 
   async function handleRequestAlbumAccess(albumId: string) {
     try {
@@ -730,10 +722,11 @@ export default function ProfileView() {
       </main>
 
       {/* ── Modal de reporte ── */}
-      {showReport && (
+      {showReport && profile && (
         <ReportModal
-          name={profile.first_name}
-          onSubmit={handleReport}
+          targetType="user"
+          targetId={userId!}
+          targetName={`${profile.first_name} ${profile.last_name || ""}`.trim()}
           onClose={() => setShowReport(false)}
         />
       )}
@@ -921,89 +914,4 @@ export default function ProfileView() {
   );
 }
 
-/* ── ReportModal ─────────────────────────────────────────────── */
-const REPORT_REASONS = [
-  { value: "perfil_falso",          label: "Perfil falso o suplantación" },
-  { value: "contenido_inapropiado", label: "Contenido inapropiado" },
-  { value: "spam",                  label: "Spam o publicidad" },
-  { value: "acoso",                 label: "Acoso o amenazas" },
-  { value: "menor_de_edad",         label: "Posible menor de edad" },
-  { value: "otro",                  label: "Otro motivo" },
-];
-
-function ReportModal({
-  name, onSubmit, onClose,
-}: { name: string; onSubmit: (reason: string, details: string) => Promise<void>; onClose: () => void }) {
-  const [reason,  setReason]  = useState("");
-  const [details, setDetails] = useState("");
-  const [sending, setSending] = useState(false);
-
-  async function submit() {
-    if (!reason || sending) return;
-    setSending(true);
-    await onSubmit(reason, details);
-    setSending(false);
-  }
-
-  return (
-    <div
-      style={{ position: "fixed", inset: 0, zIndex: 60, background: "rgba(2,2,7,0.85)", backdropFilter: "blur(6px)", display: "flex", alignItems: "flex-end", justifyContent: "center", padding: "0 0 env(safe-area-inset-bottom,0)" }}
-      onClick={onClose}
-    >
-      <div
-        style={{ width: "100%", maxWidth: 480, background: "var(--surface)", borderRadius: "20px 20px 0 0", padding: "24px 20px 32px", border: "1px solid var(--border-soft)" }}
-        onClick={e => e.stopPropagation()}
-      >
-        <p style={{ fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.18em", textTransform: "uppercase", color: "var(--gold)", marginBottom: 4 }}>Reportar perfil</p>
-        <p style={{ fontFamily: "var(--font-sans)", fontSize: 14, color: "var(--paper)", marginBottom: 20 }}>
-          ¿Por qué reportás a <strong>{name}</strong>?
-        </p>
-
-        <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 16 }}>
-          {REPORT_REASONS.map(r => (
-            <button
-              key={r.value}
-              onClick={() => setReason(r.value)}
-              style={{
-                padding: "11px 14px", borderRadius: 12, textAlign: "left",
-                fontFamily: "var(--font-sans)", fontSize: 13,
-                border: `1px solid ${reason === r.value ? "rgba(201,162,39,0.6)" : "var(--border-soft)"}`,
-                background: reason === r.value ? "rgba(201,162,39,0.07)" : "transparent",
-                color: reason === r.value ? "var(--gold)" : "var(--silver)",
-                cursor: "pointer", transition: "all 0.15s",
-              }}
-            >
-              {r.label}
-            </button>
-          ))}
-        </div>
-
-        <textarea
-          value={details}
-          onChange={e => setDetails(e.target.value)}
-          placeholder="Detalles adicionales (opcional)..."
-          maxLength={500}
-          rows={3}
-          style={{ width: "100%", background: "var(--smoke)", border: "1px solid var(--border-soft)", borderRadius: 12, padding: "12px 14px", fontFamily: "var(--font-sans)", fontSize: 13, color: "var(--paper)", resize: "none", outline: "none", boxSizing: "border-box", marginBottom: 16 }}
-        />
-
-        <div style={{ display: "flex", gap: 10 }}>
-          <button
-            onClick={onClose}
-            style={{ flex: 1, padding: "12px 0", borderRadius: 12, border: "1px solid var(--border-soft)", background: "transparent", color: "var(--mist)", fontFamily: "var(--font-mono)", fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", cursor: "pointer" }}
-          >
-            Cancelar
-          </button>
-          <button
-            onClick={submit}
-            disabled={!reason || sending}
-            style={{ flex: 1, padding: "12px 0", borderRadius: 12, border: "none", background: reason ? "var(--danger, #c25a5a)" : "var(--ash)", color: "white", fontFamily: "var(--font-mono)", fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", cursor: reason ? "pointer" : "default", opacity: sending ? 0.6 : 1 }}
-          >
-            {sending ? "Enviando..." : "Reportar"}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
 

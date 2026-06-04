@@ -402,6 +402,16 @@ export const analyticsApi = {
   overview: () => api.get("/analytics/overview"),
 };
 
+export const moderationApi = {
+  reasons:  ()                                     => api.get("/moderation/reasons"),
+  report:   (body: { target_type: "post"|"user"; target_id: string; reason: string; details?: string }) =>
+    api.post("/moderation/report", body),
+  list:     (params?: { status?: string; target?: string; limit?: number; offset?: number }) =>
+    api.get("/moderation/reports", { params }),
+  action:   (reportId: string, body: { action: string; admin_note?: string }) =>
+    api.post(`/moderation/reports/${reportId}/action`, body),
+};
+
 export const hashtagsApi = {
   trending:  (days = 7, limit = 20)         => api.get("/hashtags/trending", { params: { days, limit } }),
   posts:     (tag: string, offset = 0, limit = 24) => api.get(`/hashtags/${encodeURIComponent(tag)}/posts`, { params: { offset, limit } }),

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { adminApi, paymentsApi, settingsApi, reportsApi, payoutsApi, mediaApi, adsApi } from "@/lib/api";
+import { adminApi, paymentsApi, settingsApi, reportsApi, payoutsApi, mediaApi, adsApi, moderationApi } from "@/lib/api";
 import { useAuthStore } from "@/store/authStore";
 import { useDolarBlue, usePricingPlans, formatARS, formatUSD } from "@/hooks/useExchangeRate";
 import { APP_CONFIG } from "@/config/app";
@@ -11,11 +11,11 @@ import {
   Shield, Key, Users, BarChart3, LogOut, Plus, CheckCircle, XCircle,
   Wallet, History, Settings as SettingsIcon, TrendingUp, AlertCircle,
   FileText, Download, Share2, Megaphone, Search, Ban, Eye, EyeOff, Crown,
-  UserPlus, ExternalLink,
+  UserPlus, ExternalLink, Flag, AlertTriangle, Trash2 as TrashIcon, UserX,
 } from "lucide-react";
 import type { MasterKey, Payment, RevenueStats, AuditLogEntry, SystemSetting, Plan } from "@/types";
 
-type Tab = "stats" | "keys" | "users" | "pending" | "payments" | "reports" | "payouts" | "ads" | "leaks" | "settings" | "audit";
+type Tab = "stats" | "keys" | "users" | "pending" | "payments" | "reports" | "payouts" | "ads" | "leaks" | "settings" | "audit" | "moderation";
 
 export default function AdminPanel() {
   const navigate = useNavigate();
@@ -36,9 +36,10 @@ export default function AdminPanel() {
     { id: "payouts",  label: "Payouts",     icon: Share2 },
     { id: "ads",      label: "Anuncios",    icon: Megaphone },
     { id: "leaks",    label: "Filtraciones",icon: Shield },
-    { id: "pending",  label: "Pendientes",  icon: Users },
-    { id: "settings", label: "Ajustes",     icon: SettingsIcon },
-    { id: "audit",    label: "Auditoría",   icon: History },
+    { id: "moderation", label: "Moderación", icon: Flag },
+    { id: "pending",    label: "Pendientes", icon: Users },
+    { id: "settings",   label: "Ajustes",    icon: SettingsIcon },
+    { id: "audit",      label: "Auditoría",  icon: History },
   ];
 
   return (
@@ -90,7 +91,8 @@ export default function AdminPanel() {
         {tab === "leaks"    && <LeakVerifierTab />}
         {tab === "pending"  && <PendingTab />}
         {tab === "settings" && <SettingsTab />}
-        {tab === "audit"    && <AuditTab />}
+        {tab === "audit"      && <AuditTab />}
+        {tab === "moderation" && <ModerationTab />}
       </main>
     </div>
   );
@@ -1837,6 +1839,201 @@ function AuditTab() {
         {logs.length === 0 && <p className="text-text-muted text-sm text-center py-8">Sin actividad</p>}
       </div>
     </Card>
+  );
+}
+
+// ── Moderation Tab ────────────────────────────────────────────────────────────
+const ACTION_LABELS: Record<string, { label: string; color: string }> = {
+  dismiss:      { label: "Desestimar",    color: "text-text-muted"    },
+  warn_user:    { label: "Advertir",      color: "text-status-warning" },
+  delete_post:  { label: "Borrar post",   color: "text-status-error"   },
+  suspend_user: { label: "Suspender",     color: "text-status-error"   },
+};
+
+function ModerationTab() {
+  const [reports,      setReports]      = useState<any[]>([]);
+  const [pendingCount, setPendingCount] = useState(0);
+  const [loading,      setLoading]      = useState(true);
+  const [filterStatus, setFilterStatus] = useState("pending");
+  const [actioning,    setActioning]    = useState<string | null>(null);
+  const [noteMap,      setNoteMap]      = useState<Record<string, string>>({});
+
+  async function loadReports() {
+    setLoading(true);
+    try {
+      const { data } = await moderationApi.list({ status: filterStatus || undefined, limit: 50 });
+      setReports(data.reports || []);
+      setPendingCount(data.pending_count || 0);
+    } catch { /* ignore */ }
+    setLoading(false);
+  }
+
+  useEffect(() => { loadReports(); }, [filterStatus]);
+
+  async function handleAction(reportId: string, action: string) {
+    setActioning(reportId + action);
+    try {
+      await moderationApi.action(reportId, { action, admin_note: noteMap[reportId] || "" });
+      setReports(prev => prev.filter(r => r.id !== reportId));
+      setPendingCount(c => action !== "dismiss" ? Math.max(0, c - 1) : Math.max(0, c - 1));
+    } catch { /* ignore */ }
+    setActioning(null);
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <h2 className="font-semibold text-lg">Moderación</h2>
+          {pendingCount > 0 && (
+            <span className="px-2 py-0.5 rounded-full bg-status-error/15 text-status-error text-xs font-semibold">
+              {pendingCount} pendientes
+            </span>
+          )}
+        </div>
+        <div className="flex gap-2">
+          {["pending", "actioned", "dismissed", ""].map(s => (
+            <button
+              key={s}
+              onClick={() => setFilterStatus(s)}
+              className={`px-3 py-1.5 rounded-xl text-xs font-medium border transition-colors ${
+                filterStatus === s ? "border-accent-purple bg-accent-purple/10 text-accent-purple" : "border-border text-text-muted hover:border-border/80"
+              }`}
+            >
+              {s === "" ? "Todos" : s === "pending" ? "Pendientes" : s === "actioned" ? "Accionados" : "Desestimados"}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {loading && (
+        <div className="space-y-3">
+          {[1,2,3].map(i => <div key={i} className="h-28 bg-bg-muted rounded-2xl animate-pulse"/>)}
+        </div>
+      )}
+
+      {!loading && reports.length === 0 && (
+        <Card className="p-12 text-center">
+          <CheckCircle size={32} className="mx-auto mb-3 text-status-success opacity-50" />
+          <p className="text-text-muted">Sin reportes {filterStatus === "pending" ? "pendientes" : "en esta categoría"}</p>
+        </Card>
+      )}
+
+      {!loading && reports.map(r => {
+        const isPost    = r.target_type === "post";
+        const targetInfo = r.target_info || {};
+        const reporter  = r.reporter || {};
+        const reviewer  = r.reviewer || {};
+
+        return (
+          <Card key={r.id} className="p-4 space-y-3">
+            {/* Header */}
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-center gap-2 min-w-0">
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                  isPost ? "bg-accent-purple/15 text-accent-purple" : "bg-status-error/15 text-status-error"
+                }`}>
+                  {isPost ? <FileText size={14}/> : <UserX size={14}/>}
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold truncate">
+                    {isPost ? "Post reportado" : "Usuario reportado"}
+                    {" · "}
+                    <span className="font-normal text-text-muted">{r.reason_label}</span>
+                  </p>
+                  <p className="text-[10px] text-text-muted">
+                    Por: {reporter.first_name} {reporter.last_name}
+                    {" · "}
+                    {new Date(r.created_at).toLocaleDateString("es-AR")}
+                  </p>
+                </div>
+              </div>
+              <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0 ${
+                r.status === "pending"   ? "bg-status-warning/15 text-status-warning" :
+                r.status === "actioned"  ? "bg-status-success/15 text-status-success" :
+                                           "bg-bg-muted text-text-muted"
+              }`}>
+                {r.status === "pending" ? "Pendiente" : r.status === "actioned" ? "Accionado" : "Desestimado"}
+              </span>
+            </div>
+
+            {/* Target preview */}
+            {isPost && (targetInfo.caption || targetInfo.media_url) && (
+              <div className="bg-bg-muted rounded-xl p-3 flex items-start gap-3">
+                {targetInfo.media_url && (
+                  <img src={targetInfo.media_url} alt="" className="w-12 h-12 object-cover rounded-lg flex-shrink-0"/>
+                )}
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs text-text-secondary line-clamp-2">
+                    {targetInfo.caption || "Sin caption"}
+                  </p>
+                  {targetInfo.users && (
+                    <p className="text-[10px] text-text-muted mt-1">
+                      Autor: {targetInfo.users.first_name} {targetInfo.users.last_name}
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+            {!isPost && (targetInfo.first_name || targetInfo.profile_photo_url) && (
+              <div className="bg-bg-muted rounded-xl p-3 flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full overflow-hidden bg-bg-card flex-shrink-0">
+                  {targetInfo.profile_photo_url
+                    ? <img src={targetInfo.profile_photo_url} alt="" className="w-full h-full object-cover"/>
+                    : <div className="w-full h-full bg-accent-purple/20"/>
+                  }
+                </div>
+                <div>
+                  <p className="text-sm font-medium">{targetInfo.first_name} {targetInfo.last_name}</p>
+                  <p className="text-[10px] text-text-muted capitalize">{targetInfo.status || "activo"}</p>
+                </div>
+              </div>
+            )}
+
+            {/* Detalles del reporte */}
+            {r.details && (
+              <p className="text-xs text-text-muted bg-bg-muted rounded-xl px-3 py-2 italic">
+                "{r.details}"
+              </p>
+            )}
+
+            {/* Acciones (solo si pending) */}
+            {r.status === "pending" && (
+              <div className="space-y-2 pt-1">
+                <input
+                  value={noteMap[r.id] || ""}
+                  onChange={e => setNoteMap(p => ({ ...p, [r.id]: e.target.value }))}
+                  placeholder="Nota admin (opcional)…"
+                  className="w-full bg-bg-muted border border-border rounded-xl px-3 py-2 text-xs outline-none focus:border-accent-purple/50"
+                />
+                <div className="flex flex-wrap gap-2">
+                  {Object.entries(ACTION_LABELS).map(([action, { label, color }]) => (
+                    !(action === "delete_post" && !isPost) &&
+                    !(action === "suspend_user" && isPost && !targetInfo.user_id) ? (
+                      <button
+                        key={action}
+                        onClick={() => handleAction(r.id, action)}
+                        disabled={!!actioning}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-medium border border-border hover:bg-bg-muted transition-colors disabled:opacity-50 ${color}`}
+                      >
+                        {actioning === r.id + action ? "…" : label}
+                      </button>
+                    ) : null
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Si fue revisado */}
+            {r.status !== "pending" && r.admin_note && (
+              <p className="text-[10px] text-text-muted italic">
+                Nota admin: {r.admin_note} · por {reviewer.first_name} {reviewer.last_name}
+              </p>
+            )}
+          </Card>
+        );
+      })}
+    </div>
   );
 }
 

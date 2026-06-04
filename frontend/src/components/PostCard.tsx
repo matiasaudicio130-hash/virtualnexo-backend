@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { MapPin, Trash2, MoreHorizontal } from "lucide-react";
+import { MapPin, Trash2, MoreHorizontal, Flag } from "lucide-react";
 import {
   Heart, Fire, BookmarkSimple, PaperPlaneTilt, ChatCircle,
 } from "@phosphor-icons/react";
@@ -9,8 +9,9 @@ import { ProtectedAvatar } from "@/components/ProtectedImage";
 import { CommentsSection } from "@/components/Comments";
 import { Carousel } from "@/components/Carousel";
 import { DoubleTapLike } from "@/components/DoubleTapLike";
-import { ShareModal } from "@/components/ShareModal";
-import { PollCard } from "@/components/PollCard";
+import { ShareModal }  from "@/components/ShareModal";
+import { ReportModal } from "@/components/ReportModal";
+import { PollCard }    from "@/components/PollCard";
 import { PROFILE_TYPE_CONFIG } from "@/types";
 import type { Post, ProfileType } from "@/types";
 
@@ -68,7 +69,8 @@ export function PostCard({ post, currentUserId, onDelete, initialSaved = false }
   const [loading, setLoading]     = useState(false);
   const [showMenu, setShowMenu]   = useState(false);
   const [saved, setSaved]         = useState(initialSaved);
-  const [showShare, setShowShare] = useState(false);
+  const [showShare,  setShowShare]  = useState(false);
+  const [showReport, setShowReport] = useState(false);
   const [pollVotes, setPollVotes] = useState<number[]>(
     (post as any).extra_data?.poll?.votes ?? []
   );
@@ -210,6 +212,14 @@ export function PostCard({ post, currentUserId, onDelete, initialSaved = false }
               >
                 Ver perfil
               </button>
+              {!isOwner && (
+                <button
+                  onClick={() => { setShowMenu(false); setShowReport(true); }}
+                  className="flex items-center gap-2 w-full px-4 py-2 text-sm text-status-error hover:bg-bg-muted"
+                >
+                  <Flag size={13}/> Reportar
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -392,6 +402,16 @@ export function PostCard({ post, currentUserId, onDelete, initialSaved = false }
       {/* Comments */}
       {post.type !== "story" && (
         <CommentsSection postId={post.id} postOwnerId={post.author.id}/>
+      )}
+
+      {/* Report modal */}
+      {showReport && (
+        <ReportModal
+          targetType="post"
+          targetId={post.id}
+          targetName={post.caption?.slice(0, 80)}
+          onClose={() => setShowReport(false)}
+        />
       )}
 
       {/* Share modal */}
