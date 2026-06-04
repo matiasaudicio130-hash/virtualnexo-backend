@@ -183,6 +183,7 @@ export const feedApi = {
   sharePost:    (postId: string)                 => api.post(`/feed/posts/${postId}/share`),
   repost:       (postId: string, comment = "")  => api.post(`/feed/posts/${postId}/repost`, { comment }),
   unrepost:     (postId: string)                => api.delete(`/feed/posts/${postId}/repost`),
+  postStats:    (postId: string)                => api.get(`/feed/posts/${postId}/stats`),
   votePoll:     (postId: string, optionIndex: number) => api.post(`/feed/posts/${postId}/poll-vote`, { option_index: optionIndex }),
   pollResults:  (postId: string)                 => api.get(`/feed/posts/${postId}/poll-results`),
 };

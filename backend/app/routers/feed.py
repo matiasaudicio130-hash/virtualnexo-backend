@@ -443,6 +443,78 @@ async def delete_post(post_id: str, request: Request):
     return {"deleted": True}
 
 
+@router.get("/posts/{post_id}/stats")
+async def post_stats(post_id: str, request: Request):
+    """Estadísticas detalladas de un post (solo el autor puede verlas)."""
+    from app.db.supabase import get_supabase
+    from datetime import datetime, timezone
+
+    payload = _require_auth(request)
+    user_id = payload["sub"]
+    db      = get_supabase()
+
+    post_r = db.table("posts").select(
+        "id, user_id, views_count, share_count, created_at, type, caption"
+    ).eq("id", post_id).maybe_single().execute()
+
+    if not post_r.data:
+        raise HTTPException(404, "Post no encontrado")
+    post = post_r.data
+    if post["user_id"] != user_id:
+        raise HTTPException(403, "Solo podés ver estadísticas de tus propios posts")
+
+    # Reactions breakdown
+    rxn_r = db.table("post_reactions").select("type").eq("post_id", post_id).execute()
+    reactions: dict = {}
+    for r in rxn_r.data or []:
+        t = r["type"]
+        reactions[t] = reactions.get(t, 0) + 1
+
+    # Comments (non-deleted)
+    try:
+        cmt_r = db.table("comments").select("id", count="exact").eq("post_id", post_id).is_("is_deleted", "false").execute()
+        comments = cmt_r.count or 0
+    except Exception:
+        cmt_r = db.table("comments").select("id").eq("post_id", post_id).execute()
+        comments = len(cmt_r.data or [])
+
+    # Saves
+    sav_r = db.table("post_saves").select("id", count="exact").eq("post_id", post_id).execute()
+
+    # Reposts (posts with extra_data.repost_of_id = this post)
+    rep_r = db.table("posts").select("extra_data").eq("status", "active").eq("type", "text").execute()
+    repost_count = sum(
+        1 for p in (rep_r.data or [])
+        if (p.get("extra_data") or {}).get("repost_of_id") == post_id
+    )
+
+    # Days live
+    try:
+        created_at = datetime.fromisoformat(post["created_at"].replace("Z", "+00:00"))
+        days_live  = max(0, (datetime.now(timezone.utc) - created_at).days)
+    except Exception:
+        days_live = 0
+
+    total_reactions = sum(reactions.values())
+    saves = sav_r.count or 0
+    total_engagement = total_reactions + comments + saves
+
+    return {
+        "post_id":           post_id,
+        "views":             post.get("views_count") or 0,
+        "reactions":         reactions,
+        "total_reactions":   total_reactions,
+        "comments":          comments,
+        "saves":             saves,
+        "shares":            post.get("share_count") or 0,
+        "reposts":           repost_count,
+        "total_engagement":  total_engagement,
+        "days_live":         days_live,
+        "created_at":        post["created_at"],
+        "caption_preview":   (post.get("caption") or "")[:60],
+    }
+
+
 # ── Sprint 2: saves, share, carousel ──────────────────────────
 
 @router.post("/posts/{post_id}/save")
