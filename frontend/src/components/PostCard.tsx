@@ -78,8 +78,9 @@ export function PostCard({ post, currentUserId, onDelete }: Props) {
     (post as any).user_poll_vote ?? null
   );
 
-  const isPoll  = post.type === "poll" || !!(post as any).extra_data?.poll;
-  const isOwner = post.user_id === currentUserId;
+  const isPoll    = post.type === "poll" || !!(post as any).extra_data?.poll;
+  const isOwner   = post.user_id === currentUserId;
+  const repostData = (post.extra_data as any)?.repost === true ? post.extra_data as any : null;
 
   const mediaItems: { url: string; type?: string }[] = post.media_urls?.length
     ? post.media_urls.map((m: any) => ({ url: m.url, type: m.type || "image" }))
@@ -213,8 +214,64 @@ export function PostCard({ post, currentUserId, onDelete }: Props) {
         </div>
       </div>
 
+      {/* ── Repost: post original embebido ─────────────────────── */}
+      {repostData && (
+        <div
+          className="mx-3 mb-1 rounded-xl border border-border/70 overflow-hidden cursor-pointer hover:border-border transition-colors"
+          style={{ background: "rgba(255,255,255,0.03)" }}
+          onClick={() => navigate(`/profile/${repostData.repost_author_id}`)}
+        >
+          {/* Autor original */}
+          <div className="flex items-center gap-2 px-3 pt-2.5 pb-1.5">
+            <div className="w-6 h-6 rounded-full overflow-hidden bg-bg-muted flex-shrink-0 border border-border/40">
+              {repostData.repost_author_avatar
+                ? <img src={repostData.repost_author_avatar} alt="" className="w-full h-full object-cover"/>
+                : <div className="w-full h-full bg-accent-purple/20"/>
+              }
+            </div>
+            <span className="text-xs font-semibold truncate">{repostData.repost_author_name}</span>
+            <span className="text-[10px] text-text-muted ml-auto flex-shrink-0">Post original</span>
+          </div>
+
+          {/* Media original */}
+          {repostData.repost_media_url && (
+            <div className="max-h-64 overflow-hidden">
+              {repostData.repost_type === "photo" && (Array.isArray(repostData.repost_media_urls) && repostData.repost_media_urls.length > 1) ? (
+                <Carousel
+                  items={repostData.repost_media_urls.map((m: any) => ({ url: m.url, type: m.type || "image" }))}
+                  aspectRatio="square"
+                />
+              ) : repostData.repost_media_urls?.[0]?.type === "video" || /\.(mp4|mov|webm)/i.test(repostData.repost_media_url) ? (
+                <video
+                  src={repostData.repost_media_url}
+                  className="w-full object-cover max-h-64"
+                  muted playsInline preload="metadata"
+                />
+              ) : (
+                <img
+                  src={repostData.repost_media_url}
+                  alt=""
+                  className="w-full object-cover max-h-64"
+                  draggable={false}
+                />
+              )}
+            </div>
+          )}
+
+          {/* Caption original */}
+          {repostData.repost_caption && (
+            <p className="px-3 py-2 text-xs text-text-secondary leading-relaxed line-clamp-3">
+              {repostData.repost_caption}
+            </p>
+          )}
+          {!repostData.repost_media_url && !repostData.repost_caption && (
+            <p className="px-3 py-2 text-xs text-text-muted italic">Publicación original</p>
+          )}
+        </div>
+      )}
+
       {/* Media */}
-      {mediaItems.length > 0 && (
+      {!repostData && mediaItems.length > 0 && (
         <DoubleTapLike onDoubleTap={handleDoubleTap}>
           <Carousel items={mediaItems} aspectRatio="square"/>
         </DoubleTapLike>
@@ -340,6 +397,8 @@ export function PostCard({ post, currentUserId, onDelete }: Props) {
       {showShare && (
         <ShareModal
           postId={post.id}
+          authorId={post.author.id}
+          currentUserId={currentUserId}
           caption={post.caption}
           onClose={() => setShowShare(false)}
         />

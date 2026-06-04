@@ -127,6 +127,18 @@ export interface Plan {
   savings: { ars: number; pct: number } | null;
 }
 
+export interface RepostData {
+  repost:               boolean;
+  repost_of_id:         string;
+  repost_author_id:     string;
+  repost_author_name:   string;
+  repost_author_avatar?: string;
+  repost_caption?:      string;
+  repost_media_url?:    string;
+  repost_media_urls?:   { url: string; type?: string }[];
+  repost_type:          string;
+}
+
 export interface Post {
   id: string;
   user_id: string;
@@ -141,10 +153,12 @@ export interface Post {
   is_story: boolean;
   expires_at?: string;
   views_count: number;
+  share_count?: number;
   created_at: string;
-  author: { id: string; name: string; avatar?: string; province?: string; profile_type?: string };
+  author: { id: string; name: string; avatar?: string; province?: string; profile_type?: string; username?: string };
   reactions: Record<string, number>;
   viewer_reaction?: string;
+  extra_data?: RepostData | Record<string, unknown>;
 }
 
 export interface Story {

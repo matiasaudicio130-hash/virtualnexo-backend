@@ -445,6 +445,102 @@ async def get_saved_posts(
     return {"posts": posts, "total": len(posts)}
 
 
+class RepostBody(BaseModel):
+    comment: str = ""   # comentario opcional al repostear
+
+
+@router.post("/posts/{post_id}/repost", status_code=201)
+async def repost_post(post_id: str, body: RepostBody, request: Request):
+    """Crea un repost del post en el feed del usuario actual."""
+    from app.db.supabase import get_supabase
+    payload  = _require_auth(request)
+    actor_id = payload["sub"]
+    db       = get_supabase()
+
+    # Obtener post original con datos del autor
+    orig_r = db.table("posts").select(
+        "id, user_id, type, caption, media_url, media_urls, allow_share, status, "
+        "users!posts_user_id_fkey(id, first_name, last_name, profile_photo_url)"
+    ).eq("id", post_id).maybe_single().execute()
+
+    if not orig_r.data or orig_r.data.get("status") != "active":
+        raise HTTPException(404, "Post no encontrado")
+
+    orig = orig_r.data
+    if not orig.get("allow_share", True):
+        raise HTTPException(403, "Este post no permite compartir")
+    if orig["user_id"] == actor_id:
+        raise HTTPException(400, "No podés repostear tus propios posts")
+
+    # Verificar que no lo haya reposteado ya
+    existing_r = db.table("posts").select("id, extra_data").eq("user_id", actor_id).eq("status", "active").eq("type", "text").execute()
+    for p in existing_r.data or []:
+        ed = p.get("extra_data") or {}
+        if ed.get("repost") is True and ed.get("repost_of_id") == post_id:
+            raise HTTPException(409, "Ya reposteaste esta publicación")
+
+    orig_author = orig.get("users") or {}
+    author_name = f"{orig_author.get('first_name','')} {orig_author.get('last_name','')}".strip()
+
+    result = db.table("posts").insert({
+        "user_id": actor_id,
+        "type":    "text",
+        "caption": body.comment.strip() or "",
+        "status":  "active",
+        "extra_data": {
+            "repost":               True,
+            "repost_of_id":         post_id,
+            "repost_author_id":     orig["user_id"],
+            "repost_author_name":   author_name,
+            "repost_author_avatar": orig_author.get("profile_photo_url"),
+            "repost_caption":       orig.get("caption") or "",
+            "repost_media_url":     orig.get("media_url"),
+            "repost_media_urls":    orig.get("media_urls") or [],
+            "repost_type":          orig["type"],
+        },
+    }).execute()
+
+    # Incrementar share_count en el original
+    try:
+        db.rpc("increment_share_count", {"p_post_id": post_id}).execute()
+    except Exception:
+        pass
+
+    # Push al autor original
+    try:
+        from app.services.push_service import send_push
+        user_r = db.table("users").select("first_name").eq("id", actor_id).maybe_single().execute()
+        name   = user_r.data.get("first_name", "Alguien") if user_r.data else "Alguien"
+        send_push(orig["user_id"], "🔁 Repost", f"{name} reposteó tu publicación.", url="/feed")
+    except Exception:
+        pass
+
+    return result.data[0] if result.data else {}
+
+
+@router.delete("/posts/{post_id}/repost")
+async def unrepost_post(post_id: str, request: Request):
+    """Elimina el repost del usuario actual de este post."""
+    from app.db.supabase import get_supabase
+    payload  = _require_auth(request)
+    actor_id = payload["sub"]
+    db       = get_supabase()
+
+    posts_r = db.table("posts").select("id, extra_data").eq("user_id", actor_id).eq("status", "active").eq("type", "text").execute()
+    repost_id = None
+    for p in posts_r.data or []:
+        ed = p.get("extra_data") or {}
+        if ed.get("repost") is True and ed.get("repost_of_id") == post_id:
+            repost_id = p["id"]
+            break
+
+    if not repost_id:
+        raise HTTPException(404, "No reposteaste esta publicación")
+
+    db.table("posts").update({"status": "deleted"}).eq("id", repost_id).execute()
+    return {"unreposted": True, "post_id": repost_id}
+
+
 @router.post("/posts/{post_id}/share")
 async def share_post(post_id: str, request: Request):
     """Devuelve los datos del post para compartir por DM."""
