@@ -8,7 +8,7 @@ import {
   ArrowLeft, Heart, ShieldOff, Flag, MapPin, Star, Share2, Pencil,
   Lock, Users, User, MessageSquare, Images, ChevronLeft, ChevronRight, X,
 } from "lucide-react";
-import { profilesApi, followsApi, albumsApi, feedApi, reviewsApi } from "@/lib/api";
+import { profilesApi, followsApi, albumsApi, feedApi, reviewsApi, extendedProfileApi } from "@/lib/api";
 import { ReportModal } from "@/components/ReportModal";
 import { Tooltip } from "@/components/ui/Tooltip";
 import { useAuthStore } from "@/store/authStore";
@@ -112,6 +112,7 @@ export default function ProfileView() {
   const [followCounts, setFollowCounts] = useState({ followers: 0, following: 0 });
   const [albums, setAlbums]           = useState<any[]>([]);
   const [posts, setPosts]             = useState<any[]>([]);
+  const [pinLoading, setPinLoading]   = useState(false);
   const [reviews, setReviews]         = useState<any[]>([]);
   const [followListType, setFollowListType] = useState<"followers"|"following"|null>(null);
   const [followList, setFollowList]   = useState<any[]>([]);
@@ -248,6 +249,22 @@ export default function ProfileView() {
   }
 
   // handleReport is now handled inside ReportModal directly via moderationApi
+
+  async function handlePinPost(postId: string) {
+    const currentPinned = profile?.profile_extended?.pinned_post_id;
+    const isPinned      = currentPinned === postId;
+    setPinLoading(true);
+    try {
+      if (isPinned) {
+        await extendedProfileApi.unpinPost();
+        setProfile((p: any) => ({ ...p, profile_extended: { ...(p.profile_extended || {}), pinned_post_id: null } }));
+      } else {
+        await extendedProfileApi.pinPost(postId);
+        setProfile((p: any) => ({ ...p, profile_extended: { ...(p.profile_extended || {}), pinned_post_id: postId } }));
+      }
+    } catch { /* ignore */ }
+    setPinLoading(false);
+  }
 
   async function handleRequestAlbumAccess(albumId: string) {
     try {
@@ -492,6 +509,24 @@ export default function ProfileView() {
                 </p>
               </div>
             )}
+            {/* Website link */}
+            {profile.profile_extended?.website && (
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 4, marginTop: 8 }}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+                  <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+                </svg>
+                <a
+                  href={profile.profile_extended.website}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ fontFamily: "var(--font-sans)", fontSize: 12, color: "var(--gold)", textDecoration: "none", letterSpacing: "0.02em" }}
+                  onClick={e => e.stopPropagation()}
+                >
+                  {profile.profile_extended.website.replace(/^https?:\/\//, "")}
+                </a>
+              </div>
+            )}
           </div>
         )}
 
@@ -572,7 +607,15 @@ export default function ProfileView() {
             </div>
           ) : (
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 2 }}>
-              {posts.map(post => {
+              {(() => {
+                const pinnedId = profile?.profile_extended?.pinned_post_id as string | undefined;
+                const sorted   = pinnedId
+                  ? [...posts].sort((a, b) => (a.id === pinnedId ? -1 : b.id === pinnedId ? 1 : 0))
+                  : posts;
+                return sorted;
+              })().map(post => {
+                const pinnedId = profile?.profile_extended?.pinned_post_id as string | undefined;
+                const isPinned = post.id === pinnedId;
                 const isPoll      = post.type === "poll";
                 const items       = Array.isArray(post.media_urls) ? post.media_urls : [];
                 const isCarousel  = items.length > 1;
@@ -646,6 +689,22 @@ export default function ProfileView() {
                           <line x1="8" y1="16" x2="11" y2="16"/>
                         </svg>
                       </div>
+                    )}
+                    {/* Overlay: post fijado (badge 📌) */}
+                    {isPinned && (
+                      <div style={{ position: "absolute", top: 4, left: 4, background: "rgba(201,162,39,0.85)", borderRadius: 4, padding: "2px 5px", display: "flex", alignItems: "center", gap: 3 }}>
+                        <span style={{ fontSize: 10 }}>📌</span>
+                      </div>
+                    )}
+                    {/* Botón fijar/desfijar — solo en perfil propio */}
+                    {isOwnProfile && (
+                      <button
+                        onClick={e => { e.stopPropagation(); handlePinPost(post.id); }}
+                        style={{ position: "absolute", bottom: 4, right: 4, background: isPinned ? "rgba(201,162,39,0.85)" : "rgba(2,2,7,0.65)", borderRadius: 4, border: "none", padding: "3px 6px", cursor: "pointer", display: "flex", alignItems: "center", gap: 3, opacity: pinLoading ? 0.5 : 1 }}
+                        title={isPinned ? "Desfijar" : "Fijar en perfil"}
+                      >
+                        <span style={{ fontSize: 10 }}>📌</span>
+                      </button>
                     )}
                   </button>
                 );

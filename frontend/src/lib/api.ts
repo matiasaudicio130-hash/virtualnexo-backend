@@ -114,6 +114,12 @@ export const notificationsApi = {
   markAllRead: () => api.post("/notifications/read-all"),
 };
 
+export const extendedProfileApi = {
+  update: (body: Record<string, unknown>) => api.patch("/auth/me/extended", body),
+  pinPost:   (postId: string) => api.patch("/auth/me/extended", { pinned_post_id: postId }),
+  unpinPost: ()               => api.patch("/auth/me/extended", { pinned_post_id: null }),
+};
+
 export const profileApi = {
   updateType:    (body: object) => api.patch("/auth/me/profile-type", body),
   updateProfile: (body: object) => api.patch("/auth/me/profile-type", body),

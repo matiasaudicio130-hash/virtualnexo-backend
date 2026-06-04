@@ -216,6 +216,29 @@
   --scrollbar-thumb: #242424;
 }
 
+/* ─── Theme: Light (Cálido) ───────────────────────────────── */
+[data-theme="light"] {
+  --bg-base:  252 248 240;
+  --bg-card:  255 255 255;
+  --bg-muted: 245 240 228;
+  --border:   200 180 130;
+  --accent-primary:   160 118 20;
+  --accent-secondary: 201 162 39;
+  --text-primary:   20 16 8;
+  --text-secondary: 80 65 35;
+  --text-muted:     140 120 75;
+  --gradient-brand: linear-gradient(135deg, #A07614 0%, #C9A227 100%);
+  --gradient-card:  linear-gradient(160deg, rgba(201,162,39,.06) 0%, transparent 60%);
+  --glow-color: rgba(160, 118, 20, 0.12);
+  --scrollbar-track: #F5EFE0;
+  --scrollbar-thumb: #C9A227;
+}
+
+[data-theme="light"] html,
+html:has([data-theme="light"]) {
+  color-scheme: light;
+}
+
 /* ─── Base ────────────────────────────────────────────────── */
 @layer base {
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }

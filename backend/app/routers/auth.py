@@ -292,6 +292,36 @@ async def me(request: Request):
     return result.data[0]
 
 
+@router.patch("/me/extended")
+async def update_profile_extended(request: Request):
+    """
+    Actualiza campos en profile_extended con MERGE (no reemplaza).
+    Usado para website, pinned_post_id y cualquier dato adicional del perfil.
+    """
+    from typing import Any as AnyType
+    import json
+
+    payload = _get_current_user(request)
+    db      = get_supabase()
+
+    body_bytes = await request.body()
+    try:
+        updates: dict = json.loads(body_bytes) if body_bytes else {}
+    except Exception:
+        raise HTTPException(400, "JSON inválido")
+
+    if not isinstance(updates, dict) or not updates:
+        raise HTTPException(400, "Body vacío o inválido")
+
+    # Obtener profile_extended actual y mergear
+    user_r = db.table("users").select("profile_extended").eq("id", payload["sub"]).maybe_single().execute()
+    current: dict = (user_r.data.get("profile_extended") or {}) if user_r.data else {}
+    merged  = {**current, **updates}
+
+    db.table("users").update({"profile_extended": merged}).eq("id", payload["sub"]).execute()
+    return {"updated": True, "profile_extended": merged}
+
+
 @router.patch("/me/profile-type")
 async def update_profile_type(body: UpdateProfileTypeBody, request: Request):
     payload = _get_current_user(request)

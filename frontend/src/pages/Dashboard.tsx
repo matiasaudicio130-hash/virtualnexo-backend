@@ -34,10 +34,11 @@ import { PROFILE_TYPE_CONFIG, ORIENTATION_CONFIG } from "@/types";
 import type { ProfileType, SexualOrientation } from "@/types";
 
 const THEMES: { id: Theme; color: string; label_es: string; label_en: string }[] = [
-  { id: "dark", color: "#8B5CF6", label_es: "Dark",       label_en: "Dark" },
-  { id: "blue", color: "#3182F6", label_es: "Azul",       label_en: "Blue" },
-  { id: "red",  color: "#D21932", label_es: "Rojo",       label_en: "Red"  },
-  { id: "pure", color: "#D2D2D2", label_es: "Oscuro puro",label_en: "Pure dark" },
+  { id: "dark",  color: "#8B5CF6", label_es: "Dark",       label_en: "Dark"    },
+  { id: "light", color: "#C9A227", label_es: "Claro",      label_en: "Light"   },
+  { id: "blue",  color: "#3182F6", label_es: "Azul",       label_en: "Blue"    },
+  { id: "red",   color: "#D21932", label_es: "Rojo",       label_en: "Red"     },
+  { id: "pure",  color: "#D2D2D2", label_es: "Oscuro puro",label_en: "Pure dark"},
 ];
 
 export default function Dashboard() {
