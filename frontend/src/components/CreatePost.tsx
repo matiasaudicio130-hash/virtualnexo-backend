@@ -109,6 +109,7 @@ export function CreatePost({ onCreated, onClose }: Props) {
   const [loading, setLoading]           = useState(false);
   const [error,   setError]             = useState("");
   const [storyAudience, setStoryAudience] = useState<"all"|"followers"|"partner">("all");
+  const [visibility,    setVisibility]    = useState<"public"|"followers"|"only_me">("public");
   const [editingMainPhoto, setEditingMainPhoto] = useState<File | null>(null);
 
   // ── handlers: post/story media (foto o video) ───────────────
@@ -299,8 +300,9 @@ export function CreatePost({ onCreated, onClose }: Props) {
           kind,
           caption,
           province,
-          is_story: mode === "story",
+          is_story:       mode === "story",
           story_audience: storyAudience,
+          visibility:     mode === "story" ? "public" : visibility,
         });
       } else {
         await feedApi.createPost({ type: "text", caption, province, is_story: mode === "story", story_audience: storyAudience });
@@ -505,6 +507,32 @@ export function CreatePost({ onCreated, onClose }: Props) {
                   className="w-full px-4 py-3 rounded-xl bg-bg-muted border border-border text-sm resize-none focus:outline-none focus:ring-2 focus:ring-accent-purple placeholder-text-muted"
                 />
                 <p className="text-xs text-text-muted text-right -mt-2">{caption.length}/500</p>
+
+                {/* ── Visibilidad (solo para posts normales) ── */}
+                {mode === "post" && (
+                  <div>
+                    <p className="text-[10px] text-text-muted uppercase tracking-widest mb-1.5">¿Quién puede ver esto?</p>
+                    <div className="flex gap-2">
+                      {([
+                        { id: "public",    label: "🌐 Público",    desc: "Todos" },
+                        { id: "followers", label: "👥 Seguidores",  desc: "Solo tus seguidores" },
+                        { id: "only_me",   label: "🔒 Solo yo",     desc: "Privado" },
+                      ] as const).map(({ id, label }) => (
+                        <button
+                          key={id}
+                          onClick={() => setVisibility(id)}
+                          className={`flex-1 py-1.5 rounded-lg text-xs font-medium border transition-all ${
+                            visibility === id
+                              ? "border-accent-purple/60 bg-accent-purple/10 text-accent-purple"
+                              : "border-border text-text-muted hover:border-accent-purple/30"
+                          }`}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {mode === "story" && (
                   <div className="space-y-2">

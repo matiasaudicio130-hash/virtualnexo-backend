@@ -97,10 +97,26 @@ async def get_user_posts(
         .data
     )
 
+    # Pre-fetch seguimiento para filtro followers (solo si es perfil ajeno)
+    viewer_following: set = set()
+    if author_id != viewer_id:
+        try:
+            follow_r = db.table("user_follows").select("following_id").eq("follower_id", viewer_id).execute()
+            viewer_following = {f["following_id"] for f in follow_r.data}
+        except Exception:
+            pass
+
     posts = []
     for r in rows:
+        # Filtro de visibilidad por post
+        if author_id != viewer_id:
+            visibility = (r.get("extra_data") or {}).get("visibility", "public")
+            if visibility == "only_me":
+                continue
+            if visibility == "followers" and author_id not in viewer_following:
+                continue
+
         author_raw = r.pop("users!posts_user_id_fkey", None) or {}
-        # Normalizar author al shape que espera PostCard
         author = {
             "id":           author_raw.get("id"),
             "name":         f"{author_raw.get('first_name','')} {author_raw.get('last_name','')}".strip(),
@@ -259,6 +275,7 @@ class FromStorageBody(BaseModel):
     lng:        Optional[float] = None
     is_story:   bool = False
     story_audience: str = "all"
+    visibility: Literal["public", "followers", "only_me"] = "public"
 
 
 @router.post("/posts/from-storage", status_code=201)
@@ -288,6 +305,13 @@ async def create_post_from_storage(body: FromStorageBody, request: Request):
         is_story=body.is_story,
         story_audience=body.story_audience,
     )
+
+    # Guardar visibility en extra_data (merge con datos existentes)
+    if body.visibility and body.visibility != "public":
+        current_extra = post.get("extra_data") or {}
+        merged_extra  = {**current_extra, "visibility": body.visibility}
+        db.table("posts").update({"extra_data": merged_extra}).eq("id", post["id"]).execute()
+        post["extra_data"] = merged_extra
 
     # Si es video, marcar el tipo en media_urls
     if body.kind == "video":

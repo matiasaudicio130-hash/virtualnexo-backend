@@ -75,6 +75,14 @@ class FeedService:
         except Exception:
             pass
 
+        # Usuarios que el viewer sigue (para filtro visibility=followers)
+        viewer_following: set = set()
+        try:
+            follow_r = db.table("user_follows").select("following_id").eq("follower_id", viewer_id).execute()
+            viewer_following = {f["following_id"] for f in follow_r.data}
+        except Exception:
+            pass
+
         # 2. Query base — posts activos no expirados
         q = db.table("posts").select(
             "*, users!posts_user_id_fkey("
@@ -127,6 +135,13 @@ class FeedService:
                 # ── interested_in: qué quiere ver el viewer ────────────
                 if allowed_types and author_type not in allowed_types:
                     continue
+
+                # ── Visibilidad por post ────────────────────────────────
+                visibility = (p.get("extra_data") or {}).get("visibility", "public")
+                if visibility == "only_me":
+                    continue   # Solo visible para el autor
+                if visibility == "followers" and uid not in viewer_following:
+                    continue   # Solo visible para seguidores del autor
 
             # Distancia
             dist_km = None

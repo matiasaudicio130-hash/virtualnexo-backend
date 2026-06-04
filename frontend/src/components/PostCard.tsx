@@ -197,6 +197,17 @@ export function PostCard({ post, currentUserId, onDelete, initialSaved = false }
               )}
               {post.city && <span>{post.city}</span>}
               <span>{timeAgo(post.created_at)}</span>
+              {/* Visibilidad no-pública — badge sólo visible para el autor */}
+              {isOwner && (post.extra_data as any)?.visibility === "followers" && (
+                <span className="flex items-center gap-0.5" style={{ color: "var(--color-text-muted)" }}>
+                  👥
+                </span>
+              )}
+              {isOwner && (post.extra_data as any)?.visibility === "only_me" && (
+                <span className="flex items-center gap-0.5" style={{ color: "var(--color-text-muted)" }}>
+                  🔒
+                </span>
+              )}
             </div>
           </div>
         </div>
