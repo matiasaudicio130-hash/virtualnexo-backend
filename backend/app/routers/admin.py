@@ -180,15 +180,79 @@ async def assign_membership(user_id: str, request: Request):
 @router.get("/stats")
 async def dashboard_stats(request: Request):
     _require_admin(request)
-    db = get_supabase()
+    from datetime import datetime, timezone, timedelta
+    from collections import defaultdict
 
+    db  = get_supabase()
+    now = datetime.now(timezone.utc)
+
+    # ── Usuarios por estado ───────────────────────────────────────────────────
     statuses = ["pending_email", "pending_kyc", "pending_manual", "active", "suspended", "rejected"]
-    stats = {}
+    by_status: dict = {}
     for s in statuses:
-        r = db.table("users").select("id").eq("status", s).execute()
-        stats[s] = len(r.data)
+        r = db.table("users").select("id", count="exact").eq("status", s).execute()
+        by_status[s] = r.count or 0
 
-    keys_r = db.table("master_keys").select("id").eq("is_active", True).execute()
-    stats["active_keys"] = len(keys_r.data)
+    keys_r = db.table("master_keys").select("id", count="exact").eq("is_active", True).execute()
+    by_status["active_keys"] = keys_r.count or 0
 
-    return stats
+    # ── Usuarios nuevos por semana (últimas 8) ────────────────────────────────
+    weekly_users = []
+    for i in range(8, 0, -1):
+        wk_start = (now - timedelta(weeks=i)).isoformat()
+        wk_end   = (now - timedelta(weeks=i - 1)).isoformat()
+        r = db.table("users").select("id", count="exact").gte("created_at", wk_start).lt("created_at", wk_end).execute()
+        label = "Esta" if i == 1 else f"S-{i-1}"
+        weekly_users.append({"label": label, "count": r.count or 0})
+
+    # ── Usuarios activos hoy (que usaron la app → last_streak_date = hoy) ─────
+    today_str = now.date().isoformat()
+    active_today_r = db.table("users").select("id", count="exact").eq("last_streak_date", today_str).execute()
+
+    # ── Usuarios con racha activa ─────────────────────────────────────────────
+    streak_r = db.table("users").select("id", count="exact").gt("current_streak", 0).execute()
+
+    # ── Contenido por día (últimos 7) ─────────────────────────────────────────
+    daily_content = []
+    for i in range(6, -1, -1):
+        day_start = (now - timedelta(days=i)).replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
+        day_end   = (now - timedelta(days=i - 1)).replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
+        posts_r = db.table("posts").select("id", count="exact").eq("status", "active").neq("type", "story").gte("created_at", day_start).lt("created_at", day_end).execute()
+        rxn_r   = db.table("post_reactions").select("id", count="exact").gte("created_at", day_start).lt("created_at", day_end).execute()
+        cmt_r   = db.table("comments").select("id", count="exact").gte("created_at", day_start).lt("created_at", day_end).execute()
+        day_label = "Hoy" if i == 0 else ["Lun","Mar","Mié","Jue","Vie","Sáb","Dom"][(now - timedelta(days=i)).weekday()]
+        daily_content.append({
+            "label":    day_label,
+            "posts":    posts_r.count or 0,
+            "reactions": rxn_r.count or 0,
+            "comments": cmt_r.count or 0,
+        })
+
+    # ── Totales de contenido ─────────────────────────────────────────────────
+    total_posts_r = db.table("posts").select("id", count="exact").eq("status", "active").neq("type", "story").execute()
+    total_stories_r = db.table("posts").select("id", count="exact").eq("type", "story").eq("status", "active").execute()
+
+    # ── Reportes pendientes ───────────────────────────────────────────────────
+    reports_pending = 0
+    try:
+        rep_r = db.table("content_reports").select("id", count="exact").eq("status", "pending").execute()
+        reports_pending = rep_r.count or 0
+    except Exception:
+        pass
+
+    # ── Nuevos usuarios esta semana ───────────────────────────────────────────
+    new_this_week = weekly_users[-1]["count"] if weekly_users else 0
+
+    return {
+        # Legado (mantiene compatibilidad con el tab de Usuarios)
+        **by_status,
+        # Nuevas métricas
+        "active_today":    active_today_r.count or 0,
+        "with_streak":     streak_r.count or 0,
+        "new_this_week":   new_this_week,
+        "total_posts":     total_posts_r.count or 0,
+        "total_stories":   total_stories_r.count or 0,
+        "reports_pending": reports_pending,
+        "weekly_users":    weekly_users,
+        "daily_content":   daily_content,
+    }

@@ -190,21 +190,172 @@ function NewUsersSection() {
 // ============================================================
 // RESUMEN
 // ============================================================
+// ── Mini bar chart (sin dependencias) ──────────────────────────────────────
+function MiniBarChart({ data, color = "#8B5CF6", height = 60 }: {
+  data: { label: string; value: number }[];
+  color?: string;
+  height?: number;
+}) {
+  const max = Math.max(...data.map(d => d.value), 1);
+  const W = 100 / data.length;
+  return (
+    <svg viewBox={`0 0 100 ${height + 14}`} className="w-full" style={{ overflow: "visible" }}>
+      {data.map((d, i) => {
+        const barH = Math.max((d.value / max) * height, d.value > 0 ? 2 : 0.5);
+        const isLast = i === data.length - 1;
+        return (
+          <g key={i}>
+            <rect x={i * W + W * 0.1} y={height - barH} width={W * 0.8} height={barH} rx={1.5}
+              fill={isLast ? color : color + "66"} />
+            {d.value > 0 && (
+              <text x={i * W + W / 2} y={height - barH - 3} textAnchor="middle" fontSize={4.5}
+                fill={isLast ? color : color + "88"} fontWeight={isLast ? "700" : "400"}>
+                {d.value}
+              </text>
+            )}
+            <text x={i * W + W / 2} y={height + 10} textAnchor="middle" fontSize={4} fill="rgba(255,255,255,0.35)">
+              {d.label}
+            </text>
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
+
+// ── Funnel de conversión ────────────────────────────────────────────────────
+function ConversionFunnel({ stats }: { stats: Record<string, number> }) {
+  const total = (stats.pending_email || 0) + (stats.pending_kyc || 0) + (stats.pending_manual || 0) + (stats.active || 0) + (stats.rejected || 0) + (stats.suspended || 0);
+  const steps = [
+    { label: "Registrados",  value: total,                             color: "#8B5CF6" },
+    { label: "Verificaron email", value: total - (stats.pending_email || 0), color: "#60A5FA" },
+    { label: "Completaron KYC",   value: (stats.pending_manual || 0) + (stats.active || 0), color: "#34D399" },
+    { label: "Activos",           value: stats.active || 0,             color: "#C9A227" },
+  ];
+  return (
+    <div className="space-y-2">
+      {steps.map((s, i) => {
+        const pct = total > 0 ? Math.round((s.value / total) * 100) : 0;
+        return (
+          <div key={i} className="space-y-1">
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-text-muted">{s.label}</span>
+              <span className="font-semibold tabular-nums" style={{ color: s.color }}>{s.value} ({pct}%)</span>
+            </div>
+            <div className="h-2 rounded-full bg-bg-muted overflow-hidden">
+              <div className="h-full rounded-full transition-all duration-700"
+                style={{ width: `${pct}%`, background: s.color }} />
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function StatsTab() {
-  const [userStats, setUserStats] = useState<Record<string, number>>({});
+  const [stats,   setStats]   = useState<any>({});
   const [revenue, setRevenue] = useState<RevenueStats | null>(null);
-  const dolar = useDolarBlue();
+  const [loading, setLoading] = useState(true);
+  const dolar   = useDolarBlue();
   const pricing = usePricingPlans();
-  const monthly = pricing.data?.plans.find((p) => p.id === "monthly");
 
   useEffect(() => {
-    adminApi.stats().then((r) => setUserStats(r.data));
-    paymentsApi.stats().then((r) => setRevenue(r.data));
+    Promise.all([
+      adminApi.stats().then(r => setStats(r.data)),
+      paymentsApi.stats().then(r => setRevenue(r.data)),
+    ]).finally(() => setLoading(false));
   }, []);
 
+  const weeklyUsers:  { label: string; value: number }[] = (stats.weekly_users || []).map((d: any) => ({ label: d.label, value: d.count }));
+  const dailyContent: any[] = stats.daily_content || [];
+
   return (
-    <div className="space-y-6">
-      {/* Ingresos — ARS como primario */}
+    <div className="space-y-5">
+
+      {/* ── Alertas críticas ──────────────────────────────────────── */}
+      {(stats.reports_pending > 0 || stats.pending_manual > 0) && (
+        <div className="flex flex-wrap gap-3">
+          {stats.pending_manual > 0 && (
+            <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-status-warning/40 bg-status-warning/10 text-status-warning text-sm">
+              <AlertCircle size={15} />
+              <span className="font-semibold">{stats.pending_manual}</span>
+              <span>aprobaciones pendientes</span>
+            </div>
+          )}
+          {stats.reports_pending > 0 && (
+            <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-status-error/40 bg-status-error/10 text-status-error text-sm">
+              <AlertCircle size={15} />
+              <span className="font-semibold">{stats.reports_pending}</span>
+              <span>reportes sin revisar</span>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── KPIs principales ──────────────────────────────────────── */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {[
+          { label: "Usuarios activos", value: stats.active || 0, sub: `+${stats.new_this_week || 0} esta semana`, color: "#8B5CF6", icon: "👥" },
+          { label: "Activos hoy",      value: stats.active_today || 0, sub: "usaron la app hoy",   color: "#34D399", icon: "⚡" },
+          { label: "Con racha activa", value: stats.with_streak || 0,  sub: "streak > 0 días",     color: "#C9A227", icon: "🔥" },
+          { label: "Posts totales",    value: stats.total_posts || 0,   sub: `${stats.total_stories || 0} stories activas`, color: "#60A5FA", icon: "📸" },
+        ].map((k, i) => (
+          <Card key={i} className="p-4">
+            <div className="flex items-start justify-between mb-2">
+              <p className="text-text-muted text-[10px] uppercase tracking-widest leading-tight flex-1">{k.label}</p>
+              <span className="text-lg">{k.icon}</span>
+            </div>
+            <p className="text-2xl font-bold tabular-nums" style={{ color: k.color }}>{loading ? "—" : k.value.toLocaleString("es-AR")}</p>
+            <p className="text-[10px] text-text-muted mt-0.5">{k.sub}</p>
+          </Card>
+        ))}
+      </div>
+
+      {/* ── Crecimiento usuarios + actividad contenido ────────────── */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Card className="p-4">
+          <p className="text-xs font-semibold text-text-muted uppercase tracking-widest mb-3">Nuevos usuarios por semana</p>
+          {weeklyUsers.length > 0
+            ? <MiniBarChart data={weeklyUsers} color="#8B5CF6" />
+            : <div className="h-16 bg-bg-muted rounded-xl animate-pulse" />
+          }
+        </Card>
+        <Card className="p-4">
+          <p className="text-xs font-semibold text-text-muted uppercase tracking-widest mb-3">Actividad diaria (últimos 7 días)</p>
+          {dailyContent.length > 0 ? (
+            <div className="space-y-2">
+              {["posts", "reactions", "comments"].map(key => {
+                const data = dailyContent.map((d: any) => ({ label: d.label, value: d[key] }));
+                const colors: Record<string, string> = { posts: "#60A5FA", reactions: "#F87171", comments: "#34D399" };
+                const labels: Record<string, string> = { posts: "Posts", reactions: "Reacciones", comments: "Comentarios" };
+                return (
+                  <div key={key}>
+                    <p className="text-[10px] text-text-muted mb-0.5 flex items-center justify-between">
+                      <span>{labels[key]}</span>
+                      <span className="font-semibold tabular-nums" style={{ color: colors[key] }}>
+                        {data.reduce((s, d) => s + d.value, 0)} total
+                      </span>
+                    </p>
+                    <MiniBarChart data={data} color={colors[key]} height={30} />
+                  </div>
+                );
+              })}
+            </div>
+          ) : <div className="h-24 bg-bg-muted rounded-xl animate-pulse" />}
+        </Card>
+      </div>
+
+      {/* ── Funnel de conversión ──────────────────────────────────── */}
+      <Card className="p-4">
+        <p className="text-xs font-semibold text-text-muted uppercase tracking-widest mb-4">Funnel de conversión</p>
+        {loading
+          ? <div className="space-y-2">{[1,2,3,4].map(i => <div key={i} className="h-6 bg-bg-muted rounded-xl animate-pulse" />)}</div>
+          : <ConversionFunnel stats={stats} />
+        }
+      </Card>
+
+      {/* ── Ingresos ──────────────────────────────────────────────── */}
       {revenue && (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <Card glow className="p-5">
@@ -219,20 +370,20 @@ function StatsTab() {
           </Card>
           <Card className="p-5">
             <p className="text-text-muted text-xs mb-1">Dólar Blue ahora</p>
-            <p className="text-3xl font-bold">{dolar.data ? formatARS(dolar.data.sell) : "-"}</p>
-            <p className="text-text-muted text-xs mt-1">{dolar.data?.source ?? "-"}</p>
+            <p className="text-3xl font-bold">{dolar.data ? formatARS(dolar.data.sell) : "—"}</p>
+            <p className="text-text-muted text-xs mt-1">{dolar.data?.source ?? "—"}</p>
           </Card>
         </div>
       )}
 
-      {/* Breakdown por método */}
+      {/* ── Ingresos por método ───────────────────────────────────── */}
       {revenue && Object.keys(revenue.by_method).length > 0 && (
         <Card className="overflow-hidden">
           <div className="p-4 border-b border-border">
             <h3 className="font-semibold text-sm">Ingresos por método de pago</h3>
           </div>
           <div className="divide-y divide-border">
-            {Object.entries(revenue.by_method).map(([method, data]) => (
+            {Object.entries(revenue.by_method).map(([method, data]: [string, any]) => (
               <div key={method} className="flex items-center justify-between px-4 py-3 text-sm">
                 <span className="capitalize text-text-secondary">{method}</span>
                 <div className="text-right">
@@ -245,12 +396,25 @@ function StatsTab() {
         </Card>
       )}
 
-      {/* Precios vigentes */}
-      {monthly && (
+      {/* ── Usuarios por estado (detalle) ────────────────────────── */}
+      <div>
+        <h3 className="text-xs font-semibold text-text-muted mb-3 uppercase tracking-widest">Estado de usuarios</h3>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+          {["active","pending_email","pending_kyc","pending_manual","suspended","rejected"].map(k => (
+            <Card key={k} className="p-4">
+              <p className="text-text-muted text-[10px] capitalize mb-1">{k.replace(/_/g, " ")}</p>
+              <p className="text-2xl font-bold tabular-nums">{loading ? "—" : stats[k] ?? 0}</p>
+            </Card>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Precios vigentes ──────────────────────────────────────── */}
+      {pricing.data?.plans && (
         <Card className="p-5 border-accent-purple/30 bg-accent-purple/5">
           <h3 className="font-semibold mb-3 text-sm">Precios actuales</h3>
           <div className="grid grid-cols-3 gap-3 text-center">
-            {(pricing.data?.plans ?? []).map((p) => (
+            {pricing.data.plans.map((p: any) => (
               <div key={p.id}>
                 <p className="text-text-muted text-xs mb-1">{p.label}</p>
                 <p className="font-bold">{formatARS(p.price_ars)}</p>
@@ -259,23 +423,10 @@ function StatsTab() {
             ))}
           </div>
           <p className="text-text-muted text-xs mt-3 text-center">
-            Editá estos precios en la pestaña <span className="text-accent-purple">Ajustes → Precios</span>
+            Editá en <span className="text-accent-purple">Ajustes → Precios</span>
           </p>
         </Card>
       )}
-
-      {/* Usuarios por estado */}
-      <div>
-        <h3 className="text-sm font-semibold text-text-muted mb-3 uppercase tracking-wider">Usuarios por estado</h3>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-          {Object.entries(userStats).map(([k, v]) => (
-            <Card key={k} className="p-4">
-              <p className="text-text-muted text-xs capitalize mb-1">{k.replace(/_/g, " ")}</p>
-              <p className="text-2xl font-bold">{v}</p>
-            </Card>
-          ))}
-        </div>
-      </div>
 
       <NewUsersSection />
     </div>
