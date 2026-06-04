@@ -295,6 +295,18 @@ async def create_post_from_storage(body: FromStorageBody, request: Request):
         db.table("posts").update({"media_urls": media_list}).eq("id", post["id"]).execute()
         post["media_urls"] = media_list
 
+    # Notificar menciones en la caption
+    if body.caption:
+        try:
+            from app.utils.mentions import notify_mentions
+            user_r = db.table("users").select("first_name,last_name").eq("id", user_id).maybe_single().execute()
+            name = ""
+            if user_r.data:
+                name = f"{user_r.data.get('first_name','')} {user_r.data.get('last_name','')}".strip()
+            notify_mentions(body.caption, user_id, name or "Alguien", url="/feed")
+        except Exception:
+            pass
+
     return post
 
 

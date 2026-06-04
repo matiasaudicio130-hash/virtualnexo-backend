@@ -5,6 +5,40 @@ from app.db.supabase import get_supabase
 router = APIRouter(prefix="/search", tags=["search"])
 
 
+@router.get("/mentions")
+async def mention_autocomplete(
+    request: Request,
+    q: str = Query(..., min_length=1, max_length=30),
+    limit: int = Query(default=6, ge=1, le=15),
+):
+    """Autocompletado de @menciones: busca usuarios por username o nombre."""
+    payload = _require_auth(request)
+    viewer_id = payload["sub"]
+    db = get_supabase()
+    like = f"{q.lower()}%"
+
+    try:
+        r = db.table("users").select(
+            "id, first_name, last_name, username, profile_photo_url"
+        ).neq("id", viewer_id).eq("status", "active").or_(
+            f"username.ilike.{like},first_name.ilike.{like}"
+        ).limit(limit).execute()
+        users = [
+            {
+                "id":       u["id"],
+                "name":     f"{u.get('first_name','')} {u.get('last_name','')}".strip(),
+                "username": u.get("username") or "",
+                "avatar":   u.get("profile_photo_url"),
+            }
+            for u in r.data or []
+            if u.get("username")  # solo usuarios con username configurado
+        ]
+    except Exception:
+        users = []
+
+    return users
+
+
 @router.get("")
 async def global_search(
     request: Request,

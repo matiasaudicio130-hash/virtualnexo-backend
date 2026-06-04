@@ -1,9 +1,39 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Trash2, Flag, Reply, ChevronDown, ChevronUp } from "lucide-react";
-import { commentsApi } from "@/lib/api";
+import { commentsApi, searchApi } from "@/lib/api";
 import { useAuthStore } from "@/store/authStore";
 import { ProtectedAvatar } from "@/components/ProtectedImage";
+
+const MENTION_TOKEN_RE = /(@[A-Za-z0-9_]{2,30})/g;
+
+// Renderiza texto con @menciones como links dorados clicables
+function CommentText({ content }: { content: string }) {
+  const navigate = useNavigate();
+  MENTION_TOKEN_RE.lastIndex = 0;
+  const parts = content.split(MENTION_TOKEN_RE);
+  return (
+    <>
+      {parts.map((p, i) =>
+        /^@[A-Za-z0-9_]{2,30}$/.test(p) ? (
+          <span key={i} className="font-semibold cursor-pointer"
+            style={{ color: "var(--gold,#C9A227)" }}
+            onClick={async e => {
+              e.stopPropagation();
+              try {
+                const username = p.slice(1);
+                const { data } = await searchApi.search(username, 1);
+                const u = data.users?.find((u: any) => u.username?.toLowerCase() === username.toLowerCase());
+                if (u?.id) navigate(`/profile/${u.id}`);
+              } catch { /* ignore */ }
+            }}>
+            {p}
+          </span>
+        ) : <span key={i}>{p}</span>
+      )}
+    </>
+  );
+}
 
 interface Comment {
   id: string;
@@ -84,7 +114,7 @@ function CommentItem({
             >
               {comment.author.name}
             </button>
-            <span className="text-sm text-text-secondary leading-snug">{comment.content}</span>
+            <span className="text-sm text-text-secondary leading-snug"><CommentText content={comment.content} /></span>
           </div>
 
           {/* Acciones */}
@@ -159,13 +189,48 @@ export function CommentsSection({
   initialCount?: number;
 }) {
   const { user } = useAuthStore();
-  const [comments, setComments] = useState<Comment[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [open, setOpen] = useState(false);
-  const [text, setText] = useState("");
-  const [replyTo, setReplyTo] = useState<Comment | null>(null);
-  const [submitting, setSubmitting] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const [comments,    setComments]    = useState<Comment[]>([]);
+  const [loading,     setLoading]     = useState(false);
+  const [open,        setOpen]        = useState(false);
+  const [text,        setText]        = useState("");
+  const [replyTo,     setReplyTo]     = useState<Comment | null>(null);
+  const [submitting,  setSubmitting]  = useState(false);
+  const inputRef      = useRef<HTMLInputElement>(null);
+
+  // Mention autocomplete
+  const [mentionQuery,   setMentionQuery]   = useState<string | null>(null);
+  const [mentionResults, setMentionResults] = useState<{ id: string; name: string; username: string; avatar?: string }[]>([]);
+  const mentionDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (!mentionQuery) { setMentionResults([]); return; }
+    if (mentionDebounce.current) clearTimeout(mentionDebounce.current);
+    mentionDebounce.current = setTimeout(async () => {
+      try {
+        const { data } = await searchApi.search(mentionQuery, 6);
+        setMentionResults((data.users || []).filter((u: any) => u.username));
+      } catch { setMentionResults([]); }
+    }, 250);
+  }, [mentionQuery]);
+
+  function handleTextChange(val: string) {
+    setText(val);
+    // Detect @word at end of current text
+    const match = val.match(/@([A-Za-z0-9_]{1,30})$/);
+    if (match && match[1].length >= 1) {
+      setMentionQuery(match[1]);
+    } else {
+      setMentionQuery(null);
+    }
+  }
+
+  function insertMention(username: string) {
+    const replaced = text.replace(/@([A-Za-z0-9_]{0,30})$/, `@${username} `);
+    setText(replaced);
+    setMentionQuery(null);
+    setMentionResults([]);
+    inputRef.current?.focus();
+  }
 
   async function load() {
     setLoading(true);
@@ -243,19 +308,49 @@ export function CommentsSection({
                     <button type="button" onClick={() => setReplyTo(null)} className="ml-1 text-text-muted hover:text-text-primary">×</button>
                   </div>
                 )}
-                <div className="flex gap-2">
-                  <input
-                    ref={inputRef}
-                    value={text}
-                    onChange={e => setText(e.target.value)}
-                    placeholder={replyTo ? "Escribe una respuesta..." : "Agrega un comentario..."}
-                    maxLength={500}
-                    className="flex-1 bg-bg-muted/60 border border-border/60 rounded-xl px-3 py-2 text-sm text-text-primary placeholder-text-muted focus:outline-none focus:border-accent-purple/50 transition-colors"
-                  />
+                <div className="flex gap-2 relative">
+                  <div className="flex-1 relative">
+                    <input
+                      ref={inputRef}
+                      value={text}
+                      onChange={e => handleTextChange(e.target.value)}
+                      onKeyDown={e => {
+                        if (e.key === "Escape") { setMentionQuery(null); setMentionResults([]); }
+                      }}
+                      placeholder={replyTo ? "Escribe una respuesta..." : "Agrega un comentario..."}
+                      maxLength={500}
+                      className="w-full bg-bg-muted/60 border border-border/60 rounded-xl px-3 py-2 text-sm text-text-primary placeholder-text-muted focus:outline-none focus:border-accent-purple/50 transition-colors"
+                      style={{ fontSize: "16px" }}
+                    />
+                    {/* Mention autocomplete dropdown */}
+                    {mentionResults.length > 0 && (
+                      <div className="absolute bottom-full left-0 right-0 mb-1.5 bg-bg-card border border-border rounded-xl overflow-hidden shadow-xl z-30">
+                        {mentionResults.map(u => (
+                          <button
+                            key={u.id}
+                            type="button"
+                            onMouseDown={e => { e.preventDefault(); insertMention(u.username); }}
+                            className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-bg-muted transition-colors text-left"
+                          >
+                            <div className="w-7 h-7 rounded-full overflow-hidden bg-bg-muted flex-shrink-0">
+                              {u.avatar
+                                ? <img src={u.avatar} alt="" className="w-full h-full object-cover"/>
+                                : <div className="w-full h-full bg-accent-purple/20"/>
+                              }
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-xs font-semibold truncate">{u.name}</p>
+                              <p className="text-[10px] text-text-muted truncate">@{u.username}</p>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                   <button
                     type="submit"
                     disabled={!text.trim() || submitting}
-                    className="px-3 py-2 bg-accent-purple text-white text-xs rounded-xl disabled:opacity-40 hover:opacity-90 transition-all"
+                    className="px-3 py-2 bg-accent-purple text-white text-xs rounded-xl disabled:opacity-40 hover:opacity-90 transition-all flex-shrink-0"
                   >
                     {submitting ? "..." : "Publicar"}
                   </button>

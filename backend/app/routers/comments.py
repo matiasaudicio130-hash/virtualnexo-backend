@@ -48,6 +48,19 @@ async def add_comment(post_id: str, body: CommentBody, request: Request):
     except ValueError as e:
         raise HTTPException(404, str(e))
 
+    # Notificar a usuarios mencionados en el comentario
+    try:
+        from app.db.supabase import get_supabase
+        from app.utils.mentions import notify_mentions
+        _db = get_supabase()
+        _name_r = _db.table("users").select("first_name,last_name").eq("id", actor_id).maybe_single().execute()
+        actor_display = ""
+        if _name_r.data:
+            actor_display = f"{_name_r.data.get('first_name','')} {_name_r.data.get('last_name','')}".strip()
+        notify_mentions(body.content, actor_id, actor_display or "Alguien", url="/feed")
+    except Exception:
+        pass
+
     # Push al dueño del post (o al autor del comentario padre si es reply)
     try:
         from app.db.supabase import get_supabase

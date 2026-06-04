@@ -38,26 +38,41 @@ interface Props {
   initialSaved?: boolean;
 }
 
-const HASHTAG_RE = /(#[A-Za-z0-9À-ɏ_]{1,50})/g;
+const TOKEN_RE = /(#[A-Za-z0-9À-ɏ_]{1,50}|@[A-Za-z0-9_]{2,30})/g;
 
-function CaptionText({ text, onTag }: { text: string; onTag: (tag: string) => void }) {
-  const parts = text.split(HASHTAG_RE);
+function CaptionText({
+  text, onTag, onMention,
+}: {
+  text: string;
+  onTag: (tag: string) => void;
+  onMention: (username: string) => void;
+}) {
+  // Reset lastIndex between calls since it's a global regex
+  TOKEN_RE.lastIndex = 0;
+  const parts = text.split(TOKEN_RE);
   return (
     <>
-      {parts.map((part, i) =>
-        HASHTAG_RE.test(part) ? (
-          <span
-            key={i}
-            className="cursor-pointer font-medium"
-            style={{ color: "var(--gold,#C9A227)" }}
-            onClick={e => { e.stopPropagation(); onTag(part.slice(1)); }}
-          >
-            {part}
-          </span>
-        ) : (
-          <span key={i}>{part}</span>
-        )
-      )}
+      {parts.map((part, i) => {
+        if (/^#[A-Za-z0-9À-ɏ_]{1,50}$/.test(part)) {
+          return (
+            <span key={i} className="cursor-pointer font-medium"
+              style={{ color: "var(--gold,#C9A227)" }}
+              onClick={e => { e.stopPropagation(); onTag(part.slice(1)); }}>
+              {part}
+            </span>
+          );
+        }
+        if (/^@[A-Za-z0-9_]{2,30}$/.test(part)) {
+          return (
+            <span key={i} className="cursor-pointer font-semibold"
+              style={{ color: "var(--gold,#C9A227)" }}
+              onClick={e => { e.stopPropagation(); onMention(part.slice(1)); }}>
+              {part}
+            </span>
+          );
+        }
+        return <span key={i}>{part}</span>;
+      })}
     </>
   );
 }
@@ -321,6 +336,15 @@ export function PostCard({ post, currentUserId, onDelete, initialSaved = false }
           <CaptionText
             text={post.caption}
             onTag={tag => navigate(`/explore?tab=hashtag&tag=${encodeURIComponent(tag)}`)}
+            onMention={async username => {
+              try {
+                const { searchApi } = await import("@/lib/api");
+                const { data } = await searchApi.search(username, 1);
+                const u = data.users?.find((u: any) => u.username?.toLowerCase() === username.toLowerCase());
+                if (u?.id) navigate(`/profile/${u.id}`);
+                else navigate(`/explore?q=${encodeURIComponent("@" + username)}`);
+              } catch { navigate(`/explore`); }
+            }}
           />
         </p>
       )}
