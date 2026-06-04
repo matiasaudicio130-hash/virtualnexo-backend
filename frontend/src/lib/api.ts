@@ -399,3 +399,8 @@ export const searchApi = {
 export const analyticsApi = {
   overview: () => api.get("/analytics/overview"),
 };
+
+export const hashtagsApi = {
+  trending:  (days = 7, limit = 20)         => api.get("/hashtags/trending", { params: { days, limit } }),
+  posts:     (tag: string, offset = 0, limit = 24) => api.get(`/hashtags/${encodeURIComponent(tag)}/posts`, { params: { offset, limit } }),
+};

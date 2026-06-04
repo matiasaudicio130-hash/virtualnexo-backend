@@ -1,16 +1,19 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { X } from "lucide-react";
-import { MapPin, MagnifyingGlass, Clock, UserCircle } from "@phosphor-icons/react";
+import { MapPin, MagnifyingGlass, Clock, UserCircle, Hash } from "@phosphor-icons/react";
 import { useGeolocation } from "@/hooks/useGeolocation";
 import { NearbyUsers } from "@/components/NearbyUsers";
 import { ProfileSuggestions } from "@/components/ProfileSuggestions";
 import { BottomNav } from "@/components/BottomNav";
 import { useAuthStore } from "@/store/authStore";
-import { searchApi, followsApi } from "@/lib/api";
+import { searchApi, followsApi, hashtagsApi } from "@/lib/api";
 import { Compass, CalendarBlank, Airplane, Tag } from "@phosphor-icons/react";
 
-type Tab = "personas" | "interes" | "eventos" | "viaje";
+type Tab = "personas" | "interes" | "eventos" | "viaje" | "hashtag";
+
+interface TrendingTag { tag: string; count: number; }
+interface HashtagPost { id: string; type: string; caption: string; thumb?: string; author: { id: string; name: string; }; }
 
 const SEEKING_TAGS = [
   { id: "conexion_real",        label: "Conexión real" },
@@ -71,15 +74,44 @@ export default function Explore() {
   const debounceRef  = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Tabs
-  const urlTab = searchParams.get("tab") as Tab | null;
-  const urlTag = searchParams.get("tag") || "";
-  const [tab, setTab]         = useState<Tab>(urlTab ?? "personas");
+  const urlTab       = searchParams.get("tab") as Tab | null;
+  const urlTag       = searchParams.get("tag") || "";
+  const [tab, setTab]             = useState<Tab>(urlTab ?? "personas");
   const [activeTag, setActiveTag] = useState<string>(urlTag);
 
+  // Trending hashtags
+  const [trending,        setTrending]        = useState<TrendingTag[]>([]);
+  const [hashtagPosts,    setHashtagPosts]     = useState<HashtagPost[]>([]);
+  const [hashtagLoading,  setHashtagLoading]   = useState(false);
+  const [activeHashtag,   setActiveHashtag]    = useState(urlTab === "hashtag" ? urlTag : "");
+
   useEffect(() => {
-    if (urlTab) setTab(urlTab);
+    if (urlTab) setTab(urlTab as Tab);
     if (urlTag) setActiveTag(urlTag);
+    if (urlTab === "hashtag" && urlTag) setActiveHashtag(urlTag);
   }, []);
+
+  // Load trending on mount
+  useEffect(() => {
+    hashtagsApi.trending().then(r => setTrending(r.data)).catch(() => {});
+  }, []);
+
+  // Load hashtag posts when activeHashtag changes
+  useEffect(() => {
+    if (!activeHashtag) return;
+    setHashtagLoading(true);
+    hashtagsApi.posts(activeHashtag)
+      .then(r => { setHashtagPosts(r.data.posts); setHashtagLoading(false); })
+      .catch(() => setHashtagLoading(false));
+  }, [activeHashtag]);
+
+  function goToHashtag(tag: string) {
+    setActiveHashtag(tag);
+    setTab("hashtag");
+    setQuery("");
+    setResults(null);
+    setSearchParams({ tab: "hashtag", tag });
+  }
 
   const coords = manualCoords ?? geoCoords;
 
@@ -143,16 +175,22 @@ export default function Explore() {
   if (!user) return null;
 
   const tabs: { id: Tab; label: string; Icon: any }[] = [
-    { id: "personas", label: "Personas",    Icon: Compass       },
-    { id: "interes",  label: "Intereses",   Icon: Tag           },
-    { id: "eventos",  label: "Eventos",     Icon: CalendarBlank },
-    { id: "viaje",    label: "Modo Viaje",  Icon: Airplane      },
+    { id: "personas", label: "Personas",   Icon: Compass       },
+    { id: "interes",  label: "Intereses",  Icon: Tag           },
+    { id: "hashtag",  label: "Trending",   Icon: Hash          },
+    { id: "eventos",  label: "Eventos",    Icon: CalendarBlank },
+    { id: "viaje",    label: "Modo Viaje", Icon: Airplane      },
   ];
 
   function switchTab(t: Tab) {
     setTab(t);
-    if (t !== "interes") setActiveTag("");
-    setSearchParams(t === "interes" && activeTag ? { tab: t, tag: activeTag } : { tab: t });
+    if (t !== "interes")  setActiveTag("");
+    if (t !== "hashtag")  setActiveHashtag("");
+    setSearchParams(
+      t === "interes" && activeTag  ? { tab: t, tag: activeTag }   :
+      t === "hashtag" && activeHashtag ? { tab: t, tag: activeHashtag } :
+      { tab: t }
+    );
     setQuery("");
     setResults(null);
     setInputFocused(false);
@@ -400,6 +438,16 @@ export default function Explore() {
               <InteresesTab activeTag={activeTag} onSelectTag={selectTag} />
             )}
 
+            {tab === "hashtag" && (
+              <HashtagTab
+                trending={trending}
+                posts={hashtagPosts}
+                loading={hashtagLoading}
+                activeTag={activeHashtag}
+                onSelectTag={goToHashtag}
+                onNavigate={navigate}
+              />
+            )}
             {tab === "eventos" && <EventosTab navigate={navigate} />}
             {tab === "viaje"   && <ViajeTab   navigate={navigate} />}
           </main>
@@ -412,6 +460,109 @@ export default function Explore() {
 }
 
 // ── Sub-tabs ──────────────────────────────────────────────────────────────────
+
+// ── Hashtag tab ───────────────────────────────────────────────────────────────
+function HashtagTab({
+  trending, posts, loading, activeTag, onSelectTag, onNavigate,
+}: {
+  trending:    TrendingTag[];
+  posts:       HashtagPost[];
+  loading:     boolean;
+  activeTag:   string;
+  onSelectTag: (tag: string) => void;
+  onNavigate:  ReturnType<typeof useNavigate>;
+}) {
+  return (
+    <div className="px-4 pt-4 space-y-5">
+      {/* Trending chips */}
+      <div>
+        <p className="text-[10px] text-text-muted uppercase tracking-widest mb-3">
+          Trending esta semana
+        </p>
+        {trending.length === 0 ? (
+          <p className="text-xs text-text-muted/60">Todavía no hay hashtags populares.</p>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            {trending.map(({ tag, count }) => (
+              <button
+                key={tag}
+                onClick={() => onSelectTag(tag)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-medium transition-all ${
+                  activeTag === tag
+                    ? "text-[#0a0a0f] border-transparent"
+                    : "border-border text-text-muted hover:border-[rgba(201,162,39,0.4)]"
+                }`}
+                style={activeTag === tag ? { background: "var(--gold,#C9A227)" } : {}}
+              >
+                <span style={{ color: activeTag === tag ? "#0a0a0f" : "var(--gold,#C9A227)" }}>#</span>
+                {tag}
+                <span
+                  className="text-[9px] opacity-60 tabular-nums"
+                  style={{ color: activeTag === tag ? "#0a0a0f" : undefined }}
+                >
+                  {count}
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Posts del hashtag activo */}
+      {activeTag && (
+        <div>
+          <p className="text-[10px] text-text-muted uppercase tracking-widest mb-3">
+            #{activeTag}
+          </p>
+          {loading ? (
+            <div className="grid grid-cols-3 gap-1">
+              {[...Array(6)].map((_, i) => (
+                <div
+                  key={i}
+                  className="aspect-square rounded-lg"
+                  style={{ background: "#1a1815", animation: "aura-pulse 2s ease-in-out infinite" }}
+                />
+              ))}
+            </div>
+          ) : posts.length === 0 ? (
+            <p className="text-sm text-text-muted text-center py-8">
+              Ningún post usa <strong>#{activeTag}</strong> todavía.
+            </p>
+          ) : (
+            <div className="grid grid-cols-3 gap-1">
+              {posts.map(p => (
+                <button
+                  key={p.id}
+                  onClick={() => onNavigate(`/profile/${p.author.id}`)}
+                  className="aspect-square rounded-lg overflow-hidden bg-bg-muted relative group"
+                >
+                  {p.thumb ? (
+                    <img src={p.thumb} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center p-2">
+                      <p className="text-[9px] text-text-muted text-center line-clamp-4 leading-tight">
+                        {p.caption}
+                      </p>
+                    </div>
+                  )}
+                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-1.5">
+                    <p className="text-[9px] text-white truncate w-full">{p.author.name}</p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {!activeTag && trending.length > 0 && (
+        <p className="text-xs text-text-muted text-center py-4">
+          Tocá un hashtag para ver sus publicaciones
+        </p>
+      )}
+    </div>
+  );
+}
 
 function InteresesTab({ activeTag, onSelectTag }: { activeTag: string; onSelectTag: (id: string) => void }) {
   return (

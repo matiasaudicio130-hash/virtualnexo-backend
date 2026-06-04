@@ -36,6 +36,30 @@ interface Props {
   onDelete?: (id: string) => void;
 }
 
+const HASHTAG_RE = /(#[A-Za-z0-9À-ɏ_]{1,50})/g;
+
+function CaptionText({ text, onTag }: { text: string; onTag: (tag: string) => void }) {
+  const parts = text.split(HASHTAG_RE);
+  return (
+    <>
+      {parts.map((part, i) =>
+        HASHTAG_RE.test(part) ? (
+          <span
+            key={i}
+            className="cursor-pointer font-medium"
+            style={{ color: "var(--gold,#C9A227)" }}
+            onClick={e => { e.stopPropagation(); onTag(part.slice(1)); }}
+          >
+            {part}
+          </span>
+        ) : (
+          <span key={i}>{part}</span>
+        )
+      )}
+    </>
+  );
+}
+
 export function PostCard({ post, currentUserId, onDelete }: Props) {
   const navigate = useNavigate();
   const [reactions, setReactions] = useState(post.reactions);
@@ -226,7 +250,10 @@ export function PostCard({ post, currentUserId, onDelete }: Props) {
               ? `@${(post.author as any).username}`
               : post.author.name?.split(" ")[0]}
           </span>
-          {post.caption}
+          <CaptionText
+            text={post.caption}
+            onTag={tag => navigate(`/explore?tab=hashtag&tag=${encodeURIComponent(tag)}`)}
+          />
         </p>
       )}
 

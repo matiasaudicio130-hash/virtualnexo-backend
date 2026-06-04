@@ -11,7 +11,8 @@ from app.routers import auth, kyc, admin, exchange, payments, settings as settin
 from app.routers import stripe_router, reports, payouts, media, feed, reviews, ads, travel, messaging, notifications, profiles, comments, push, highlights, events, discovery
 from app.routers import two_factor, sessions as sessions_router, follows, groups, albums, couples
 from app.routers import search as search_router
-from app.routers import analytics as analytics_router
+from app.routers import analytics  as analytics_router
+from app.routers import hashtags   as hashtags_router
 
 settings = get_settings()
 
@@ -66,6 +67,7 @@ app.include_router(albums.router,          prefix="/api/v1")
 app.include_router(couples.router,         prefix="/api/v1")
 app.include_router(search_router.router,   prefix="/api/v1")
 app.include_router(analytics_router.router, prefix="/api/v1")
+app.include_router(hashtags_router.router,  prefix="/api/v1")
 
 
 @app.get("/health")
