@@ -34,6 +34,7 @@ interface Props {
   post: Post & { media_urls?: any[]; save_count?: number; allow_share?: boolean };
   currentUserId: string;
   onDelete?: (id: string) => void;
+  initialSaved?: boolean;
 }
 
 const HASHTAG_RE = /(#[A-Za-z0-9À-ɏ_]{1,50})/g;
@@ -60,13 +61,13 @@ function CaptionText({ text, onTag }: { text: string; onTag: (tag: string) => vo
   );
 }
 
-export function PostCard({ post, currentUserId, onDelete }: Props) {
+export function PostCard({ post, currentUserId, onDelete, initialSaved = false }: Props) {
   const navigate = useNavigate();
   const [reactions, setReactions] = useState(post.reactions);
   const [myReaction, setMyReaction] = useState(post.viewer_reaction);
   const [loading, setLoading]     = useState(false);
   const [showMenu, setShowMenu]   = useState(false);
-  const [saved, setSaved]         = useState(false);
+  const [saved, setSaved]         = useState(initialSaved);
   const [showShare, setShowShare] = useState(false);
   const [pollVotes, setPollVotes] = useState<number[]>(
     (post as any).extra_data?.poll?.votes ?? []

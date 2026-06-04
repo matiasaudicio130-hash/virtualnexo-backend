@@ -30,6 +30,7 @@ import Events      from "@/pages/Events";
 import Explore     from "@/pages/Explore";
 import Groups      from "@/pages/Groups";
 import Analytics   from "@/pages/Analytics";
+import Saved       from "@/pages/Saved";
 
 // Checkout
 import Checkout from "@/pages/Checkout";
@@ -80,6 +81,7 @@ export default function App() {
         <Route path="/explore"  element={<Explore />} />
         <Route path="/groups"    element={<Groups />} />
         <Route path="/analytics" element={<Analytics />} />
+        <Route path="/saved"     element={<Saved />} />
         <Route path="/checkout" element={<Checkout />} />
         <Route path="/checkout/pay" element={<CheckoutPay />} />
         <Route path="/checkout/success" element={<CheckoutSuccess />} />
