@@ -316,12 +316,15 @@ export default function Messages() {
   const [params] = useSearchParams();
   const { user } = useAuthStore();
   usePresenceHeartbeat(); // mantiene el usuario como "online"
-  const [tab, setTab]                     = useState<"messages" | "matches" | "groups">("messages");
+  const [tab, setTab]                     = useState<"messages" | "matches" | "groups" | "requests">("messages");
   const [conversations, setConversations] = useState<any[]>([]);
   const [matches, setMatches]             = useState<any[]>([]);
+  const [requests, setRequests]           = useState<any[]>([]);
   const [activeConv, setActiveConv]       = useState<any | null>(null);
   const [loading, setLoading]             = useState(true);
   const [matchesLoading, setMatchesLoading] = useState(false);
+  const [requestAction, setRequestAction] = useState<string | null>(null);
+  const [requestSentMsg, setRequestSentMsg] = useState("");
 
   useScreenCapture({ warn: true });
 
@@ -330,10 +333,23 @@ export default function Messages() {
       .then(r => { setConversations(r.data); setLoading(false); })
       .catch(() => setLoading(false));
 
-    const withUser = params.get("with");
-    if (withUser && user) {
-      messagingApi.startConversation(withUser)
-        .then(r => setActiveConv(r.data))
+    // Cargar solicitudes de mensaje
+    messagingApi.messageRequests()
+      .then(r => setRequests(r.data.requests || []))
+      .catch(() => {});
+
+    const withUser  = params.get("with");
+    const startUser = params.get("start");
+    const target    = withUser || startUser;
+    if (target && user) {
+      messagingApi.startConversation(target)
+        .then(r => {
+          if (r.data.status === "request_sent") {
+            setRequestSentMsg("Tu solicitud fue enviada. Si te acepta, podrán chatear.");
+          } else if (r.data.status === "active" || r.data.id) {
+            setActiveConv(r.data);
+          }
+        })
         .catch(() => {});
     }
   }, []);
@@ -361,22 +377,28 @@ export default function Messages() {
             <h1 className="font-bold">Bandeja</h1>
           </div>
           {/* Pestañas */}
-          <div className="flex border-b border-border -mx-4 px-4">
+          <div className="flex border-b border-border -mx-4 px-4 overflow-x-auto scrollbar-none">
             {[
-              { id: "messages" as const, label: "Mensajes", icon: <MessageSquare size={14} /> },
-              { id: "groups"   as const, label: "Grupos",   icon: <Users size={14} /> },
-              { id: "matches"  as const, label: "Matches",  icon: <Heart size={14} /> },
+              { id: "messages"  as const, label: "Mensajes",    icon: <MessageSquare size={14} /> },
+              { id: "groups"    as const, label: "Grupos",      icon: <Users size={14} /> },
+              { id: "matches"   as const, label: "Matches",     icon: <Heart size={14} /> },
+              { id: "requests"  as const, label: "Solicitudes", icon: <User size={14} />, badge: requests.length },
             ].map(t => (
               <button
                 key={t.id}
                 onClick={() => setTab(t.id)}
-                className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 transition-all -mb-px ${
+                className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 transition-all -mb-px whitespace-nowrap flex-shrink-0 relative ${
                   tab === t.id
                     ? "border-accent-purple text-accent-purple"
                     : "border-transparent text-text-muted hover:text-text-primary"
                 }`}
               >
                 {t.icon} {t.label}
+                {(t as any).badge > 0 && (
+                  <span className="absolute -top-0.5 -right-1 w-4 h-4 rounded-full bg-status-error text-white text-[9px] font-bold flex items-center justify-center">
+                    {(t as any).badge}
+                  </span>
+                )}
               </button>
             ))}
           </div>
@@ -459,6 +481,79 @@ export default function Messages() {
         <main className="flex-1 max-w-lg mx-auto w-full overflow-hidden">
           <GroupsSection />
         </main>
+
+      ) : tab === "requests" ? (
+        /* ── Solicitudes de mensaje ─────────────────────── */
+        <main className="flex-1 max-w-lg mx-auto w-full pb-[80px]">
+          {requests.length === 0 ? (
+            <div className="text-center py-16 text-text-muted px-6">
+              <User size={36} className="mx-auto mb-3 opacity-30" />
+              <p className="font-medium">Sin solicitudes pendientes</p>
+              <p className="text-sm mt-1 text-text-muted/70">
+                Cuando alguien que no te sigue quiera escribirte, aparecerá acá.
+              </p>
+            </div>
+          ) : (
+            <div className="divide-y divide-border">
+              {requests.map((req: any) => (
+                <div key={req.id} className="flex items-start gap-3 px-4 py-4">
+                  <button onClick={() => navigate(`/profile/${req.from_id}`)} className="flex-shrink-0">
+                    <div className="w-11 h-11 rounded-full overflow-hidden bg-bg-muted border border-border/40">
+                      {req.from_avatar
+                        ? <img src={req.from_avatar} alt="" className="w-full h-full object-cover" />
+                        : <div className="w-full h-full bg-accent-purple/15 flex items-center justify-center">
+                            <User size={18} className="text-accent-purple" />
+                          </div>
+                      }
+                    </div>
+                  </button>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold">{req.from_name || "Usuario"}</p>
+                    {req.first_message && (
+                      <p className="text-xs text-text-muted mt-0.5 line-clamp-2">"{req.first_message}"</p>
+                    )}
+                    <p className="text-[10px] text-text-muted mt-1">
+                      {req.created_at ? new Date(req.created_at).toLocaleDateString("es-AR", { day: "numeric", month: "short" }) : ""}
+                    </p>
+                    <div className="flex gap-2 mt-2.5">
+                      <button
+                        disabled={requestAction === req.from_id}
+                        onClick={async () => {
+                          setRequestAction(req.from_id);
+                          try {
+                            const { data } = await messagingApi.acceptRequest(req.from_id);
+                            setRequests(prev => prev.filter(r => r.from_id !== req.from_id));
+                            setActiveConv({ ...data, other_user: { id: req.from_id, first_name: req.from_name?.split(" ")[0] || "", profile_photo_url: req.from_avatar }, unread_count: 0 });
+                          } catch { /* ignore */ }
+                          setRequestAction(null);
+                        }}
+                        className="flex-1 py-2 rounded-xl text-xs font-semibold transition-all disabled:opacity-50"
+                        style={{ background: "var(--gold,#C9A227)", color: "#0a0a0f" }}
+                      >
+                        {requestAction === req.from_id ? "…" : "Aceptar"}
+                      </button>
+                      <button
+                        disabled={requestAction === req.from_id}
+                        onClick={async () => {
+                          setRequestAction(req.from_id);
+                          try {
+                            await messagingApi.rejectRequest(req.from_id);
+                            setRequests(prev => prev.filter(r => r.from_id !== req.from_id));
+                          } catch { /* ignore */ }
+                          setRequestAction(null);
+                        }}
+                        className="px-4 py-2 rounded-xl border border-border text-xs text-text-muted hover:border-status-error/40 hover:text-status-error transition-colors disabled:opacity-50"
+                      >
+                        Rechazar
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </main>
+
       ) : (
         /* Pestaña Matches */
         <main className="flex-1 max-w-lg mx-auto w-full pb-[80px]">
@@ -518,6 +613,16 @@ export default function Messages() {
             })}
           </div>
         </main>
+      )}
+
+      {/* Toast: solicitud enviada */}
+      {requestSentMsg && (
+        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 pointer-events-none animate-slide-up">
+          <div className="flex items-center gap-3 px-5 py-3 bg-bg-card border border-accent-purple/30 rounded-2xl shadow-lg">
+            <User size={18} className="text-accent-purple flex-shrink-0" />
+            <p className="text-sm text-text-primary max-w-xs">{requestSentMsg}</p>
+          </div>
+        </div>
       )}
 
       {!activeConv && <BottomNav />}

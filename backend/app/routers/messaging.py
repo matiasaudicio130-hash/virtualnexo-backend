@@ -59,28 +59,140 @@ async def list_conversations(request: Request):
     return messaging_service.get_conversations(payload["sub"])
 
 
+class MessageRequestBody(BaseModel):
+    first_message: str = ""  # Mensaje que se envía junto con la solicitud
+
+
 @router.post("/conversations/start")
 async def start_conversation(body: ConversationStartBody, request: Request):
     """Obtiene o inicia una conversación con otro usuario."""
     from app.db.supabase import get_supabase
-    payload = _require_auth(request)
-    user_id = payload["sub"]
-    if body.recipient_id == user_id:
+    import uuid as _uuid
+
+    payload   = _require_auth(request)
+    user_id   = payload["sub"]
+    recipient = body.recipient_id
+
+    if recipient == user_id:
         raise HTTPException(400, "No podés chatear con vos mismo")
+
+    db = get_supabase()
+
+    # ── Verificar configuración de mensajes del destinatario ─────────────────
     try:
-        conv = messaging_service.get_or_create_conversation(user_id, body.recipient_id)
-        # Enrich with other_user so the frontend can render name/photo immediately
-        try:
-            db = get_supabase()
-            other_r = db.table("users").select(
-                "id,first_name,last_name,profile_photo_url,profile_type,province"
-            ).eq("id", body.recipient_id).execute()
-            other = other_r.data[0] if other_r.data else None
-        except Exception:
-            other = None
-        return {**conv, "other_user": other, "unread_count": 0, "blocked_me": False}
+        recip_r = db.table("users").select(
+            "id,first_name,last_name,profile_photo_url,profile_type,province,profile_extended,status"
+        ).eq("id", recipient).maybe_single().execute()
+        recip_data = recip_r.data or {}
+    except Exception:
+        recip_data = {}
+
+    msg_settings = (recip_data.get("profile_extended") or {}).get("message_settings", "everyone")
+
+    if msg_settings == "nobody":
+        raise HTTPException(403, "Este usuario no acepta mensajes de nadie")
+
+    if msg_settings == "followers":
+        follow_r = db.table("user_follows").select("id").eq("follower_id", user_id).eq("following_id", recipient).maybe_single().execute()
+        if not follow_r.data:
+            # Crear solicitud de mensaje en lugar de conversación directa
+            sender_r = db.table("users").select("first_name,last_name,profile_photo_url").eq("id", user_id).maybe_single().execute()
+            sender   = sender_r.data or {}
+
+            req_id   = str(_uuid.uuid4())
+            new_req  = {
+                "id":            req_id,
+                "from_id":       user_id,
+                "from_name":     f"{sender.get('first_name','')} {sender.get('last_name','')}".strip(),
+                "from_avatar":   sender.get("profile_photo_url"),
+                "first_message": (body.first_message if hasattr(body, 'first_message') else "")[:300],
+                "created_at":    __import__("datetime").datetime.utcnow().isoformat(),
+            }
+
+            # Merge en profile_extended.message_requests
+            ext      = recip_data.get("profile_extended") or {}
+            requests = [r for r in (ext.get("message_requests") or []) if r.get("from_id") != user_id]
+            requests.insert(0, new_req)
+            ext["message_requests"] = requests[:50]  # Max 50 solicitudes pendientes
+            db.table("users").update({"profile_extended": ext}).eq("id", recipient).execute()
+
+            return {
+                "status":  "request_sent",
+                "request_id": req_id,
+                "message": "Tu solicitud fue enviada. Si el usuario la acepta podrán chatear.",
+            }
+
+    # ── Flujo normal ─────────────────────────────────────────────────────────
+    try:
+        conv  = messaging_service.get_or_create_conversation(user_id, recipient)
+        other = recip_data or None
+        return {**conv, "other_user": other, "unread_count": 0, "blocked_me": False, "status": "active"}
     except PermissionError as e:
         raise HTTPException(403, str(e))
+
+
+# ── Solicitudes de mensaje ───────────────────────────────────────────────────
+@router.get("/requests")
+async def get_message_requests(request: Request):
+    """Lista las solicitudes de mensaje pendientes del usuario."""
+    from app.db.supabase import get_supabase
+    payload = _require_auth(request)
+    user_id = payload["sub"]
+    db      = get_supabase()
+
+    ext_r = db.table("users").select("profile_extended").eq("id", user_id).maybe_single().execute()
+    ext   = (ext_r.data.get("profile_extended") or {}) if ext_r.data else {}
+    reqs  = ext.get("message_requests") or []
+    return {"requests": reqs, "count": len(reqs)}
+
+
+@router.post("/requests/{from_id}/accept", status_code=201)
+async def accept_message_request(from_id: str, request: Request):
+    """Acepta una solicitud: crea la conversación y elimina la solicitud."""
+    from app.db.supabase import get_supabase
+    payload = _require_auth(request)
+    user_id = payload["sub"]
+    db      = get_supabase()
+
+    ext_r = db.table("users").select("profile_extended").eq("id", user_id).maybe_single().execute()
+    ext   = (ext_r.data.get("profile_extended") or {}) if ext_r.data else {}
+    reqs  = ext.get("message_requests") or []
+
+    matched = next((r for r in reqs if r.get("from_id") == from_id), None)
+    if not matched:
+        raise HTTPException(404, "Solicitud no encontrada")
+
+    # Eliminar la solicitud
+    ext["message_requests"] = [r for r in reqs if r.get("from_id") != from_id]
+    db.table("users").update({"profile_extended": ext}).eq("id", user_id).execute()
+
+    # Crear conversación
+    conv = messaging_service.get_or_create_conversation(user_id, from_id)
+
+    # Si había un primer mensaje, enviarlo como mensaje real
+    first_msg = (matched.get("first_message") or "").strip()
+    if first_msg:
+        try:
+            messaging_service.send_message(from_id, user_id, first_msg)
+        except Exception:
+            pass
+
+    return {**conv, "status": "active", "accepted": True}
+
+
+@router.delete("/requests/{from_id}/reject")
+async def reject_message_request(from_id: str, request: Request):
+    """Rechaza y elimina una solicitud de mensaje."""
+    from app.db.supabase import get_supabase
+    payload = _require_auth(request)
+    user_id = payload["sub"]
+    db      = get_supabase()
+
+    ext_r = db.table("users").select("profile_extended").eq("id", user_id).maybe_single().execute()
+    ext   = (ext_r.data.get("profile_extended") or {}) if ext_r.data else {}
+    ext["message_requests"] = [r for r in (ext.get("message_requests") or []) if r.get("from_id") != from_id]
+    db.table("users").update({"profile_extended": ext}).eq("id", user_id).execute()
+    return {"rejected": True}
 
 
 @router.get("/conversations/{conv_id}/messages")

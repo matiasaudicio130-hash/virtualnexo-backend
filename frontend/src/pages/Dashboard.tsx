@@ -52,6 +52,9 @@ export default function Dashboard() {
   const [showViewers, setShowViewers]     = useState(false);
   const [showEditProfile, setShowEditProfile] = useState(false);
   const push = usePushNotifications();
+  const [msgSetting, setMsgSetting] = useState<"everyone"|"followers"|"nobody">(
+    ((user as any)?.profile_extended?.message_settings ?? "everyone") as "everyone"|"followers"|"nobody"
+  );
   const [anonMode, setAnonMode] = useState(false);
 
   useScreenCapture({ warn: true });
@@ -198,6 +201,41 @@ export default function Dashboard() {
                     {push.state === "denied" ? "Bloqueadas en el navegador" : "Activar notificaciones"}
                   </button>
                 )}
+              </div>
+
+              {/* Mensajes — quién puede escribirte */}
+              <div>
+                <p className="text-xs text-text-muted uppercase tracking-widest mb-2 font-medium">¿Quién puede escribirte?</p>
+                <div className="flex gap-2">
+                  {([
+                    { id: "everyone",  label: "Todos"       },
+                    { id: "followers", label: "Seguidores"  },
+                    { id: "nobody",    label: "Nadie"       },
+                  ] as const).map(({ id, label }) => (
+                    <button
+                      key={id}
+                      onClick={async () => {
+                        setMsgSetting(id);
+                        try {
+                          const { extendedProfileApi } = await import("@/lib/api");
+                          await extendedProfileApi.update({ message_settings: id });
+                        } catch { /* ignore */ }
+                      }}
+                      className={`flex-1 py-1.5 rounded-lg text-xs font-medium border transition-all ${
+                        msgSetting === id
+                          ? "border-accent-purple/60 bg-accent-purple/10 text-accent-purple"
+                          : "border-border text-text-muted hover:border-accent-purple/30"
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-[10px] text-text-muted mt-1.5">
+                  {msgSetting === "followers" ? "Los demás verán un botón para enviarte una solicitud." :
+                   msgSetting === "nobody"    ? "Nadie puede iniciarte una conversación nueva." :
+                   "Cualquier usuario verificado puede escribirte."}
+                </p>
               </div>
 
               {/* Idioma */}

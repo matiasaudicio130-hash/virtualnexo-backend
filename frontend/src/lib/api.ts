@@ -95,8 +95,11 @@ export const pricingApi = {
 
 export const messagingApi = {
   conversations: () => api.get("/messages/conversations"),
-  startConversation: (recipient_id: string) =>
-    api.post("/messages/conversations/start", { recipient_id }),
+  startConversation: (recipient_id: string, first_message = "") =>
+    api.post("/messages/conversations/start", { recipient_id, first_message }),
+  messageRequests:   ()                   => api.get("/messages/requests"),
+  acceptRequest:     (from_id: string)    => api.post(`/messages/requests/${from_id}/accept`),
+  rejectRequest:     (from_id: string)    => api.delete(`/messages/requests/${from_id}/reject`),
   getMessages: (conv_id: string, params?: object) =>
     api.get(`/messages/conversations/${conv_id}/messages`, { params }),
   sendMessage: (conv_id: string, body: object) =>
