@@ -3,7 +3,9 @@ import { useNavigate } from "react-router-dom";
 import type { LucideIcon } from "lucide-react";
 import { ChevronLeft, TrendingUp, Users, Heart, MessageCircle, Bookmark, Eye, BarChart2, Zap } from "lucide-react";
 import { analyticsApi } from "@/lib/api";
-import { BottomNav } from "@/components/BottomNav";
+import { useAuthStore } from "@/store/authStore";
+import { BottomNav }    from "@/components/BottomNav";
+import { BadgeGrid }    from "@/components/BadgeDisplay";
 
 const GOLD = "var(--gold,#C9A227)";
 
@@ -132,6 +134,7 @@ function Skeleton({ className }: { className?: string }) {
 // ── Main page ─────────────────────────────────────────────────────────────────
 export default function Analytics() {
   const navigate  = useNavigate();
+  const { user }  = useAuthStore();
   const [data,    setData]    = useState<Overview | null>(null);
   const [loading, setLoading] = useState(true);
   const [error,   setError]   = useState("");
@@ -346,6 +349,16 @@ export default function Analytics() {
               <BarChart2 size={36} className="mx-auto mb-3 opacity-20" />
               <p className="text-sm text-text-muted">Publicá contenido para ver tus estadísticas</p>
             </div>
+          )}
+
+          {/* ── Logros / Badges ────────────────────────────────────── */}
+          {user && (
+            <section
+              className="rounded-2xl p-4"
+              style={{ background: "#0e0c09", border: "1px solid rgba(255,255,255,0.07)" }}
+            >
+              <BadgeGrid userId={user.id} />
+            </section>
           )}
 
           <p className="text-[9px] text-text-muted text-center pb-2">

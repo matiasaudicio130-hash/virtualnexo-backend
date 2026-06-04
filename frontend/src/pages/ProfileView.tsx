@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { profilesApi, followsApi, albumsApi, feedApi, reviewsApi, extendedProfileApi } from "@/lib/api";
 import { ReportModal } from "@/components/ReportModal";
+import { BadgeRow }    from "@/components/BadgeDisplay";
 import { Tooltip } from "@/components/ui/Tooltip";
 import { useAuthStore } from "@/store/authStore";
 import { useScreenCapture } from "@/hooks/useScreenCapture";
@@ -577,6 +578,11 @@ export default function ProfileView() {
               </p>
             </button>
           ))}
+        </div>
+
+        {/* ── ZONA 3b: Badges ── */}
+        <div style={{ padding: "0 24px 20px", display: "flex", justifyContent: "center" }}>
+          <BadgeRow userId={userId!} maxShow={6} size="sm" />
         </div>
 
         {/* ── ZONA 4: Galería IG-style ── */}

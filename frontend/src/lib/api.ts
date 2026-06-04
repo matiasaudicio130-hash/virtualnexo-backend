@@ -408,6 +408,10 @@ export const analyticsApi = {
   overview: () => api.get("/analytics/overview"),
 };
 
+export const badgesApi = {
+  forUser: (userId: string) => api.get(`/badges/${userId}`),
+};
+
 export const moderationApi = {
   reasons:  ()                                     => api.get("/moderation/reasons"),
   report:   (body: { target_type: "post"|"user"; target_id: string; reason: string; details?: string }) =>
