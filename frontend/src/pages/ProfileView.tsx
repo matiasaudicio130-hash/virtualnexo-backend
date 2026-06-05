@@ -9,8 +9,9 @@ import {
   Lock, Users, User, MessageSquare, Images, ChevronLeft, ChevronRight, X,
 } from "lucide-react";
 import { profilesApi, followsApi, albumsApi, feedApi, reviewsApi, extendedProfileApi } from "@/lib/api";
-import { ReportModal } from "@/components/ReportModal";
-import { BadgeRow }    from "@/components/BadgeDisplay";
+import { ReportModal }    from "@/components/ReportModal";
+import { BadgeRow }       from "@/components/BadgeDisplay";
+import { ProfileQRModal } from "@/components/ProfileQRModal";
 import { Tooltip } from "@/components/ui/Tooltip";
 import { useAuthStore } from "@/store/authStore";
 import { useScreenCapture } from "@/hooks/useScreenCapture";
@@ -107,6 +108,7 @@ export default function ProfileView() {
   const [blocked, setBlocked]         = useState(false);
   const [showReport, setShowReport]   = useState(false);
   const [showBlockConfirm, setShowBlockConfirm] = useState(false);
+  const [showQR,     setShowQR]       = useState(false);
   const [showPhotoLightbox, setShowPhotoLightbox] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [isFollowing, setIsFollowing] = useState(false);
@@ -387,6 +389,16 @@ export default function ProfileView() {
         )}
         {isOwnProfile && (
           <div style={{ display: "flex", gap: 4 }}>
+            <Tooltip label="Mi QR" position="bottom">
+              <button onClick={() => setShowQR(true)} style={{ padding: 8, background: "none", border: "none", color: "var(--mist)", cursor: "pointer" }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+                  <rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="3" height="3"/>
+                  <rect x="19" y="14" width="2" height="2"/><rect x="14" y="19" width="2" height="2"/>
+                  <rect x="18" y="18" width="3" height="3"/>
+                </svg>
+              </button>
+            </Tooltip>
             <Tooltip label={shareCopied ? "¡Link copiado!" : "Compartir"} position="bottom">
               <button onClick={handleShare} style={{ padding: 8, background: "none", border: "none", color: "var(--mist)", cursor: "pointer" }}>
                 <Share2 size={16} strokeWidth={1.5}/>
@@ -785,6 +797,15 @@ export default function ProfileView() {
           </p>
         )}
       </main>
+
+      {/* ── QR Modal ── */}
+      {showQR && profile && (
+        <ProfileQRModal
+          userId={userId!}
+          userName={`${profile.first_name} ${profile.last_name || ""}`.trim()}
+          onClose={() => setShowQR(false)}
+        />
+      )}
 
       {/* ── Modal de reporte ── */}
       {showReport && profile && (

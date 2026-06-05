@@ -11,7 +11,7 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import {
   Shield, LogOut, User,
-  Settings, Check, Eye, Heart, BarChart2, Bookmark,
+  Settings, Check, Eye, Heart, BarChart2, Bookmark, QrCode,
 } from "lucide-react";
 import { BottomNav } from "@/components/BottomNav";
 import { usePricingPlans, formatARS, formatUSD } from "@/hooks/useExchangeRate";
@@ -24,6 +24,7 @@ import { InstallPrompt } from "@/components/InstallPrompt";
 import { SecuritySettings } from "@/components/SecuritySettings";
 import { EditProfileModal }    from "@/components/EditProfileModal";
 import { DeleteAccountModal }  from "@/components/DeleteAccountModal";
+import { ProfileQRModal }     from "@/components/ProfileQRModal";
 import { MyProfileSection } from "@/components/MyProfileSection";
 import { CoupleSection } from "@/components/CoupleSection";
 import { NavLogo } from "@/components/AuraLogo";
@@ -50,6 +51,7 @@ export default function Dashboard() {
   const { lang, t, setLang } = useLangStore();
   const [settingsOpen, setSettingsOpen]       = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showQR,            setShowQR]            = useState(false);
   const [viewers, setViewers]             = useState<any[]>([]);
   const [showViewers, setShowViewers]     = useState(false);
   const [showEditProfile, setShowEditProfile] = useState(false);
@@ -88,6 +90,14 @@ export default function Dashboard() {
         />
       )}
 
+      {showQR && user && (
+        <ProfileQRModal
+          userId={user.id}
+          userName={`${user.first_name || ""} ${user.last_name || ""}`.trim() || "Mi perfil"}
+          onClose={() => setShowQR(false)}
+        />
+      )}
+
       {showDeleteConfirm && (
         <DeleteAccountModal
           onConfirm={async () => {
@@ -104,6 +114,13 @@ export default function Dashboard() {
       <header className="sticky top-0 z-20 bg-bg-base/85 backdrop-blur-md border-b border-border px-4 pt-safe-3 pb-3 flex items-center justify-between">
         <NavLogo />
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowQR(true)}
+            className="p-2 rounded-xl hover:bg-bg-muted transition-colors"
+            title="Mi código QR"
+          >
+            <QrCode size={17} className="text-text-muted" />
+          </button>
           <button
             onClick={() => navigate("/saved")}
             className="p-2 rounded-xl hover:bg-bg-muted transition-colors"
