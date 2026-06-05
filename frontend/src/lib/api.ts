@@ -97,6 +97,7 @@ export const messagingApi = {
   conversations: () => api.get("/messages/conversations"),
   startConversation: (recipient_id: string, first_message = "") =>
     api.post("/messages/conversations/start", { recipient_id, first_message }),
+  searchMessages:    (q: string, limit = 20) => api.get("/messages/search", { params: { q, limit } }),
   messageRequests:   ()                   => api.get("/messages/requests"),
   acceptRequest:     (from_id: string)    => api.post(`/messages/requests/${from_id}/accept`),
   rejectRequest:     (from_id: string)    => api.delete(`/messages/requests/${from_id}/reject`),

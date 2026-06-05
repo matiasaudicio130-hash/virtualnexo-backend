@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   ArrowLeft, MessageSquare, Lock, Heart, User,
-  Shield, Settings, X, Users,
+  Shield, Settings, X, Users, Search,
 } from "lucide-react";
 import { messagingApi, profilesApi, messagingV2Api } from "@/lib/api";
 import { useAuthStore } from "@/store/authStore";
@@ -326,6 +326,12 @@ export default function Messages() {
   const [requestAction, setRequestAction] = useState<string | null>(null);
   const [requestSentMsg, setRequestSentMsg] = useState("");
 
+  // Búsqueda
+  const [searchQuery,   setSearchQuery]   = useState("");
+  const [msgResults,    setMsgResults]    = useState<any[]>([]);
+  const [searching,     setSearching]     = useState(false);
+  const searchDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   useScreenCapture({ warn: true });
 
   useEffect(() => {
@@ -353,6 +359,21 @@ export default function Messages() {
         .catch(() => {});
     }
   }, []);
+
+  // Búsqueda de mensajes con debounce
+  useEffect(() => {
+    if (searchDebounce.current) clearTimeout(searchDebounce.current);
+    if (searchQuery.trim().length < 2) { setMsgResults([]); return; }
+    setSearching(true);
+    searchDebounce.current = setTimeout(async () => {
+      try {
+        const { data } = await messagingApi.searchMessages(searchQuery.trim());
+        setMsgResults(data.results || []);
+      } catch { setMsgResults([]); }
+      setSearching(false);
+    }, 350);
+    return () => { if (searchDebounce.current) clearTimeout(searchDebounce.current); };
+  }, [searchQuery]);
 
   useEffect(() => {
     if (tab !== "matches" || matches.length > 0) return;
@@ -420,22 +441,132 @@ export default function Messages() {
       ) : tab === "messages" ? (
         /* Lista de conversaciones */
         <main className="flex-1 max-w-lg mx-auto w-full pb-[80px]">
-          {loading && (
-            <div className="space-y-2 p-4">
-              {[1, 2, 3].map(i => <div key={i} className="h-16 bg-bg-card rounded-2xl animate-pulse" />)}
+
+          {/* Barra de búsqueda */}
+          <div className="px-4 pt-3 pb-2">
+            <div className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border bg-bg-muted transition-colors ${
+              searchQuery ? "border-[rgba(201,162,39,0.4)]" : "border-border"
+            }`}>
+              <Search size={14} className="text-text-muted flex-shrink-0" style={{ color: searchQuery ? "var(--gold,#C9A227)" : undefined }} />
+              <input
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                placeholder="Buscar conversaciones o mensajes…"
+                className="flex-1 bg-transparent outline-none text-sm placeholder:text-text-muted/60"
+                style={{ fontSize: "16px" }}
+                autoComplete="off" autoCorrect="off" autoCapitalize="none" spellCheck={false}
+              />
+              {searchQuery && (
+                <button onClick={() => { setSearchQuery(""); setMsgResults([]); }} className="text-text-muted hover:text-text-primary flex-shrink-0">
+                  {searching
+                    ? <div className="w-3.5 h-3.5 border-2 border-accent-purple/30 border-t-accent-purple rounded-full animate-spin"/>
+                    : <X size={14}/>
+                  }
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Resultados de búsqueda en mensajes */}
+          {searchQuery.trim().length >= 2 && (
+            <div>
+              {/* Resultados de mensajes del backend */}
+              {msgResults.length > 0 && (
+                <div>
+                  <p className="text-[10px] text-text-muted uppercase tracking-widest px-4 py-2">Mensajes</p>
+                  <div className="divide-y divide-border/50">
+                    {msgResults.map(r => (
+                      <button
+                        key={r.message_id}
+                        onClick={() => {
+                          const conv = conversations.find(c => c.id === r.conversation_id);
+                          if (conv) { setActiveConv(conv); setSearchQuery(""); setMsgResults([]); }
+                        }}
+                        className="w-full flex items-start gap-3 px-4 py-3 hover:bg-bg-muted/50 transition-colors text-left"
+                      >
+                        <div className="w-9 h-9 rounded-full overflow-hidden bg-bg-muted flex-shrink-0 border border-border/40">
+                          {r.other_user?.avatar
+                            ? <img src={r.other_user.avatar} alt="" className="w-full h-full object-cover"/>
+                            : <div className="w-full h-full bg-accent-purple/15"/>
+                          }
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-semibold">{r.other_user?.name || "Usuario"}</p>
+                          <p className="text-xs text-text-muted mt-0.5 truncate">
+                            {r.is_mine ? <span className="text-text-muted/60">Vos: </span> : null}
+                            {r.content}
+                          </p>
+                          <p className="text-[10px] text-text-muted/50 mt-0.5">
+                            {new Date(r.created_at).toLocaleDateString("es-AR", { day:"numeric", month:"short" })}
+                          </p>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Conversaciones filtradas por nombre */}
+              {(() => {
+                const q = searchQuery.toLowerCase();
+                const filtered = conversations.filter(c => {
+                  const name = `${c.other_user?.first_name || ""} ${c.other_user?.last_name || ""}`.toLowerCase();
+                  return name.includes(q);
+                });
+                if (filtered.length === 0 && msgResults.length === 0 && !searching) {
+                  return (
+                    <div className="text-center py-12 text-text-muted px-6">
+                      <Search size={28} className="mx-auto mb-2 opacity-30"/>
+                      <p className="text-sm">Sin resultados para "{searchQuery}"</p>
+                    </div>
+                  );
+                }
+                if (filtered.length === 0) return null;
+                return (
+                  <div>
+                    <p className="text-[10px] text-text-muted uppercase tracking-widest px-4 py-2">Conversaciones</p>
+                    <div className="divide-y divide-border/50">
+                      {filtered.map(conv => {
+                        const other = conv.other_user;
+                        return (
+                          <button key={conv.id} onClick={() => { setActiveConv(conv); setSearchQuery(""); setMsgResults([]); }}
+                            className="w-full flex items-center gap-3 px-4 py-3 hover:bg-bg-muted/50 transition-colors text-left">
+                            <ProtectedAvatar src={other?.profile_photo_url || ""} size={40} />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium truncate">{other ? `${other.first_name} ${other.last_name}` : "Usuario"}</p>
+                              {conv.last_message_preview && (
+                                <p className="text-xs text-text-muted truncate">{conv.last_message_preview}</p>
+                              )}
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           )}
-          {!loading && conversations.length === 0 && (
-            <div className="text-center py-16 text-text-muted px-6">
-              <MessageSquare size={36} className="mx-auto mb-3 opacity-30" />
-              <p className="font-medium">Sin conversaciones</p>
-              <p className="text-sm mt-1">
-                Encontrá a alguien en el{" "}
-                <button onClick={() => navigate("/feed")} className="text-accent-purple hover:underline">Feed</button>{" "}
-                y enviá un mensaje desde su perfil.
-              </p>
-            </div>
-          )}
+
+          {/* Lista normal de conversaciones (cuando no hay búsqueda activa) */}
+          {!searchQuery.trim() && (
+            <>
+              {loading && (
+                <div className="space-y-2 p-4">
+                  {[1, 2, 3].map(i => <div key={i} className="h-16 bg-bg-card rounded-2xl animate-pulse" />)}
+                </div>
+              )}
+              {!loading && conversations.length === 0 && (
+                <div className="text-center py-16 text-text-muted px-6">
+                  <MessageSquare size={36} className="mx-auto mb-3 opacity-30" />
+                  <p className="font-medium">Sin conversaciones</p>
+                  <p className="text-sm mt-1">
+                    Encontrá a alguien en el{" "}
+                    <button onClick={() => navigate("/feed")} className="text-accent-purple hover:underline">Feed</button>{" "}
+                    y enviá un mensaje desde su perfil.
+                  </p>
+                </div>
+              )}
           <div className="divide-y divide-border">
             {conversations.map(conv => {
               const other   = conv.other_user;
@@ -476,6 +607,8 @@ export default function Messages() {
               );
             })}
           </div>
+            </>
+          )}
         </main>
       ) : tab === "groups" ? (
         <main className="flex-1 max-w-lg mx-auto w-full overflow-hidden">

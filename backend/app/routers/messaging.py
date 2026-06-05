@@ -132,6 +132,66 @@ async def start_conversation(body: ConversationStartBody, request: Request):
 
 
 # ── Solicitudes de mensaje ───────────────────────────────────────────────────
+@router.get("/search")
+async def search_messages(
+    request:  Request,
+    q:        str = Query(..., min_length=2, max_length=100),
+    limit:    int = Query(default=20, ge=1, le=50),
+):
+    """Busca mensajes del usuario en todas sus conversaciones."""
+    from app.db.supabase import get_supabase
+    payload = _require_auth(request)
+    user_id = payload["sub"]
+    db      = get_supabase()
+
+    # Obtener todas las conversaciones del usuario
+    convs_r = db.table("conversations").select(
+        "id,participant_a,participant_b,"
+        "user_a:users!conversations_participant_a_fkey(id,first_name,last_name,profile_photo_url),"
+        "user_b:users!conversations_participant_b_fkey(id,first_name,last_name,profile_photo_url)"
+    ).or_(f"participant_a.eq.{user_id},participant_b.eq.{user_id}").execute()
+
+    if not convs_r.data:
+        return {"results": [], "query": q}
+
+    # Mapeo conv_id → otro usuario
+    other_by_conv: dict = {}
+    for c in convs_r.data:
+        is_a  = c["participant_a"] == user_id
+        other = c.get("user_b") if is_a else c.get("user_a")
+        other_by_conv[c["id"]] = other
+
+    conv_ids = list(other_by_conv.keys())
+
+    # Buscar en el contenido de mensajes (case-insensitive)
+    msgs_r = db.table("messages").select(
+        "id,conversation_id,content,created_at,sender_id,type"
+    ).in_("conversation_id", conv_ids).ilike(
+        "content", f"%{q.strip()}%"
+    ).eq("type", "text").order(
+        "created_at", desc=True
+    ).limit(limit).execute()
+
+    results = []
+    for m in msgs_r.data or []:
+        other = other_by_conv.get(m["conversation_id"]) or {}
+        other_name = f"{other.get('first_name','')} {other.get('last_name','')}".strip()
+        results.append({
+            "message_id":      m["id"],
+            "conversation_id": m["conversation_id"],
+            "content":         m["content"],
+            "created_at":      m["created_at"],
+            "is_mine":         m["sender_id"] == user_id,
+            "other_user": {
+                "id":     other.get("id"),
+                "name":   other_name,
+                "avatar": other.get("profile_photo_url"),
+            },
+        })
+
+    return {"results": results, "query": q}
+
+
 @router.get("/requests")
 async def get_message_requests(request: Request):
     """Lista las solicitudes de mensaje pendientes del usuario."""
