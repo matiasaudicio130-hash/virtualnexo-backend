@@ -22,7 +22,8 @@ import { useScreenCapture } from "@/hooks/useScreenCapture";
 import { ProfileTypeSettings } from "@/components/ProfileTypeSettings";
 import { InstallPrompt } from "@/components/InstallPrompt";
 import { SecuritySettings } from "@/components/SecuritySettings";
-import { EditProfileModal } from "@/components/EditProfileModal";
+import { EditProfileModal }    from "@/components/EditProfileModal";
+import { DeleteAccountModal }  from "@/components/DeleteAccountModal";
 import { MyProfileSection } from "@/components/MyProfileSection";
 import { CoupleSection } from "@/components/CoupleSection";
 import { NavLogo } from "@/components/AuraLogo";
@@ -47,7 +48,8 @@ export default function Dashboard() {
   const { logout, refreshUser } = useAuth();
   const { theme, setTheme } = useThemeStore();
   const { lang, t, setLang } = useLangStore();
-  const [settingsOpen, setSettingsOpen]   = useState(false);
+  const [settingsOpen, setSettingsOpen]       = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [viewers, setViewers]             = useState<any[]>([]);
   const [showViewers, setShowViewers]     = useState(false);
   const [showEditProfile, setShowEditProfile] = useState(false);
@@ -83,6 +85,18 @@ export default function Dashboard() {
         <EditProfileModal
           onClose={() => setShowEditProfile(false)}
           onSaved={() => refreshUser()}
+        />
+      )}
+
+      {showDeleteConfirm && (
+        <DeleteAccountModal
+          onConfirm={async () => {
+            const { accountApi } = await import("@/lib/api");
+            await accountApi.deleteAccount();
+            logout();
+            navigate("/");
+          }}
+          onCancel={() => setShowDeleteConfirm(false)}
         />
       )}
 
@@ -258,8 +272,51 @@ export default function Dashboard() {
                   ))}
                 </div>
               </div>
+
+              {/* Datos y cuenta */}
+              <div className="border-t border-border/50 pt-4 space-y-2">
+                <p className="text-xs text-text-muted uppercase tracking-widest mb-3 font-medium">Mis datos</p>
+
+                {/* Exportar */}
+                <button
+                  onClick={async () => {
+                    try {
+                      const { accountApi } = await import("@/lib/api");
+                      const res = await accountApi.exportData();
+                      const blob = new Blob([JSON.stringify(res.data, null, 2)], { type: "application/json" });
+                      const url  = URL.createObjectURL(blob);
+                      const a    = document.createElement("a");
+                      a.href     = url;
+                      a.download = "aura_mis_datos.json";
+                      a.click();
+                      URL.revokeObjectURL(url);
+                    } catch { alert("No se pudo exportar. Intentá de nuevo."); }
+                  }}
+                  className="w-full flex items-center gap-2.5 px-4 py-3 rounded-xl border border-border text-sm text-text-secondary hover:bg-bg-muted transition-colors text-left"
+                >
+                  <span className="text-base">📦</span>
+                  <div>
+                    <p className="font-medium text-text-primary">Exportar mis datos</p>
+                    <p className="text-[10px] text-text-muted">Descargá un JSON con tu perfil, posts y actividad</p>
+                  </div>
+                </button>
+
+                {/* Eliminar cuenta */}
+                <button
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="w-full flex items-center gap-2.5 px-4 py-3 rounded-xl border border-status-error/30 text-sm text-status-error hover:bg-status-error/5 transition-colors text-left"
+                >
+                  <span className="text-base">🗑</span>
+                  <div>
+                    <p className="font-medium">Eliminar mi cuenta</p>
+                    <p className="text-[10px] opacity-70">Acción permanente e irreversible</p>
+                  </div>
+                </button>
+              </div>
+
             </div>
           </Card>
+
         )}
 
         {/* Avatar + streak */}

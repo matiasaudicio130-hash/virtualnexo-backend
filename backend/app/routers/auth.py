@@ -408,3 +408,126 @@ async def heartbeat(request: Request):
     }).eq("id", user_id).execute()
 
     return {"streak": current, "longest": longest, "is_new_day": True}
+
+
+# ── GDPR: Exportar datos ──────────────────────────────────────────────────────
+@router.get("/me/export")
+async def export_my_data(request: Request):
+    """
+    Exporta todos los datos del usuario en formato JSON.
+    GDPR Article 20 — portabilidad de datos.
+    """
+    from fastapi.responses import JSONResponse
+    payload = _get_current_user(request)
+    user_id = payload["sub"]
+    db      = get_supabase()
+
+    # Perfil
+    user_r = db.table("users").select(
+        "id,first_name,last_name,email,username,bio,province,city,"
+        "profile_type,sexual_orientation,seeking_tags,seeking_text,"
+        "created_at,membership_type,profile_extended"
+    ).eq("id", user_id).maybe_single().execute()
+    profile = user_r.data or {}
+
+    # Posts
+    posts_r = db.table("posts").select(
+        "id,type,caption,media_url,province,city,created_at,status,extra_data"
+    ).eq("user_id", user_id).order("created_at", desc=True).execute()
+    posts = posts_r.data or []
+
+    # Comentarios escritos
+    cmts_r = db.table("comments").select(
+        "id,content,created_at,post_id,parent_id"
+    ).eq("user_id", user_id).order("created_at", desc=True).execute()
+    comments_written = cmts_r.data or []
+
+    # Reseñas dadas
+    rev_given_r = db.table("reviews").select(
+        "id,rating,text,is_anonymous,created_at,reviewed_id"
+    ).eq("reviewer_id", user_id).order("created_at", desc=True).execute()
+    reviews_given = rev_given_r.data or []
+
+    # Reseñas recibidas
+    rev_recv_r = db.table("reviews").select(
+        "id,rating,text,is_anonymous,created_at,reviewer_id"
+    ).eq("reviewed_id", user_id).order("created_at", desc=True).execute()
+    reviews_received = rev_recv_r.data or []
+
+    # Seguidores / siguiendo
+    flwr_r = db.table("user_follows").select("id").eq("following_id", user_id).execute()
+    flwg_r = db.table("user_follows").select("following_id").eq("follower_id", user_id).execute()
+
+    # Conversaciones (solo metadata, no contenido)
+    conv_r = db.table("conversations").select("id,created_at").or_(
+        f"participant_a.eq.{user_id},participant_b.eq.{user_id}"
+    ).execute()
+
+    export = {
+        "export_version":    "1.0",
+        "exported_at":       datetime.now(timezone.utc).isoformat(),
+        "platform":          "Aura SW — aurasw.club",
+        "profile":           profile,
+        "posts":             posts,
+        "comments_written":  comments_written,
+        "reviews_given":     reviews_given,
+        "reviews_received":  reviews_received,
+        "followers_count":   len(flwr_r.data or []),
+        "following":         [f["following_id"] for f in (flwg_r.data or [])],
+        "conversations_count": len(conv_r.data or []),
+    }
+
+    return JSONResponse(
+        content=export,
+        headers={"Content-Disposition": "attachment; filename=\"aura_mis_datos.json\""},
+    )
+
+
+# ── GDPR: Eliminar cuenta ────────────────────────────────────────────────────
+@router.delete("/me")
+async def delete_my_account(request: Request):
+    """
+    Elimina permanentemente la cuenta del usuario.
+    GDPR Article 17 — derecho al olvido.
+    Acciones:
+    1. Anonimiza datos personales (nombre, email, foto, bio)
+    2. Marca status = 'rejected' (no puede volver a loguearse)
+    3. Marca todos los posts como deleted
+    4. Invalida los tokens (el cliente debe hacer logout)
+    """
+    payload = _get_current_user(request)
+    user_id = payload["sub"]
+    db      = get_supabase()
+    ts      = datetime.now(timezone.utc).isoformat()
+
+    # Anonimizar datos personales
+    db.table("users").update({
+        "first_name":       "Cuenta",
+        "last_name":        "Eliminada",
+        "email":            f"deleted_{user_id[:8]}@eliminado.aura",
+        "bio":              None,
+        "profile_photo_url": None,
+        "username":         None,
+        "status":           "rejected",
+        "profile_extended": {"deleted_at": ts, "account_deleted": True},
+    }).eq("id", user_id).execute()
+
+    # Eliminar posts
+    db.table("posts").update({"status": "deleted"}).eq("user_id", user_id).execute()
+
+    # Eliminar comentarios
+    db.table("comments").update({"is_deleted": True, "content": "[cuenta eliminada]"}).eq("user_id", user_id).execute()
+
+    # Revocar todas las sesiones
+    try:
+        db.table("sessions").delete().eq("user_id", user_id).execute()
+    except Exception:
+        pass
+
+    # Revocar push subscriptions
+    try:
+        db.table("push_subscriptions").delete().eq("user_id", user_id).execute()
+    except Exception:
+        pass
+
+    return {"deleted": True, "message": "Tu cuenta fue eliminada permanentemente."}

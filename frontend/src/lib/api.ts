@@ -123,6 +123,11 @@ export const extendedProfileApi = {
   unpinPost: ()               => api.patch("/auth/me/extended", { pinned_post_id: null }),
 };
 
+export const accountApi = {
+  exportData:    () => api.get("/auth/me/export", { responseType: "blob" }),
+  deleteAccount: () => api.delete("/auth/me"),
+};
+
 export const profileApi = {
   updateType:    (body: object) => api.patch("/auth/me/profile-type", body),
   updateProfile: (body: object) => api.patch("/auth/me/profile-type", body),
