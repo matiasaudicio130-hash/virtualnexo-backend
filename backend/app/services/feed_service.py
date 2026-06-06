@@ -368,6 +368,7 @@ class FeedService:
                     title="Nueva reacción",
                     body=f"Alguien reaccionó con {emojis.get(reaction_type, reaction_type)} a tu publicación",
                     data={"post_id": post_id, "reaction": reaction_type},
+                    actor_id=user_id,
                 )
             return {"action": "added", "type": reaction_type}
 

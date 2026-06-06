@@ -72,6 +72,33 @@ async def create_highlight(body: CreateHighlightBody, request: Request):
     return hl
 
 
+class UpdateHighlightBody(BaseModel):
+    title:     Optional[str] = None
+    cover_url: Optional[str] = None
+
+
+@router.patch("/{highlight_id}")
+async def update_highlight(highlight_id: str, body: UpdateHighlightBody, request: Request):
+    payload = _require_auth(request)
+    from app.db.supabase import get_supabase
+    db = get_supabase()
+    hl = db.table("story_highlights").select("user_id").eq("id", highlight_id).execute()
+    if not hl.data or hl.data[0]["user_id"] != payload["sub"]:
+        raise HTTPException(403, "Sin permisos")
+    update: dict = {}
+    if body.title is not None:
+        title = body.title.strip()
+        if not title:
+            raise HTTPException(400, "El título no puede estar vacío")
+        update["title"] = title
+    if body.cover_url is not None:
+        update["cover_url"] = body.cover_url or None
+    if not update:
+        raise HTTPException(400, "Nada que actualizar")
+    r = db.table("story_highlights").update(update).eq("id", highlight_id).execute()
+    return r.data[0]
+
+
 @router.delete("/{highlight_id}")
 async def delete_highlight(highlight_id: str, request: Request):
     payload = _require_auth(request)

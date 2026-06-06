@@ -6,12 +6,12 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   ArrowLeft, Heart, ShieldOff, Flag, MapPin, Star, Share2, Pencil,
-  Lock, Users, User, MessageSquare, Images, ChevronLeft, ChevronRight, X,
+  Lock, Users, User, MessageSquare, Images, ChevronLeft, ChevronRight, X, QrCode,
 } from "lucide-react";
-import { profilesApi, followsApi, albumsApi, feedApi, reviewsApi, extendedProfileApi } from "@/lib/api";
-import { ReportModal }    from "@/components/ReportModal";
-import { BadgeRow }       from "@/components/BadgeDisplay";
 import { ProfileQRModal } from "@/components/ProfileQRModal";
+import { profilesApi, followsApi, albumsApi, feedApi, reviewsApi, extendedProfileApi } from "@/lib/api";
+import { ReportModal } from "@/components/ReportModal";
+import { BadgeRow }    from "@/components/BadgeDisplay";
 import { Tooltip } from "@/components/ui/Tooltip";
 import { useAuthStore } from "@/store/authStore";
 import { useScreenCapture } from "@/hooks/useScreenCapture";
@@ -108,7 +108,6 @@ export default function ProfileView() {
   const [blocked, setBlocked]         = useState(false);
   const [showReport, setShowReport]   = useState(false);
   const [showBlockConfirm, setShowBlockConfirm] = useState(false);
-  const [showQR,     setShowQR]       = useState(false);
   const [showPhotoLightbox, setShowPhotoLightbox] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [isFollowing, setIsFollowing] = useState(false);
@@ -125,6 +124,7 @@ export default function ProfileView() {
   const [albumPhotos, setAlbumPhotos] = useState<any[]>([]);
   const [albumPhotoIdx, setAlbumPhotoIdx] = useState(0);
   const [shareCopied, setShareCopied] = useState(false);
+  const [showQR, setShowQR] = useState(false);
 
   const isOwnProfile = me?.id === userId;
   const onlineStatus = useOnlineStatus(isOwnProfile ? undefined : userId);
@@ -360,6 +360,15 @@ export default function ProfileView() {
   return (
     <div style={{ minHeight: "100vh", background: "var(--obsidian)", color: "var(--paper)" }}>
 
+      {/* QR Modal — solo perfil propio */}
+      {showQR && isOwnProfile && (
+        <ProfileQRModal
+          userId={userId!}
+          userName={`${profile.first_name} ${profile.last_name}`.trim()}
+          onClose={() => setShowQR(false)}
+        />
+      )}
+
       {/* Header */}
       <header style={{ position: "sticky", top: 0, zIndex: 20, background: "rgba(2,2,7,0.92)", backdropFilter: "blur(12px)", borderBottom: "1px solid var(--border-soft)", padding: "12px 16px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <button onClick={() => navigate(-1)} style={{ padding: 8, borderRadius: 8, background: "none", border: "none", color: "var(--mist)", cursor: "pointer" }}>
@@ -391,12 +400,7 @@ export default function ProfileView() {
           <div style={{ display: "flex", gap: 4 }}>
             <Tooltip label="Mi QR" position="bottom">
               <button onClick={() => setShowQR(true)} style={{ padding: 8, background: "none", border: "none", color: "var(--mist)", cursor: "pointer" }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
-                  <rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="3" height="3"/>
-                  <rect x="19" y="14" width="2" height="2"/><rect x="14" y="19" width="2" height="2"/>
-                  <rect x="18" y="18" width="3" height="3"/>
-                </svg>
+                <QrCode size={16} strokeWidth={1.5}/>
               </button>
             </Tooltip>
             <Tooltip label={shareCopied ? "¡Link copiado!" : "Compartir"} position="bottom">
@@ -797,15 +801,6 @@ export default function ProfileView() {
           </p>
         )}
       </main>
-
-      {/* ── QR Modal ── */}
-      {showQR && profile && (
-        <ProfileQRModal
-          userId={userId!}
-          userName={`${profile.first_name} ${profile.last_name || ""}`.trim()}
-          onClose={() => setShowQR(false)}
-        />
-      )}
 
       {/* ── Modal de reporte ── */}
       {showReport && profile && (

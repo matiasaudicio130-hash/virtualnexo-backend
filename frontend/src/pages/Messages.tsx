@@ -12,7 +12,6 @@ import { PROFILE_TYPE_CONFIG } from "@/types";
 import type { ProfileType } from "@/types";
 import { ChatInput }    from "@/components/chat/ChatInput";
 import { MessageBubble } from "@/components/chat/MessageBubble";
-import { GroupsSection } from "@/components/chat/GroupChat";
 import { usePresenceHeartbeat, useOnlineStatus, formatLastSeen } from "@/hooks/useOnlineStatus";
 import { BottomNav } from "@/components/BottomNav";
 import { Tooltip } from "@/components/ui/Tooltip";
@@ -339,7 +338,6 @@ export default function Messages() {
       .then(r => { setConversations(r.data); setLoading(false); })
       .catch(() => setLoading(false));
 
-    // Cargar solicitudes de mensaje
     messagingApi.messageRequests()
       .then(r => setRequests(r.data.requests || []))
       .catch(() => {});
@@ -359,6 +357,17 @@ export default function Messages() {
         .catch(() => {});
     }
   }, []);
+
+  // Poll de conversaciones cada 15s cuando no hay chat activo
+  useEffect(() => {
+    if (activeConv) return;
+    const t = setInterval(() => {
+      messagingApi.conversations()
+        .then(r => setConversations(r.data))
+        .catch(() => {});
+    }, 15000);
+    return () => clearInterval(t);
+  }, [activeConv]);
 
   // Búsqueda de mensajes con debounce
   useEffect(() => {
@@ -611,8 +620,24 @@ export default function Messages() {
           )}
         </main>
       ) : tab === "groups" ? (
-        <main className="flex-1 max-w-lg mx-auto w-full overflow-hidden">
-          <GroupsSection />
+        <main className="flex-1 flex flex-col items-center justify-center pb-[80px] pt-8 gap-4 text-center px-6">
+          <div
+            className="w-16 h-16 rounded-full flex items-center justify-center"
+            style={{ background: "rgba(201,162,39,0.08)", border: "1px solid rgba(201,162,39,0.2)" }}
+          >
+            <Users size={28} style={{ color: "rgba(201,162,39,0.5)" }} />
+          </div>
+          <div>
+            <p className="text-sm font-semibold mb-1">Grupos de chat</p>
+            <p className="text-xs text-text-muted">Conversaciones grupales con usuarios verificados</p>
+          </div>
+          <button
+            onClick={() => navigate("/groups")}
+            className="px-5 py-2.5 rounded-full text-xs font-medium"
+            style={{ background: "var(--gold, #C9A227)", color: "#020207" }}
+          >
+            Ir a Grupos
+          </button>
         </main>
 
       ) : tab === "requests" ? (

@@ -41,17 +41,23 @@ async def follow_user(user_id: str, request: Request):
 
     # Notificar al seguido
     try:
-        me_data = db.table("users").select("first_name,last_name,username").eq("id", me).execute().data
+        me_data = db.table("users").select("first_name,last_name,username,profile_photo_url").eq("id", me).execute().data
         if me_data:
-            handle = me_data[0].get("username") or me_data[0]["first_name"]
-            name = f"@{handle}" if me_data[0].get("username") else me_data[0]["first_name"]
-            db.table("notifications").insert({
-                "user_id": user_id,
-                "type": "new_follower",
-                "title": "Nuevo seguidor",
-                "body": f"{name} empezó a seguirte",
-                "data": {"follower_id": me},
-            }).execute()
+            u = me_data[0]
+            handle = u.get("username") or u["first_name"]
+            name = f"@{handle}" if u.get("username") else u["first_name"]
+            from app.services.notifications_service import create_notification
+            create_notification(
+                user_id=user_id,
+                notif_type="new_follower",
+                title="Nuevo seguidor",
+                body=f"{name} empezó a seguirte",
+                data={
+                    "follower_id":   me,
+                    "actor_name":    f"{u['first_name']} {u['last_name']}".strip(),
+                    "actor_avatar":  u.get("profile_photo_url") or "",
+                },
+            )
             from app.services.push_service import send_push
             send_push(
                 user_id=user_id,

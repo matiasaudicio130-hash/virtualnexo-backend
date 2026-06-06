@@ -219,8 +219,8 @@ class ProfileService:
                 target_r = db.table("users").select("first_name").eq("id", target_id).execute()
                 u_name = user_r.data[0]["first_name"] if user_r.data else "Alguien"
                 t_name = target_r.data[0]["first_name"] if target_r.data else "Alguien"
-                create_notification(user_id,   "match", f"¡Match con {t_name}!", {"matched_user_id": target_id})
-                create_notification(target_id, "match", f"¡Match con {u_name}!", {"matched_user_id": user_id})
+                create_notification(user_id,   "match", f"¡Match con {t_name}!", {"matched_user_id": target_id}, actor_id=target_id)
+                create_notification(target_id, "match", f"¡Match con {u_name}!", {"matched_user_id": user_id},  actor_id=user_id)
             except Exception:
                 pass
             return {"liked": True, "matched": True}
@@ -229,7 +229,7 @@ class ProfileService:
         try:
             user_r = db.table("users").select("first_name").eq("id", user_id).execute()
             u_name = user_r.data[0]["first_name"] if user_r.data else "Alguien"
-            create_notification(target_id, "like", f"{u_name} le dio like a tu perfil", {"from_user_id": user_id})
+            create_notification(target_id, "like", f"{u_name} le dio like a tu perfil", {"from_user_id": user_id}, actor_id=user_id)
         except Exception:
             pass
 

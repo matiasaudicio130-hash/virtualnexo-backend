@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Bell, MessageSquare, Flame, Star, Award, Info, X } from "lucide-react";
+import { Bell, MessageSquare, Flame, Star, Award, Info, Heart, UserPlus, X } from "lucide-react";
 import { notificationsApi } from "@/lib/api";
 
 interface Notification {
@@ -15,10 +15,27 @@ interface Notification {
 const TYPE_ICONS: Record<string, typeof Bell> = {
   new_message:          MessageSquare,
   new_reaction:         Flame,
+  story_reaction:       Flame,
   new_review:           Star,
   kyc_approved:         Award,
   membership_activated: Award,
+  new_like:             Heart,
+  new_follower:         UserPlus,
+  group_invite:         UserPlus,
   system:               Info,
+};
+
+const TYPE_COLORS: Record<string, string> = {
+  new_message:          "#8B5CF6",
+  new_reaction:         "#F97316",
+  story_reaction:       "#F97316",
+  new_review:           "#EAB308",
+  kyc_approved:         "#22C55E",
+  membership_activated: "#C9A227",
+  new_like:             "#EC4899",
+  new_follower:         "#3B82F6",
+  group_invite:         "#C9A227",
+  system:               "#6B7280",
 };
 
 function timeAgo(d: string) {
@@ -31,6 +48,30 @@ function timeAgo(d: string) {
   return `${Math.floor(h / 24)}d`;
 }
 
+function ActorAvatar({ url, name, color }: { url?: string; name?: string; color: string }) {
+  if (url) {
+    return (
+      <img
+        src={url}
+        alt={name || ""}
+        className="w-9 h-9 rounded-full object-cover flex-shrink-0"
+        onError={e => { (e.target as HTMLImageElement).style.display = "none"; }}
+      />
+    );
+  }
+  const initials = name
+    ? name.split(" ").map(w => w[0]).slice(0, 2).join("").toUpperCase()
+    : "?";
+  return (
+    <div
+      className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold text-white"
+      style={{ background: color }}
+    >
+      {initials}
+    </div>
+  );
+}
+
 export function NotificationBell() {
   const [open, setOpen]         = useState(false);
   const [count, setCount]       = useState(0);
@@ -38,7 +79,6 @@ export function NotificationBell() {
   const [loading, setLoading]   = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
-  // Cargar contador cada 30 segundos
   useEffect(() => {
     const load = () =>
       notificationsApi.unreadCount().then(r => setCount(r.data.count)).catch(() => {});
@@ -47,7 +87,6 @@ export function NotificationBell() {
     return () => clearInterval(t);
   }, []);
 
-  // Cerrar al hacer click fuera
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
@@ -122,8 +161,12 @@ export function NotificationBell() {
               </div>
             )}
             {items.map(n => {
-              const Icon = TYPE_ICONS[n.type] ?? Info;
-              const unread = !n.read_at;
+              const Icon    = TYPE_ICONS[n.type] ?? Info;
+              const color   = TYPE_COLORS[n.type] ?? "#6B7280";
+              const unread  = !n.read_at;
+              const actorAvatar = n.data?.actor_avatar;
+              const actorName   = n.data?.actor_name;
+
               return (
                 <div
                   key={n.id}
@@ -132,11 +175,18 @@ export function NotificationBell() {
                     unread ? "bg-accent-purple/5 cursor-pointer hover:bg-accent-purple/10" : "hover:bg-bg-muted"
                   }`}
                 >
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${
-                    unread ? "bg-accent-purple/20" : "bg-bg-muted"
-                  }`}>
-                    <Icon size={15} className={unread ? "text-accent-purple" : "text-text-muted"} />
+                  {/* Avatar o ícono del tipo */}
+                  <div className="relative flex-shrink-0 mt-0.5">
+                    <ActorAvatar url={actorAvatar} name={actorName} color={color} />
+                    {/* Ícono del tipo superpuesto abajo-derecha */}
+                    <div
+                      className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full flex items-center justify-center border border-bg-card"
+                      style={{ background: color }}
+                    >
+                      <Icon size={9} className="text-white" />
+                    </div>
                   </div>
+
                   <div className="flex-1 min-w-0">
                     <p className={`text-sm leading-tight ${unread ? "font-semibold" : "font-normal"}`}>
                       {n.title}
@@ -146,6 +196,7 @@ export function NotificationBell() {
                     )}
                     <p className="text-[10px] text-text-muted mt-1">{timeAgo(n.created_at)}</p>
                   </div>
+
                   {unread && (
                     <div className="w-2 h-2 rounded-full bg-accent-purple flex-shrink-0 mt-2" />
                   )}

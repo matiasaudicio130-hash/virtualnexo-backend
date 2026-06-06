@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   ArrowLeft, Plus, Calendar, MapPin, Users,
-  Check, Star, X as XIcon, ShieldCheck,
+  Check, Star, X as XIcon, ShieldCheck, Clock, Trash2,
 } from "lucide-react";
 import { eventsApi } from "@/lib/api";
 import { useAuthStore } from "@/store/authStore";
@@ -16,6 +16,17 @@ function formatDate(iso: string) {
 
 function isUpcoming(iso: string) {
   return new Date(iso) > new Date();
+}
+
+function countdown(iso: string): string {
+  const diff = new Date(iso).getTime() - Date.now();
+  if (diff <= 0) return "Ya comenzó";
+  const d = Math.floor(diff / 86400000);
+  const h = Math.floor((diff % 86400000) / 3600000);
+  const m = Math.floor((diff % 3600000) / 60000);
+  if (d > 0) return `En ${d}d ${h}h`;
+  if (h > 0) return `En ${h}h ${m}m`;
+  return `En ${m}m`;
 }
 
 const RSVP_OPTIONS = [
@@ -127,29 +138,68 @@ export default function Events() {
             <p className="text-xs mt-1">Sé el primero en crear uno.</p>
           </div>
         ) : events.map(event => {
-          const myRsvp = rsvpMap[event.id];
-          const past   = !isUpcoming(event.event_date);
+          const myRsvp  = rsvpMap[event.id];
+          const past    = !isUpcoming(event.event_date);
+          const isOwner = (event.creator_id ?? event.created_by) === user.id;
+
           return (
             <div key={event.id}
-              className={`bg-bg-card border border-border rounded-2xl overflow-hidden ${past ? "opacity-60" : ""}`}>
-              {event.image_url && (
-                <img src={event.image_url} alt={event.title}
-                  className="w-full h-36 object-cover" draggable={false}
-                  onContextMenu={e => e.preventDefault()}/>
-              )}
+              className={`bg-bg-card border rounded-2xl overflow-hidden transition-all ${
+                past ? "opacity-60 border-border" : myRsvp === "going" ? "border-status-success/40" : "border-border"
+              }`}>
+
+              {/* Imagen o header con countdown */}
+              {event.image_url ? (
+                <div className="relative">
+                  <img src={event.image_url} alt={event.title}
+                    className="w-full h-36 object-cover" draggable={false}
+                    onContextMenu={e => e.preventDefault()}/>
+                  {!past && (
+                    <div className="absolute top-2 right-2 flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-medium text-white"
+                      style={{ background: "rgba(2,2,7,0.75)", backdropFilter: "blur(4px)" }}>
+                      <Clock size={9}/> {countdown(event.event_date)}
+                    </div>
+                  )}
+                </div>
+              ) : !past ? (
+                <div className="px-4 pt-3 pb-0 flex justify-end">
+                  <span className="flex items-center gap-1 text-[10px] px-2.5 py-1 rounded-full"
+                    style={{ background: "rgba(201,162,39,0.1)", color: "var(--gold,#C9A227)", border: "1px solid rgba(201,162,39,0.2)" }}>
+                    <Clock size={9}/> {countdown(event.event_date)}
+                  </span>
+                </div>
+              ) : null}
+
               <div className="p-4">
                 <div className="flex items-start justify-between gap-3 mb-2">
-                  <div>
+                  <div className="flex-1 min-w-0">
                     <h3 className="font-semibold text-sm text-text-primary">{event.title}</h3>
                     {event.description && (
                       <p className="text-xs text-text-muted mt-0.5 leading-relaxed line-clamp-2">{event.description}</p>
                     )}
                   </div>
-                  {event.is_private && (
-                    <span className="text-[10px] px-2 py-0.5 bg-accent-purple/10 text-accent-purple rounded-full flex-shrink-0">
-                      Privado
-                    </span>
-                  )}
+                  <div className="flex items-center gap-1 flex-shrink-0">
+                    {event.is_private && (
+                      <span className="text-[10px] px-2 py-0.5 bg-accent-purple/10 text-accent-purple rounded-full">
+                        Privado
+                      </span>
+                    )}
+                    {isOwner && (
+                      <button
+                        onClick={async () => {
+                          if (!confirm("¿Eliminar este evento?")) return;
+                          try {
+                            await eventsApi.delete(event.id);
+                            setEvents(prev => prev.filter(e => e.id !== event.id));
+                          } catch { alert("Error al eliminar"); }
+                        }}
+                        className="p-1.5 text-text-muted hover:text-status-error transition-colors rounded-lg hover:bg-bg-muted"
+                        title="Eliminar evento"
+                      >
+                        <Trash2 size={13}/>
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 <div className="flex flex-wrap gap-3 text-xs text-text-muted mb-3">
@@ -163,7 +213,7 @@ export default function Events() {
                   )}
                   {(event.going_count || 0) > 0 ? (
                     <span className="flex items-center gap-1 text-status-success">
-                      <ShieldCheck size={11}/> {event.going_count} verificado{event.going_count !== 1 ? "s" : ""} van
+                      <ShieldCheck size={11}/> {event.going_count} van
                     </span>
                   ) : (
                     <span className="flex items-center gap-1">
@@ -191,23 +241,41 @@ export default function Events() {
                   </div>
                 )}
 
-                {/* RSVP buttons */}
+                {/* RSVP — diseño mejorado */}
                 {!past && (
                   <div className="flex gap-2">
-                    {RSVP_OPTIONS.map(({ status, icon: Icon, label, color }) => (
-                      <button
-                        key={status}
-                        onClick={() => handleRsvp(event.id, status)}
-                        className={`flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs border transition-all ${
-                          myRsvp === status
-                            ? `border-current bg-current/10 ${color}`
-                            : "border-border text-text-muted hover:border-accent-purple/40"
-                        }`}
-                      >
-                        <Icon size={12}/> {label}
-                      </button>
-                    ))}
+                    {RSVP_OPTIONS.map(({ status, icon: Icon, label }) => {
+                      const active = myRsvp === status;
+                      const bgMap: Record<string, string> = {
+                        going:      "#22C55E",
+                        interested: "#EAB308",
+                        not_going:  "#6B7280",
+                      };
+                      return (
+                        <button
+                          key={status}
+                          onClick={() => handleRsvp(event.id, status)}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-all"
+                          style={{
+                            background: active ? bgMap[status] : "transparent",
+                            border:     `1px solid ${active ? bgMap[status] : "rgba(255,255,255,0.1)"}`,
+                            color:      active ? "#fff" : "rgba(255,255,255,0.5)",
+                          }}
+                        >
+                          <Icon size={12}/> {label}
+                        </button>
+                      );
+                    })}
                   </div>
+                )}
+
+                {/* Indicador si ya pasó */}
+                {past && myRsvp && (
+                  <p className="text-[10px] text-text-muted">
+                    Fuiste como: <span className="font-medium">
+                      {RSVP_OPTIONS.find(r => r.status === myRsvp)?.label}
+                    </span>
+                  </p>
                 )}
               </div>
             </div>

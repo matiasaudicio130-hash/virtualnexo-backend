@@ -315,6 +315,28 @@ async def update_group(group_id: str, body: UpdateGroupBody, request: Request):
     return r.data[0]
 
 
+@router.patch("/{group_id}/members/{user_id}/role")
+async def set_member_role(group_id: str, user_id: str, request: Request):
+    """Admin promueve o degrada a un miembro. Body: { role: 'admin'|'member' }"""
+    payload = _require_auth(request)
+    db = get_supabase()
+    _require_admin(db, group_id, payload["sub"])
+
+    body = await request.json()
+    role = body.get("role")
+    if role not in ("admin", "member"):
+        raise HTTPException(400, "role debe ser 'admin' o 'member'")
+
+    # No permitir degradarse a sí mismo si es el único admin
+    if user_id == payload["sub"] and role == "member":
+        admins = db.table("group_members").select("user_id").eq("group_id", group_id).eq("role", "admin").execute()
+        if len(admins.data) <= 1:
+            raise HTTPException(400, "No podés degradarte — sos el único admin. Asigná otro admin primero.")
+
+    db.table("group_members").update({"role": role}).eq("group_id", group_id).eq("user_id", user_id).execute()
+    return {"user_id": user_id, "role": role}
+
+
 @router.delete("/{group_id}")
 async def delete_group(group_id: str, request: Request):
     """Solo el creador original puede eliminar el grupo."""

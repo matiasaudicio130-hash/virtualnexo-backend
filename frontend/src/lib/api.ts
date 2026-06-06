@@ -325,12 +325,13 @@ export const pushApi = {
 };
 
 export const highlightsApi = {
-  forUser:      (userId: string)            => api.get(`/highlights/user/${userId}`),
-  mine:         ()                          => api.get("/highlights/mine"),
-  create:       (body: object)              => api.post("/highlights/", body),
-  delete:       (id: string)               => api.delete(`/highlights/${id}`),
-  reactStory:   (storyId: string, emoji: string) => api.post(`/highlights/stories/${storyId}/react`, { emoji }),
-  storyReactions: (storyId: string)         => api.get(`/highlights/stories/${storyId}/reactions`),
+  forUser:        (userId: string)                   => api.get(`/highlights/user/${userId}`),
+  mine:           ()                                 => api.get("/highlights/mine"),
+  create:         (body: object)                     => api.post("/highlights/", body),
+  update:         (id: string, body: object)         => api.patch(`/highlights/${id}`, body),
+  delete:         (id: string)                       => api.delete(`/highlights/${id}`),
+  reactStory:     (storyId: string, emoji: string)   => api.post(`/highlights/stories/${storyId}/react`, { emoji }),
+  storyReactions: (storyId: string)                  => api.get(`/highlights/stories/${storyId}/reactions`),
 };
 
 export const profilesApi = {
@@ -352,15 +353,16 @@ export const followsApi = {
 };
 
 export const groupsApi = {
-  list:          ()                              => api.get("/groups/"),
-  create:        (body: object)                  => api.post("/groups/", body),
-  get:           (id: string)                    => api.get(`/groups/${id}`),
-  update:        (id: string, body: object)      => api.patch(`/groups/${id}`, body),
-  delete:        (id: string)                    => api.delete(`/groups/${id}`),
-  messages:      (id: string, params?: object)   => api.get(`/groups/${id}/messages`, { params }),
-  sendMessage:   (id: string, body: object)      => api.post(`/groups/${id}/messages`, body),
-  addMember:     (id: string, userId: string)    => api.post(`/groups/${id}/members`, { user_id: userId }),
-  removeMember:  (id: string, userId: string)    => api.delete(`/groups/${id}/members/${userId}`),
+  list:          ()                                       => api.get("/groups/"),
+  create:        (body: object)                           => api.post("/groups/", body),
+  get:           (id: string)                             => api.get(`/groups/${id}`),
+  update:        (id: string, body: object)               => api.patch(`/groups/${id}`, body),
+  delete:        (id: string)                             => api.delete(`/groups/${id}`),
+  messages:      (id: string, params?: object)            => api.get(`/groups/${id}/messages`, { params }),
+  sendMessage:   (id: string, body: object)               => api.post(`/groups/${id}/messages`, body),
+  addMember:     (id: string, userId: string)             => api.post(`/groups/${id}/members`, { user_id: userId }),
+  removeMember:  (id: string, userId: string)             => api.delete(`/groups/${id}/members/${userId}`),
+  setMemberRole: (id: string, userId: string, role: string) => api.patch(`/groups/${id}/members/${userId}/role`, { role }),
 };
 
 export const albumsApi = {

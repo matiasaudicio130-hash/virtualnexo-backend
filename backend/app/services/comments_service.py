@@ -68,7 +68,8 @@ class CommentsService:
             create_notification(
                 post_owner_id, "comment",
                 f"{name} comentó en tu publicación",
-                {"post_id": post_id, "comment_id": comment["id"]}
+                {"post_id": post_id, "comment_id": comment["id"]},
+                actor_id=user_id,
             )
 
         # Si es reply, notificar al autor del comentario padre
@@ -82,7 +83,8 @@ class CommentsService:
                     create_notification(
                         parent_owner, "comment_reply",
                         f"{name} respondió tu comentario",
-                        {"post_id": post_id, "comment_id": comment["id"]}
+                        {"post_id": post_id, "comment_id": comment["id"]},
+                        actor_id=user_id,
                     )
 
         return comment

@@ -13,9 +13,10 @@ import {
   Shield, LogOut, User,
   Settings, Check, Eye, Heart, BarChart2, Bookmark, QrCode,
 } from "lucide-react";
+import { ProfileQRModal } from "@/components/ProfileQRModal";
 import { BottomNav } from "@/components/BottomNav";
 import { usePricingPlans, formatARS, formatUSD } from "@/hooks/useExchangeRate";
-import { profilesApi } from "@/lib/api";
+import { profilesApi, followsApi } from "@/lib/api";
 import { AvatarUpload } from "@/components/AvatarUpload";
 import { StreakBadge } from "@/components/StreakBadge";
 import { useScreenCapture } from "@/hooks/useScreenCapture";
@@ -24,7 +25,6 @@ import { InstallPrompt } from "@/components/InstallPrompt";
 import { SecuritySettings } from "@/components/SecuritySettings";
 import { EditProfileModal }    from "@/components/EditProfileModal";
 import { DeleteAccountModal }  from "@/components/DeleteAccountModal";
-import { ProfileQRModal }     from "@/components/ProfileQRModal";
 import { MyProfileSection } from "@/components/MyProfileSection";
 import { CoupleSection } from "@/components/CoupleSection";
 import { NavLogo } from "@/components/AuraLogo";
@@ -51,7 +51,6 @@ export default function Dashboard() {
   const { lang, t, setLang } = useLangStore();
   const [settingsOpen, setSettingsOpen]       = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [showQR,            setShowQR]            = useState(false);
   const [viewers, setViewers]             = useState<any[]>([]);
   const [showViewers, setShowViewers]     = useState(false);
   const [showEditProfile, setShowEditProfile] = useState(false);
@@ -60,12 +59,22 @@ export default function Dashboard() {
     ((user as any)?.profile_extended?.message_settings ?? "everyone") as "everyone"|"followers"|"nobody"
   );
   const [anonMode, setAnonMode] = useState(false);
+  const [showQR, setShowQR] = useState(false);
+  const [socialStats, setSocialStats] = useState({ followers: 0, following: 0 });
 
   useScreenCapture({ warn: true });
 
   useEffect(() => {
     refreshUser();
     profilesApi.viewers().then(r => setViewers(r.data)).catch(() => {});
+    if (user?.id) {
+      Promise.all([
+        followsApi.followers(user.id, { limit: 1 }),
+        followsApi.following(user.id, { limit: 1 }),
+      ]).then(([frs, fng]) => {
+        setSocialStats({ followers: frs.data.total ?? 0, following: fng.data.total ?? 0 });
+      }).catch(() => {});
+    }
   }, []);
 
   async function handleLogout() {
@@ -90,14 +99,6 @@ export default function Dashboard() {
         />
       )}
 
-      {showQR && user && (
-        <ProfileQRModal
-          userId={user.id}
-          userName={`${user.first_name || ""} ${user.last_name || ""}`.trim() || "Mi perfil"}
-          onClose={() => setShowQR(false)}
-        />
-      )}
-
       {showDeleteConfirm && (
         <DeleteAccountModal
           onConfirm={async () => {
@@ -110,6 +111,15 @@ export default function Dashboard() {
         />
       )}
 
+      {/* QR Modal */}
+      {showQR && (
+        <ProfileQRModal
+          userId={user.id}
+          userName={`${user.first_name} ${user.last_name}`.trim()}
+          onClose={() => setShowQR(false)}
+        />
+      )}
+
       {/* Header */}
       <header className="sticky top-0 z-20 bg-bg-base/85 backdrop-blur-md border-b border-border px-4 pt-safe-3 pb-3 flex items-center justify-between">
         <NavLogo />
@@ -117,7 +127,7 @@ export default function Dashboard() {
           <button
             onClick={() => setShowQR(true)}
             className="p-2 rounded-xl hover:bg-bg-muted transition-colors"
-            title="Mi código QR"
+            title="Mi QR"
           >
             <QrCode size={17} className="text-text-muted" />
           </button>
@@ -336,13 +346,45 @@ export default function Dashboard() {
 
         )}
 
-        {/* Avatar + streak */}
+        {/* Avatar + nombre + links */}
         <div className="flex flex-col items-center gap-2 pt-2">
           <AvatarUpload
             currentUrl={user.profile_photo_url}
             size={96}
             onSuccess={() => refreshUser()}
           />
+          <div className="text-center">
+            <p className="font-semibold text-sm">
+              {user.first_name} {user.last_name}
+            </p>
+            {/* Stats sociales */}
+            <div className="flex items-center justify-center gap-4 mt-2">
+              <button
+                onClick={() => navigate(`/profile/${user.id}?tab=followers`)}
+                className="flex flex-col items-center gap-0.5 hover:opacity-80 transition-opacity"
+              >
+                <span className="text-sm font-bold" style={{ color: "var(--gold,#C9A227)" }}>
+                  {socialStats.followers}
+                </span>
+                <span className="text-[10px] text-text-muted uppercase tracking-widest">Seguidores</span>
+              </button>
+              <span className="w-px h-6 bg-border"/>
+              <button
+                onClick={() => navigate(`/profile/${user.id}?tab=following`)}
+                className="flex flex-col items-center gap-0.5 hover:opacity-80 transition-opacity"
+              >
+                <span className="text-sm font-bold text-text-primary">{socialStats.following}</span>
+                <span className="text-[10px] text-text-muted uppercase tracking-widest">Siguiendo</span>
+              </button>
+            </div>
+            <button
+              onClick={() => navigate(`/profile/${user.id}`)}
+              className="text-[11px] mt-2 transition-opacity hover:opacity-80"
+              style={{ color: "var(--gold,#C9A227)" }}
+            >
+              Ver mi perfil público →
+            </button>
+          </div>
           <StreakBadge initialStreak={(user as any).current_streak ?? 0} showToast={false} />
         </div>
 

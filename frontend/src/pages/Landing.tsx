@@ -278,7 +278,7 @@ export default function Landing() {
           autoPlay muted loop playsInline
           style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", zIndex: 0, opacity: 0.65 }}
         >
-          <source src="/brand/hero-bg.mp4" type="video/mp4"/>
+          <source src="/brand/hero-bg.mp4.mp4" type="video/mp4"/>
         </video>
         <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, rgba(2,2,7,0.55) 0%, rgba(2,2,7,0.3) 50%, rgba(2,2,7,0.85) 100%)", zIndex: 1 }}/>
         <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse 90% 70% at 50% 40%, rgba(28,20,8,0.5) 0%, transparent 70%)", zIndex: 1 }}/>
@@ -382,12 +382,55 @@ export default function Landing() {
         </div>
       </section>
 
+      {/* ══ APP PREVIEW ══════════════════════════════════════ */}
+      <div className="s-div" style={{ height: 1, background: "linear-gradient(90deg, transparent, rgba(201,162,39,0.22), transparent)", transformOrigin: "center" }}/>
+      <section style={{ padding: "100px 24px", maxWidth: 1080, margin: "0 auto", overflow: "hidden" }}>
+        <div className="reveal-up" style={{ textAlign: "center", marginBottom: 64 }}>
+          <p style={{ fontSize: 9, letterSpacing: "0.44em", color: "rgba(201,162,39,0.55)", textTransform: "uppercase", fontWeight: 300, marginBottom: 16 }}>La plataforma</p>
+          <h2 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(26px,3.5vw,46px)", fontWeight: 400, letterSpacing: "-0.02em", color: "var(--paper)" }}>Una red social completa. Nadie miente.</h2>
+        </div>
+        {/* Phone mockup grid */}
+        <div className="reveal-stagger" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 16, alignItems: "end" }}>
+          {[
+            { icon: "💬", title: "Mensajes", body: "DMs privados, audios, media con view-once. Nadie screenshot sin consecuencias.", color: "#8B5CF6" },
+            { icon: "📸", title: "Feed", body: "Stories, posts, encuestas, carruseles. Solo de gente verificada.", color: "#C9A227", tall: true },
+            { icon: "🛡", title: "Perfiles reales", body: "Verificación KYC con DNI + biometría. Cero catfishing.", color: "#22C55E" },
+            { icon: "✈️", title: "Modo Viaje", body: "Coordiná con personas verificadas en tu destino antes de llegar.", color: "#3B82F6" },
+            { icon: "🎭", title: "Eventos", body: "Encontrá y creá encuentros exclusivos de la comunidad.", color: "#EC4899", tall: true },
+          ].map((item, i) => (
+            <div
+              key={i}
+              className="stagger-child"
+              style={{
+                background: "linear-gradient(160deg, rgba(20,18,14,0.95) 0%, rgba(12,10,8,0.98) 100%)",
+                border: `1px solid ${item.color}22`,
+                borderRadius: 20,
+                padding: "28px 20px",
+                minHeight: item.tall ? 240 : 180,
+                display: "flex",
+                flexDirection: "column",
+                gap: 12,
+                position: "relative",
+                overflow: "hidden",
+                transition: "border-color 0.3s",
+              }}
+            >
+              <div style={{ position: "absolute", top: -20, right: -20, width: 80, height: 80, borderRadius: "50%", background: `radial-gradient(circle, ${item.color}15, transparent 70%)`, pointerEvents: "none" }}/>
+              <span style={{ fontSize: 28 }}>{item.icon}</span>
+              <h3 style={{ fontSize: 15, fontWeight: 300, color: "var(--paper)", letterSpacing: "-0.01em" }}>{item.title}</h3>
+              <p style={{ fontSize: 12, color: "var(--mist)", lineHeight: 1.7, fontWeight: 300, flexGrow: 1 }}>{item.body}</p>
+              <div style={{ width: 24, height: 2, borderRadius: 1, background: item.color, opacity: 0.7 }}/>
+            </div>
+          ))}
+        </div>
+      </section>
+
       {/* ══ FEATURES GRID ════════════════════════════════════ */}
       <div className="s-div" style={{ height: 1, background: "linear-gradient(90deg, transparent, rgba(201,162,39,0.22), transparent)", transformOrigin: "center" }}/>
       <section style={{ padding: "100px 24px", maxWidth: 1080, margin: "0 auto" }}>
         <div className="reveal-up" style={{ textAlign: "center", marginBottom: 60 }}>
-          <p style={{ fontSize: 9, letterSpacing: "0.44em", color: "rgba(201,162,39,0.55)", textTransform: "uppercase", fontWeight: 300, marginBottom: 16 }}>La plataforma</p>
-          <h2 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(26px,3.5vw,46px)", fontWeight: 400, letterSpacing: "-0.02em", color: "var(--paper)" }}>Una red social completa. Nadie miente.</h2>
+          <p style={{ fontSize: 9, letterSpacing: "0.44em", color: "rgba(201,162,39,0.55)", textTransform: "uppercase", fontWeight: 300, marginBottom: 16 }}>Por qué elegirla</p>
+          <h2 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(26px,3.5vw,46px)", fontWeight: 400, letterSpacing: "-0.02em", color: "var(--paper)" }}>Seis razones que lo cambian todo.</h2>
         </div>
         <div className="reveal-stagger" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(280px,1fr))", gap: 16 }}>
           {c.features.map((f, i) => (
@@ -412,6 +455,45 @@ export default function Landing() {
               </div>
               <div style={{ width: 24, height: 1, background: "rgba(201,162,39,0.35)", margin: "14px auto" }}/>
               <p style={{ fontSize: 10, letterSpacing: "0.22em", color: "rgba(201,162,39,0.6)", textTransform: "uppercase", fontWeight: 300 }}>{s.label}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ══ TESTIMONIOS ══════════════════════════════════════ */}
+      <div className="s-div" style={{ height: 1, background: "linear-gradient(90deg, transparent, rgba(201,162,39,0.22), transparent)", transformOrigin: "center" }}/>
+      <section style={{ padding: "100px 24px", maxWidth: 1080, margin: "0 auto" }}>
+        <div className="reveal-up" style={{ textAlign: "center", marginBottom: 64 }}>
+          <p style={{ fontSize: 9, letterSpacing: "0.44em", color: "rgba(201,162,39,0.55)", textTransform: "uppercase", fontWeight: 300 }}>La comunidad habla</p>
+        </div>
+        <div className="reveal-stagger" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 20 }}>
+          {[
+            { q: "Por primera vez sé que la persona del otro lado es real. Eso lo cambia absolutamente todo.", from: "M. — Buenos Aires", stars: 5 },
+            { q: "El proceso de verificación da confianza. En tres minutos sabés que estás entre adultos reales.", from: "S. — Córdoba", stars: 5 },
+            { q: "Los álbumes privados y el watermark invisible me dieron la tranquilidad que nunca tuve en otra plataforma.", from: "L. — Mendoza", stars: 5 },
+          ].map((t, i) => (
+            <div
+              key={i}
+              className="stagger-child"
+              style={{
+                padding: "32px 28px",
+                border: "1px solid rgba(201,162,39,0.1)",
+                borderRadius: 16,
+                background: "linear-gradient(145deg, rgba(201,162,39,0.03), rgba(2,2,7,0))",
+                display: "flex",
+                flexDirection: "column",
+                gap: 16,
+              }}
+            >
+              <div style={{ display: "flex", gap: 3 }}>
+                {Array.from({ length: t.stars }).map((_, s) => (
+                  <span key={s} style={{ fontSize: 12, color: "var(--gold)" }}>★</span>
+                ))}
+              </div>
+              <p style={{ fontSize: 14, color: "var(--paper)", lineHeight: 1.75, fontWeight: 300, fontStyle: "italic", flexGrow: 1 }}>
+                "{t.q}"
+              </p>
+              <p style={{ fontSize: 10, letterSpacing: "0.22em", color: "rgba(201,162,39,0.45)", textTransform: "uppercase", fontWeight: 300 }}>{t.from}</p>
             </div>
           ))}
         </div>

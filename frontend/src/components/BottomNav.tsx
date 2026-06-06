@@ -2,8 +2,11 @@ import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
   SquaresFour, MagnifyingGlass, ChatTeardrop,
-  Bell, UserCircle, X, Info,
+  Bell, UserCircle, X,
 } from "@phosphor-icons/react";
+import {
+  MessageSquare, Flame, Star, Award, Heart, UserPlus, Info,
+} from "lucide-react";
 import { notificationsApi } from "@/lib/api";
 
 interface Notification {
@@ -13,7 +16,42 @@ interface Notification {
   body?: string;
   read_at: string | null;
   created_at: string;
+  data?: Record<string, string>;
 }
+
+const TYPE_ICONS: Record<string, typeof Info> = {
+  new_message:          MessageSquare,
+  new_reaction:         Flame,
+  story_reaction:       Flame,
+  new_review:           Star,
+  kyc_approved:         Award,
+  membership_activated: Award,
+  new_like:             Heart,
+  new_follower:         UserPlus,
+  group_invite:         UserPlus,
+  like:                 Heart,
+  match:                Heart,
+  comment:              MessageSquare,
+  comment_reply:        MessageSquare,
+  system:               Info,
+};
+
+const TYPE_COLORS: Record<string, string> = {
+  new_message:          "#8B5CF6",
+  new_reaction:         "#F97316",
+  story_reaction:       "#F97316",
+  new_review:           "#EAB308",
+  kyc_approved:         "#22C55E",
+  membership_activated: "#C9A227",
+  new_like:             "#EC4899",
+  like:                 "#EC4899",
+  match:                "#EC4899",
+  new_follower:         "#3B82F6",
+  group_invite:         "#C9A227",
+  comment:              "#8B5CF6",
+  comment_reply:        "#8B5CF6",
+  system:               "#6B7280",
+};
 
 function timeAgo(d: string) {
   const diff = Date.now() - new Date(d).getTime();
@@ -23,6 +61,30 @@ function timeAgo(d: string) {
   const h = Math.floor(m / 60);
   if (h < 24) return `${h}h`;
   return `${Math.floor(h / 24)}d`;
+}
+
+function NotifAvatar({ url, name, color }: { url?: string; name?: string; color: string }) {
+  if (url) {
+    return (
+      <img
+        src={url}
+        alt={name || ""}
+        className="w-9 h-9 rounded-full object-cover flex-shrink-0"
+        onError={e => { (e.target as HTMLImageElement).style.display = "none"; }}
+      />
+    );
+  }
+  const initials = name
+    ? name.split(" ").map(w => w[0]).slice(0, 2).join("").toUpperCase()
+    : "?";
+  return (
+    <div
+      className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold text-white"
+      style={{ background: color }}
+    >
+      {initials}
+    </div>
+  );
 }
 
 const ICON_WEIGHT = "light";
@@ -108,6 +170,7 @@ export function BottomNav() {
                 </button>
               </div>
             </div>
+
             <div className="overflow-y-auto flex-1 divide-y divide-border">
               {loadingNotifs && (
                 <div className="p-6 text-center text-text-muted text-sm">Cargando…</div>
@@ -119,7 +182,12 @@ export function BottomNav() {
                 </div>
               )}
               {notifications.map(n => {
-                const unread = !n.read_at;
+                const unread      = !n.read_at;
+                const Icon        = TYPE_ICONS[n.type] ?? Info;
+                const color       = TYPE_COLORS[n.type] ?? "#6B7280";
+                const actorAvatar = n.data?.actor_avatar;
+                const actorName   = n.data?.actor_name;
+
                 return (
                   <div
                     key={n.id}
@@ -128,14 +196,24 @@ export function BottomNav() {
                       unread ? "bg-accent-purple/5 cursor-pointer hover:bg-accent-purple/10" : ""
                     }`}
                   >
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${
-                      unread ? "bg-accent-purple/20" : "bg-bg-muted"
-                    }`}>
-                      <Info size={15} weight={unread ? "bold" : "light"} className={unread ? "text-accent-purple" : "text-text-muted"} />
+                    {/* Avatar con ícono de tipo superpuesto */}
+                    <div className="relative flex-shrink-0 mt-0.5">
+                      <NotifAvatar url={actorAvatar} name={actorName} color={color} />
+                      <div
+                        className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full flex items-center justify-center border border-bg-card"
+                        style={{ background: color }}
+                      >
+                        <Icon size={9} className="text-white" />
+                      </div>
                     </div>
+
                     <div className="flex-1 min-w-0">
-                      <p className={`text-sm leading-tight ${unread ? "font-semibold" : "font-normal"}`}>{n.title}</p>
-                      {n.body && <p className="text-xs text-text-muted mt-0.5 line-clamp-2">{n.body}</p>}
+                      <p className={`text-sm leading-tight ${unread ? "font-semibold" : "font-normal"}`}>
+                        {n.title}
+                      </p>
+                      {n.body && (
+                        <p className="text-xs text-text-muted mt-0.5 line-clamp-2">{n.body}</p>
+                      )}
                       <p className="text-[10px] text-text-muted mt-1">{timeAgo(n.created_at)}</p>
                     </div>
                     {unread && <div className="w-2 h-2 rounded-full bg-accent-purple flex-shrink-0 mt-2" />}
@@ -177,7 +255,6 @@ export function BottomNav() {
                     weight={active ? "fill" : ICON_WEIGHT}
                     style={{ color: active ? "var(--gold)" : "var(--color-text-muted, #6b7280)" }}
                   />
-                  {/* Badge para alertas */}
                   {id === "alerts" && notifCount > 0 && (
                     <span className="absolute -top-1 -right-1.5 min-w-[14px] h-[14px] bg-status-error text-white text-[9px] font-bold rounded-full flex items-center justify-center px-0.5 leading-none">
                       {notifCount > 9 ? "9+" : notifCount}

@@ -151,6 +151,7 @@ class MessagingService:
             title="Nuevo mensaje",
             body=preview,
             data={"conversation_id": conv_id, "sender_id": sender_id},
+            actor_id=sender_id,
         )
 
         # Push al destinatario
