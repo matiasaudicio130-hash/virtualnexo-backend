@@ -21,7 +21,7 @@ def _require_auth(request: Request) -> dict:
 
 @router.post("/{user_id}", status_code=201)
 async def follow_user(user_id: str, request: Request):
-    """Seguir a un usuario. Idempotente."""
+    """Seguir a un usuario. Si la cuenta es privada, crea una solicitud pendiente. Idempotente."""
     payload = _require_auth(request)
     me = payload["sub"]
     if me == user_id:
@@ -29,9 +29,49 @@ async def follow_user(user_id: str, request: Request):
 
     db = get_supabase()
     # Verificar que el usuario existe y está activo
-    target = db.table("users").select("id,status").eq("id", user_id).execute()
+    target = db.table("users").select("id,status,is_private,first_name,last_name,username,profile_photo_url").eq("id", user_id).execute()
     if not target.data or target.data[0]["status"] != "active":
         raise HTTPException(404, "Usuario no encontrado")
+    target_user = target.data[0]
+
+    # Cuenta privada y todavía no la sigo → crear solicitud pendiente
+    if target_user.get("is_private"):
+        existing = db.table("user_follows").select("id").eq("follower_id", me).eq("following_id", user_id).execute()
+        if not existing.data:
+            try:
+                db.table("follow_requests").insert({"requester_id": me, "target_id": user_id, "status": "pending"}).execute()
+            except Exception:
+                pass  # Ya existe — idempotente
+
+            try:
+                me_data = db.table("users").select("first_name,last_name,username,profile_photo_url").eq("id", me).execute().data
+                if me_data:
+                    u = me_data[0]
+                    handle = u.get("username") or u["first_name"]
+                    name = f"@{handle}" if u.get("username") else u["first_name"]
+                    from app.services.notifications_service import create_notification
+                    create_notification(
+                        user_id=user_id,
+                        notif_type="follow_request",
+                        title="Solicitud de seguimiento",
+                        body=f"{name} quiere seguirte",
+                        data={
+                            "requester_id": me,
+                            "actor_name":   f"{u['first_name']} {u['last_name']}".strip(),
+                            "actor_avatar": u.get("profile_photo_url") or "",
+                        },
+                    )
+                    from app.services.push_service import send_push
+                    send_push(
+                        user_id=user_id,
+                        title="Solicitud de seguimiento",
+                        body=f"{name} quiere seguirte",
+                        url="/notifications",
+                    )
+            except Exception:
+                pass
+
+            return {"requested": True, "following": False, "following_id": user_id}
 
     # Upsert — si ya existe no falla
     try:
@@ -90,11 +130,97 @@ async def follow_status(user_id: str, request: Request):
     i_follow = db.table("user_follows").select("id").eq("follower_id", me).eq("following_id", user_id).execute()
     follows_me = db.table("user_follows").select("id").eq("follower_id", user_id).eq("following_id", me).execute()
 
+    request_pending = False
+    if not i_follow.data:
+        req = db.table("follow_requests").select("id").eq("requester_id", me).eq("target_id", user_id).eq("status", "pending").execute()
+        request_pending = bool(req.data)
+
     return {
-        "i_follow":   bool(i_follow.data),
-        "follows_me": bool(follows_me.data),
-        "mutual":     bool(i_follow.data) and bool(follows_me.data),
+        "i_follow":        bool(i_follow.data),
+        "follows_me":      bool(follows_me.data),
+        "mutual":          bool(i_follow.data) and bool(follows_me.data),
+        "request_pending": request_pending,
     }
+
+
+@router.get("/requests")
+async def get_follow_requests(request: Request):
+    """Solicitudes de follow pendientes recibidas."""
+    payload = _require_auth(request)
+    me = payload["sub"]
+    db = get_supabase()
+
+    result = db.table("follow_requests").select(
+        "id,requester_id,created_at,"
+        "users!follow_requests_requester_id_fkey(id,first_name,last_name,profile_photo_url,province)"
+    ).eq("target_id", me).eq("status", "pending").order("created_at", desc=True).execute()
+
+    requests_list = []
+    for r in result.data:
+        u = r.pop("users", None) or {}
+        requests_list.append({**r, "requester": u})
+
+    return {"requests": requests_list, "total": len(requests_list)}
+
+
+@router.post("/requests/{requester_id}/accept")
+async def accept_follow_request(requester_id: str, request: Request):
+    """Aceptar una solicitud de follow pendiente: crea el follow y borra la solicitud."""
+    payload = _require_auth(request)
+    me = payload["sub"]
+    db = get_supabase()
+
+    req = db.table("follow_requests").select("id").eq("requester_id", requester_id).eq("target_id", me).eq("status", "pending").execute()
+    if not req.data:
+        raise HTTPException(404, "Solicitud no encontrada")
+
+    try:
+        db.table("user_follows").insert({"follower_id": requester_id, "following_id": me}).execute()
+    except Exception:
+        pass  # Ya existe — idempotente
+
+    db.table("follow_requests").delete().eq("id", req.data[0]["id"]).execute()
+
+    try:
+        me_data = db.table("users").select("first_name,last_name,username,profile_photo_url").eq("id", me).execute().data
+        if me_data:
+            u = me_data[0]
+            handle = u.get("username") or u["first_name"]
+            name = f"@{handle}" if u.get("username") else u["first_name"]
+            from app.services.notifications_service import create_notification
+            create_notification(
+                user_id=requester_id,
+                notif_type="follow_request_accepted",
+                title="Solicitud aceptada",
+                body=f"{name} aceptó tu solicitud de seguimiento",
+                data={
+                    "target_id":   me,
+                    "actor_name":  f"{u['first_name']} {u['last_name']}".strip(),
+                    "actor_avatar": u.get("profile_photo_url") or "",
+                },
+            )
+            from app.services.push_service import send_push
+            send_push(
+                user_id=requester_id,
+                title="Solicitud aceptada",
+                body=f"{name} aceptó tu solicitud de seguimiento",
+                url=f"/profile/{me}",
+            )
+    except Exception:
+        pass
+
+    return {"accepted": True, "requester_id": requester_id}
+
+
+@router.post("/requests/{requester_id}/reject")
+async def reject_follow_request(requester_id: str, request: Request):
+    """Rechazar una solicitud de follow pendiente."""
+    payload = _require_auth(request)
+    me = payload["sub"]
+    db = get_supabase()
+
+    db.table("follow_requests").delete().eq("requester_id", requester_id).eq("target_id", me).eq("status", "pending").execute()
+    return {"rejected": True, "requester_id": requester_id}
 
 
 @router.get("/{user_id}/followers")

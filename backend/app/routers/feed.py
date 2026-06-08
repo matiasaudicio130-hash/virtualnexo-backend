@@ -19,6 +19,27 @@ def _require_auth(request: Request) -> dict:
     return payload
 
 
+def _inject_counts(db, posts: list[dict]) -> None:
+    """Agrega reactions_count/comments_count a cada post con un conteo por lote (2 queries totales, sin N+1)."""
+    post_ids = [p["id"] for p in posts]
+    if not post_ids:
+        return
+    from collections import Counter
+    try:
+        rx = db.table("post_reactions").select("post_id").in_("post_id", post_ids).execute()
+        rx_count = Counter(r["post_id"] for r in rx.data)
+    except Exception:
+        rx_count = Counter()
+    try:
+        cm = db.table("comments").select("post_id").in_("post_id", post_ids).execute()
+        cm_count = Counter(c["post_id"] for c in cm.data)
+    except Exception:
+        cm_count = Counter()
+    for p in posts:
+        p["reactions_count"] = rx_count.get(p["id"], 0)
+        p["comments_count"]  = cm_count.get(p["id"], 0)
+
+
 class ReactionBody(BaseModel):
     type: Literal["fire", "heart", "star"]
 
@@ -74,8 +95,9 @@ async def get_user_posts(
     author_id: str,
     limit: int  = Query(18, le=50),
     offset: int = Query(0, ge=0),
+    kind: Optional[str] = Query(None),
 ):
-    """Posts públicos de un usuario específico (para su perfil)."""
+    """Posts públicos de un usuario específico (para su perfil). `kind=video` filtra solo Reels."""
     payload = _require_auth(request)
     viewer_id = payload["sub"]
     from app.db.supabase import get_supabase
@@ -85,12 +107,13 @@ async def get_user_posts(
         "expires_at,extra_data,allow_share,"
         "users!posts_user_id_fkey(id,first_name,last_name,profile_photo_url,profile_type,username)"
     )
+    types = ["video"] if kind == "video" else ["photo", "video", "text", "poll"]
     rows = (
         db.table("posts")
         .select(SELECT)
         .eq("user_id", author_id)
         .eq("status", "active")
-        .in_("type", ["photo", "video", "text", "poll"])
+        .in_("type", types)
         .order("created_at", desc=True)
         .range(offset, offset + limit - 1)
         .execute()
@@ -116,7 +139,7 @@ async def get_user_posts(
             if visibility == "followers" and author_id not in viewer_following:
                 continue
 
-        author_raw = r.pop("users!posts_user_id_fkey", None) or {}
+        author_raw = r.pop("users", None) or {}
         author = {
             "id":           author_raw.get("id"),
             "name":         f"{author_raw.get('first_name','')} {author_raw.get('last_name','')}".strip(),
@@ -152,6 +175,7 @@ async def get_user_posts(
         except Exception:
             pass
 
+    _inject_counts(db, posts)
     feed_service._refresh_signed_urls(posts, db)
     return {"posts": posts}
 
@@ -542,15 +566,81 @@ async def get_saved_posts(
     db = get_supabase()
     saves = db.table("post_saves").select(
         "post_id, posts!post_saves_post_id_fkey("
-        "id,type,caption,media_url,media_urls,storage_path,city,province,"
-        "created_at,views_count,save_count,"
-        "users!posts_user_id_fkey(id,first_name,last_name,profile_photo_url)"
+        "id,user_id,type,caption,media_url,media_urls,storage_path,city,province,"
+        "created_at,views_count,save_count,is_story,extra_data,"
+        "users!posts_user_id_fkey(id,first_name,last_name,profile_photo_url,profile_type,username)"
         ")"
     ).eq("user_id", payload["sub"]).order("created_at", desc=True).range(
         offset, offset + limit - 1
     ).execute()
-    posts = [s["posts"] for s in saves.data if s.get("posts")]
+
+    posts = []
+    for s in saves.data:
+        r = s.get("posts")
+        if not r:
+            continue
+        author_raw = r.pop("users", None) or {}
+        author = {
+            "id":           author_raw.get("id"),
+            "name":         f"{author_raw.get('first_name','')} {author_raw.get('last_name','')}".strip(),
+            "username":     author_raw.get("username"),
+            "avatar":       author_raw.get("profile_photo_url"),
+            "profile_type": author_raw.get("profile_type"),
+        }
+        posts.append({**r, "author": author, "viewer_reaction": None, "reactions": {}})
+
+    _inject_counts(db, posts)
+    feed_service._refresh_signed_urls(posts, db)
     return {"posts": posts, "total": len(posts)}
+
+
+@router.get("/user/{user_id}/tagged")
+async def get_tagged_posts(
+    user_id: str,
+    request: Request,
+    limit: int  = Query(18, le=50),
+    offset: int = Query(0, ge=0),
+):
+    """Posts donde `user_id` está etiquetado — mismo shape que get_user_posts."""
+    _require_auth(request)
+    from app.db.supabase import get_supabase
+    db = get_supabase()
+    SELECT = (
+        "post_id, posts!post_tags_post_id_fkey("
+        "id,user_id,caption,media_url,media_urls,storage_path,type,created_at,city,province,"
+        "expires_at,extra_data,allow_share,status,"
+        "users!posts_user_id_fkey(id,first_name,last_name,profile_photo_url,profile_type,username)"
+        ")"
+    )
+    rows = (
+        db.table("post_tags")
+        .select(SELECT)
+        .eq("tagged_user_id", user_id)
+        .order("created_at", desc=True)
+        .range(offset, offset + limit - 1)
+        .execute()
+        .data
+    )
+
+    posts = []
+    for row in rows:
+        r = row.get("posts")
+        if not r or r.get("status") != "active":
+            continue
+        author_raw = r.pop("users", None) or {}
+        author = {
+            "id":           author_raw.get("id"),
+            "name":         f"{author_raw.get('first_name','')} {author_raw.get('last_name','')}".strip(),
+            "username":     author_raw.get("username"),
+            "avatar":       author_raw.get("profile_photo_url"),
+            "profile_type": author_raw.get("profile_type"),
+        }
+        r.pop("status", None)
+        posts.append({**r, "author": author, "viewer_reaction": None, "reactions": {}})
+
+    _inject_counts(db, posts)
+    feed_service._refresh_signed_urls(posts, db)
+    return {"posts": posts}
 
 
 class RepostBody(BaseModel):

@@ -71,6 +71,33 @@ class ProfileService:
             for row in r.data if row.get("users")
         ]
 
+    # ── Notas temporales (perfil) ────────────────────────────────
+    def get_active_note(self, user_id: str) -> dict | None:
+        """Nota vigente del usuario (expires_at > now) o None."""
+        db = get_supabase()
+        try:
+            now_iso = datetime.now(timezone.utc).isoformat()
+            r = db.table("profile_notes").select(
+                "id,text,created_at,expires_at"
+            ).eq("user_id", user_id).gt("expires_at", now_iso).order(
+                "created_at", desc=True
+            ).limit(1).execute()
+            return r.data[0] if r.data else None
+        except Exception:
+            return None
+
+    def set_note(self, user_id: str, text: str) -> dict:
+        """Reemplaza la nota del usuario (solo una vigente por usuario)."""
+        db = get_supabase()
+        clean = (text or "").strip()[:60]
+        db.table("profile_notes").delete().eq("user_id", user_id).execute()
+        r = db.table("profile_notes").insert({"user_id": user_id, "text": clean}).execute()
+        return r.data[0]
+
+    def delete_note(self, user_id: str) -> None:
+        db = get_supabase()
+        db.table("profile_notes").delete().eq("user_id", user_id).execute()
+
     # ── Perfil público ──────────────────────────────────────────
     def get_public_profile(self, target_id: str, viewer_id: str) -> dict | None:
         db = get_supabase()
@@ -90,7 +117,7 @@ class ProfileService:
         # Datos base del usuario — query core, si falla retornamos None
         r = db.table("users").select(
             "id,first_name,last_name,profile_photo_url,bio,province,city,"
-            "profile_type,sexual_orientation,interested_in,visible_to,"
+            "profile_type,sexual_orientation,interested_in,visible_to,is_private,"
             "identity_description,profile_extended,membership_type"
         ).eq("id", target_id).eq("status", "active").execute()
         if not r.data:
@@ -108,6 +135,20 @@ class ProfileService:
                     return {"private": True}
         except Exception:
             pass
+
+        # Cuenta privada: si el viewer no la sigue (y no es el dueño), perfil limitado
+        if user.get("is_private") and viewer_id != target_id:
+            try:
+                follow_r = db.table("user_follows").select("id").eq("follower_id", viewer_id).eq("following_id", target_id).execute()
+                if not follow_r.data:
+                    counts = self._get_profile_counts(db, target_id)
+                    return {
+                        **user,
+                        "private_account": True,
+                        **counts,
+                    }
+            except Exception:
+                pass
 
         # Posts recientes (falla silenciosa = lista vacía)
         posts: list = []
@@ -162,14 +203,48 @@ class ProfileService:
         except Exception:
             pass
 
+        # Story activa + si el viewer ya la vio (anillo del avatar)
+        has_active_story = False
+        story_seen = True
+        try:
+            now_iso = datetime.now(timezone.utc).isoformat()
+            active_r = db.table("posts").select("id").eq("user_id", target_id).eq(
+                "type", "story"
+            ).eq("status", "active").gt("expires_at", now_iso).execute()
+            active_ids = [s["id"] for s in active_r.data]
+            has_active_story = len(active_ids) > 0
+            if has_active_story:
+                if viewer_id == target_id:
+                    story_seen = False  # perfil propio → anillo lleno
+                else:
+                    seen_r = db.table("story_views").select("post_id").eq(
+                        "viewer_id", viewer_id
+                    ).in_("post_id", active_ids).execute()
+                    seen_ids = {v["post_id"] for v in seen_r.data}
+                    story_seen = all(sid in seen_ids for sid in active_ids)
+        except Exception:
+            pass
+
         return {
             **user,
-            "posts":        posts,
-            "reviews":      reviews,
-            "review_stats": review_stats,
-            "viewer_liked": viewer_liked,
-            "matched":      matched,
-            "match_at":     match_at,
+            "posts":            posts,
+            "reviews":          reviews,
+            "review_stats":     review_stats,
+            "viewer_liked":     viewer_liked,
+            "matched":          matched,
+            "match_at":         match_at,
+            "has_active_story": has_active_story,
+            "story_seen":       story_seen,
+        }
+
+    def _get_profile_counts(self, db, target_id: str) -> dict:
+        posts_r = db.table("posts").select("id", count="exact").eq("user_id", target_id).eq("status", "active").neq("type", "story").execute()
+        followers_r = db.table("user_follows").select("id", count="exact").eq("following_id", target_id).execute()
+        following_r = db.table("user_follows").select("id", count="exact").eq("follower_id", target_id).execute()
+        return {
+            "posts_count":     posts_r.count or 0,
+            "followers_count": followers_r.count or 0,
+            "following_count": following_r.count or 0,
         }
 
     def _refresh_urls(self, posts: list, db) -> None:

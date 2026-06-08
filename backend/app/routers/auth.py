@@ -4,6 +4,10 @@ from typing import Optional
 from pydantic import BaseModel
 
 
+class PrivacyBody(BaseModel):
+    is_private: bool
+
+
 class UpdateProfileTypeBody(BaseModel):
     profile_type: Optional[str] = None
     sexual_orientation: Optional[str] = None
@@ -280,7 +284,7 @@ async def me(request: Request):
     db = get_supabase()
     result = db.table("users").select(
         "id,email,first_name,last_name,role,status,membership_type,membership_expires_at,"
-        "profile_photo_url,bio,province,city,"
+        "profile_photo_url,bio,province,city,is_private,"
         "profile_type,sexual_orientation,interested_in,visible_to,no_messages_from,"
         "identity_description,profile_extended,"
         "hide_from_solos,no_messages_from_solos,"
@@ -357,6 +361,15 @@ async def update_profile_type(body: UpdateProfileTypeBody, request: Request):
 
     result = db.table("users").update(update_data).eq("id", payload["sub"]).execute()
     return result.data[0]
+
+
+@router.patch("/me/privacy")
+async def update_privacy(body: PrivacyBody, request: Request):
+    """Activa/desactiva el modo cuenta privada."""
+    payload = _get_current_user(request)
+    db = get_supabase()
+    db.table("users").update({"is_private": body.is_private}).eq("id", payload["sub"]).execute()
+    return {"is_private": body.is_private}
 
 
 @router.post("/heartbeat")

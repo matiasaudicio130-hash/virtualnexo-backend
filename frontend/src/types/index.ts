@@ -32,6 +32,7 @@ export interface User {
   no_messages_from: AttractionCategory[] | null;
   identity_description: string | null;
   profile_extended: ProfileExtended | null;
+  is_private: boolean;
   // deprecated
   hide_from_solos: boolean;
   no_messages_from_solos: boolean;
@@ -79,6 +80,52 @@ export interface ProfileExtended {
   // pareja / grupo
   size?: number;
   members?: ExtendedMember[];
+  // perfil enriquecido
+  website?: string;
+  links?: ProfileLink[];
+  pinned_post_id?: string | null;
+  partner_id?: string | null;
+}
+
+export interface ProfileNote {
+  id: string;
+  text: string;
+  created_at: string;
+  expires_at: string;
+}
+
+export interface ProfileLink {
+  label: string;
+  url: string;
+}
+
+export type RichToken =
+  | { kind: "text";    value: string }
+  | { kind: "mention"; value: string }                 // sin @
+  | { kind: "hashtag"; value: string }                 // sin #
+  | { kind: "url";     value: string; href: string };
+
+export interface HighlightItem {
+  story_id:   string;
+  sort_order?: number;
+  posts?: { id: string; media_url?: string; storage_path?: string; created_at?: string };
+}
+
+export interface Highlight {
+  id:         string;
+  user_id?:   string;
+  title:      string;
+  cover_url?: string | null;
+  items?:     HighlightItem[];
+}
+
+/** Story propia devuelta por GET /highlights/my-stories (incluye expiradas). */
+export interface MyStory {
+  id:          string;
+  media_url?:  string;
+  storage_path?: string;
+  created_at:  string;
+  expires_at?: string;
 }
 
 export const PROFILE_TYPE_CONFIG: Record<ProfileType, { label: string; isSolo: boolean; color: string; dot: string }> = {
@@ -154,6 +201,8 @@ export interface Post {
   expires_at?: string;
   views_count: number;
   share_count?: number;
+  reactions_count?: number;
+  comments_count?: number;
   created_at: string;
   author: { id: string; name: string; avatar?: string; province?: string; profile_type?: string; username?: string };
   reactions: Record<string, number>;

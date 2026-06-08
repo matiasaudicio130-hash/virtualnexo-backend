@@ -60,6 +60,7 @@ export const authApi = {
   logout:    (refresh_token: string)           => api.post("/auth/logout", { refresh_token }),
   me:        ()                                => api.get("/auth/me"),
   heartbeat: ()                                => api.post("/auth/heartbeat"),
+  setPrivacy: (is_private: boolean)            => api.patch("/auth/me/privacy", { is_private }),
 };
 
 export const twoFactorApi = {
@@ -164,7 +165,8 @@ export const travelApi = {
 
 export const feedApi = {
   getFeed:      (params?: object)                => api.get("/feed/", { params }),
-  getUserPosts: (userId: string, params?: object)=> api.get(`/feed/user/${userId}`, { params }),
+  getUserPosts: (userId: string, params?: { limit?: number; offset?: number; kind?: "video" }) => api.get(`/feed/user/${userId}`, { params }),
+  getTagged:    (userId: string, params?: { limit?: number; offset?: number })                  => api.get(`/feed/user/${userId}/tagged`, { params }),
   getStories:   (province?: string)              => api.get("/feed/stories", { params: province ? { province } : {} }),
   createPost:   (body: object)                   => api.post("/feed/posts", body),
   uploadPost:   (file: File, params: object) => {
@@ -327,9 +329,12 @@ export const pushApi = {
 export const highlightsApi = {
   forUser:        (userId: string)                   => api.get(`/highlights/user/${userId}`),
   mine:           ()                                 => api.get("/highlights/mine"),
+  myStories:      ()                                 => api.get("/highlights/my-stories"),
   create:         (body: object)                     => api.post("/highlights/", body),
   update:         (id: string, body: object)         => api.patch(`/highlights/${id}`, body),
   delete:         (id: string)                       => api.delete(`/highlights/${id}`),
+  addItems:       (id: string, story_ids: string[])  => api.post(`/highlights/${id}/items`, { story_ids }),
+  removeItem:     (id: string, storyId: string)      => api.delete(`/highlights/${id}/items/${storyId}`),
   reactStory:     (storyId: string, emoji: string)   => api.post(`/highlights/stories/${storyId}/react`, { emoji }),
   storyReactions: (storyId: string)                  => api.get(`/highlights/stories/${storyId}/reactions`),
 };
@@ -341,6 +346,10 @@ export const profilesApi = {
   report:   (userId: string, body: object) => api.post(`/profiles/${userId}/report`, body),
   matches:  ()                         => api.get("/profiles/matches"),
   viewers:  ()                         => api.get("/profiles/viewers"),
+  // Notas temporales (estilo IG "Notes")
+  getNote:    (userId: string)         => api.get(`/profiles/${userId}/note`),
+  setNote:    (text: string)           => api.put("/profiles/me/note", { text }),
+  deleteNote: ()                       => api.delete("/profiles/me/note"),
 };
 
 export const followsApi = {
@@ -350,6 +359,9 @@ export const followsApi = {
   followers:      (userId: string, params?: object) => api.get(`/follows/${userId}/followers`, { params }),
   following:      (userId: string, params?: object) => api.get(`/follows/${userId}/following`, { params }),
   followingFeed:  (params?: object)   => api.get("/follows/me/feed", { params }),
+  requests:       ()                  => api.get("/follows/requests"),
+  acceptRequest:  (requesterId: string) => api.post(`/follows/requests/${requesterId}/accept`),
+  rejectRequest:  (requesterId: string) => api.post(`/follows/requests/${requesterId}/reject`),
 };
 
 export const groupsApi = {

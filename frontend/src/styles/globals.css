@@ -39,3 +39,11 @@ input, textarea, select { font: inherit; }
 ::-webkit-scrollbar-track { background: var(--obsidian); }
 ::-webkit-scrollbar-thumb { background: var(--ash); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--gold-deep); }
+
+/* ── Skeleton shimmer (placeholders de carga) ────────────── */
+@keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+.skeleton-shimmer {
+  background: linear-gradient(90deg, var(--smoke) 25%, var(--pewter) 37%, var(--smoke) 63%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+}

@@ -23,12 +23,12 @@ import { useScreenCapture } from "@/hooks/useScreenCapture";
 import { ProfileTypeSettings } from "@/components/ProfileTypeSettings";
 import { InstallPrompt } from "@/components/InstallPrompt";
 import { SecuritySettings } from "@/components/SecuritySettings";
-import { EditProfileModal }    from "@/components/EditProfileModal";
+import { EditProfileDrawer }   from "@/components/profile/EditProfileDrawer";
 import { DeleteAccountModal }  from "@/components/DeleteAccountModal";
 import { MyProfileSection } from "@/components/MyProfileSection";
 import { CoupleSection } from "@/components/CoupleSection";
 import { NavLogo } from "@/components/AuraLogo";
-import { StoryHighlights } from "@/components/StoryHighlights";
+import { HighlightsCarousel } from "@/components/profile/HighlightsCarousel";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { Bell, EyeOff } from "lucide-react";
 import { discoveryApi } from "@/lib/api";
@@ -93,7 +93,7 @@ export default function Dashboard() {
     <div className="min-h-screen bg-bg-base text-text-primary animate-fade-in">
       <InstallPrompt />
       {showEditProfile && (
-        <EditProfileModal
+        <EditProfileDrawer
           onClose={() => setShowEditProfile(false)}
           onSaved={() => refreshUser()}
         />
@@ -389,7 +389,7 @@ export default function Dashboard() {
         </div>
 
         {/* Story Highlights */}
-        <StoryHighlights userId={user.id} isOwn={true} />
+        <HighlightsCarousel userId={user.id} isOwn={true} />
 
         {/* Mi perfil — stats privados, completitud, username, albums */}
         <Card className="p-5">

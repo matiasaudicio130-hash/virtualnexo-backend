@@ -96,3 +96,33 @@ async def record_view(user_id: str, request: Request):
     payload = _require_auth(request)
     profile_service.record_view(payload["sub"], user_id)
     return {"recorded": True}
+
+
+# ── Notas temporales (estilo IG "Notes") ─────────────────────────
+class NoteBody(BaseModel):
+    text: str
+
+
+@router.get("/{user_id}/note")
+async def get_profile_note(user_id: str, request: Request):
+    """Nota vigente del usuario (o null)."""
+    _require_auth(request)
+    return profile_service.get_active_note(user_id)
+
+
+@router.put("/me/note")
+async def set_my_note(body: NoteBody, request: Request):
+    payload = _require_auth(request)
+    text = (body.text or "").strip()
+    if not text:
+        raise HTTPException(400, "La nota no puede estar vacía")
+    if len(text) > 60:
+        raise HTTPException(400, "La nota no puede superar 60 caracteres")
+    return profile_service.set_note(payload["sub"], text)
+
+
+@router.delete("/me/note")
+async def delete_my_note(request: Request):
+    payload = _require_auth(request)
+    profile_service.delete_note(payload["sub"])
+    return {"deleted": True}

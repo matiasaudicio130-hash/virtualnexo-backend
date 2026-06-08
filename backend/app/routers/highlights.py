@@ -33,7 +33,7 @@ async def get_user_highlights(user_id: str, request: Request):
     from app.db.supabase import get_supabase
     db = get_supabase()
     hl = db.table("story_highlights").select(
-        "*, items:story_highlight_items(story_id, sort_order, posts!story_highlight_items_story_id_fkey(id,media_url,storage_path))"
+        "*, items:story_highlight_items(story_id, sort_order, posts!story_highlight_items_story_id_fkey(id,media_url,storage_path,created_at))"
     ).eq("user_id", user_id).order("created_at").execute()
     return hl.data
 
@@ -47,6 +47,18 @@ async def my_highlights(request: Request):
         "*, items:story_highlight_items(story_id, sort_order)"
     ).eq("user_id", payload["sub"]).order("created_at").execute()
     return hl.data
+
+
+@router.get("/my-stories")
+async def my_stories(request: Request):
+    """Stories propias (incluye expiradas) para elegir al crear/editar un highlight."""
+    payload = _require_auth(request)
+    from app.db.supabase import get_supabase
+    db = get_supabase()
+    r = db.table("posts").select("id,media_url,storage_path,created_at,expires_at") \
+        .eq("user_id", payload["sub"]).eq("type", "story") \
+        .order("created_at", desc=True).execute()
+    return r.data
 
 
 @router.post("/", status_code=201)
@@ -108,6 +120,55 @@ async def delete_highlight(highlight_id: str, request: Request):
     if not hl.data or hl.data[0]["user_id"] != payload["sub"]:
         raise HTTPException(403, "Sin permisos")
     db.table("story_highlights").delete().eq("id", highlight_id).execute()
+    return {"deleted": True}
+
+
+class AddHighlightItemsBody(BaseModel):
+    story_ids: list[str]
+
+
+def _own_highlight_or_403(db, highlight_id: str, user_id: str):
+    hl = db.table("story_highlights").select("user_id").eq("id", highlight_id).execute()
+    if not hl.data or hl.data[0]["user_id"] != user_id:
+        raise HTTPException(403, "Sin permisos")
+
+
+@router.post("/{highlight_id}/items", status_code=201)
+async def add_highlight_items(highlight_id: str, body: AddHighlightItemsBody, request: Request):
+    """Agrega stories a un highlight existente, respetando sort_order y evitando duplicados."""
+    payload = _require_auth(request)
+    if not body.story_ids:
+        raise HTTPException(400, "Nada para agregar")
+
+    from app.db.supabase import get_supabase
+    db = get_supabase()
+    _own_highlight_or_403(db, highlight_id, payload["sub"])
+
+    existing = db.table("story_highlight_items").select("story_id, sort_order") \
+        .eq("highlight_id", highlight_id).execute().data
+    already = {it["story_id"] for it in existing}
+    start   = (max((it["sort_order"] or 0) for it in existing) + 1) if existing else 0
+
+    new_ids = [sid for sid in body.story_ids if sid not in already]
+    if not new_ids:
+        return {"added": 0}
+
+    items = [
+        {"highlight_id": highlight_id, "story_id": sid, "sort_order": start + i}
+        for i, sid in enumerate(new_ids)
+    ]
+    db.table("story_highlight_items").insert(items).execute()
+    return {"added": len(items)}
+
+
+@router.delete("/{highlight_id}/items/{story_id}")
+async def remove_highlight_item(highlight_id: str, story_id: str, request: Request):
+    payload = _require_auth(request)
+    from app.db.supabase import get_supabase
+    db = get_supabase()
+    _own_highlight_or_403(db, highlight_id, payload["sub"])
+    db.table("story_highlight_items").delete() \
+        .eq("highlight_id", highlight_id).eq("story_id", story_id).execute()
     return {"deleted": True}
 
 

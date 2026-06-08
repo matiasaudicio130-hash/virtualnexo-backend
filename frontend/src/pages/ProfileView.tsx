@@ -3,13 +3,25 @@
  * Orden: Trust (foto + badge) → Acción → Bio → Qué buscás → Stats/Racha → Galería → Albums
  */
 import { useState, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useParams, useNavigate } from "react-router-dom";
 import {
-  ArrowLeft, Heart, ShieldOff, Flag, MapPin, Star, Share2, Pencil,
-  Lock, Users, User, MessageSquare, Images, ChevronLeft, ChevronRight, X, QrCode,
+  ArrowLeft, MapPin, Star, Share2, Pencil,
+  Lock, User, Images, ChevronLeft, ChevronRight, X, QrCode,
 } from "lucide-react";
 import { ProfileQRModal } from "@/components/ProfileQRModal";
 import { profilesApi, followsApi, albumsApi, feedApi, reviewsApi, extendedProfileApi } from "@/lib/api";
+import { ProfileAvatar } from "@/components/profile/ProfileAvatar";
+import { ProfileNote } from "@/components/profile/ProfileNote";
+import { StatCounter } from "@/components/profile/StatCounter";
+import { RichBio } from "@/components/profile/RichBio";
+import { HighlightsCarousel } from "@/components/profile/HighlightsCarousel";
+import { ProfileFeedTabs } from "@/components/profile/ProfileFeedTabs";
+import { ProfileGrid } from "@/components/profile/ProfileGrid";
+import { ProfileActions } from "@/components/profile/ProfileActions";
+import { ShareProfileSheet } from "@/components/profile/ShareProfileSheet";
+import { EditProfileDrawer } from "@/components/profile/EditProfileDrawer";
+import { type ProfileFeedTab } from "@/hooks/useInfiniteUserPosts";
 import { ReportModal } from "@/components/ReportModal";
 import { BadgeRow }    from "@/components/BadgeDisplay";
 import { Tooltip } from "@/components/ui/Tooltip";
@@ -21,7 +33,7 @@ import { ProtectedAvatar } from "@/components/ProtectedImage";
 import { PostCard } from "@/components/PostCard";
 import { Button } from "@/components/ui/Button";
 import { PROFILE_TYPE_CONFIG, ORIENTATION_CONFIG } from "@/types";
-import type { ProfileType, SexualOrientation } from "@/types";
+import type { ProfileType, SexualOrientation, ProfileNote as TProfileNote } from "@/types";
 
 const SEEKING_LABELS: Record<string, string> = {
   explorar_sin_apuro:    "Explorar sin apuro",
@@ -97,6 +109,7 @@ export default function ProfileView() {
   const { userId } = useParams<{ userId: string }>();
   const navigate   = useNavigate();
   const { user: me } = useAuthStore();
+  const qc = useQueryClient();
   useScreenCapture({ warn: true });
 
   const [profile, setProfile]         = useState<any>(null);
@@ -110,10 +123,9 @@ export default function ProfileView() {
   const [showBlockConfirm, setShowBlockConfirm] = useState(false);
   const [showPhotoLightbox, setShowPhotoLightbox] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
-  const [isFollowing, setIsFollowing] = useState(false);
   const [followCounts, setFollowCounts] = useState({ followers: 0, following: 0 });
   const [albums, setAlbums]           = useState<any[]>([]);
-  const [posts, setPosts]             = useState<any[]>([]);
+  const [feedTab, setFeedTab]         = useState<ProfileFeedTab>("posts");
   const [pinLoading, setPinLoading]   = useState(false);
   const [reviews, setReviews]         = useState<any[]>([]);
   const [followListType, setFollowListType] = useState<"followers"|"following"|null>(null);
@@ -123,8 +135,10 @@ export default function ProfileView() {
   const [selectedAlbum, setSelectedAlbum] = useState<any | null>(null);
   const [albumPhotos, setAlbumPhotos] = useState<any[]>([]);
   const [albumPhotoIdx, setAlbumPhotoIdx] = useState(0);
-  const [shareCopied, setShareCopied] = useState(false);
   const [showQR, setShowQR] = useState(false);
+  const [showShareSheet, setShowShareSheet] = useState(false);
+  const [showEditDrawer, setShowEditDrawer] = useState(false);
+  const [note, setNote] = useState<TProfileNote | null>(null);
 
   const isOwnProfile = me?.id === userId;
   const onlineStatus = useOnlineStatus(isOwnProfile ? undefined : userId);
@@ -158,10 +172,7 @@ export default function ProfileView() {
       })
       .finally(() => setLoading(false));
 
-    // Follow status + counts
-    if (!isOwnProfile) {
-      followsApi.status(userId).then(r => setIsFollowing(r.data.i_follow)).catch(() => {});
-    }
+    // Follow counts
     Promise.all([
       followsApi.followers(userId, { limit: 1 }),
       followsApi.following(userId, { limit: 1 }),
@@ -172,15 +183,13 @@ export default function ProfileView() {
     // Albums
     albumsApi.listUser(userId).then(r => setAlbums(r.data)).catch(() => {});
 
-    // Posts recientes del usuario
-    feedApi.getUserPosts(userId, { limit: 18 }).then(r => {
-      setPosts(r.data.posts || []);
-    }).catch(() => {});
-
     // Reseñas
     reviewsApi.forUser(userId, { limit: 5 }).then(r => {
       setReviews(r.data.reviews || r.data || []);
     }).catch(() => {});
+
+    // Nota temporal del perfil
+    profilesApi.getNote(userId).then(r => setNote(r.data || null)).catch(() => {});
 
   }, [userId, isOwnProfile]);
 
@@ -192,23 +201,6 @@ export default function ProfileView() {
       setLiked(data.liked);
       if (data.matched && !matched) setMatched(true);
       else if (!data.liked) setMatched(false);
-    } catch { /* ignore */ }
-    setActionLoading(false);
-  }
-
-  async function handleFollow() {
-    if (!userId || actionLoading) return;
-    setActionLoading(true);
-    try {
-      if (isFollowing) {
-        await followsApi.unfollow(userId);
-        setIsFollowing(false);
-        setFollowCounts(p => ({ ...p, followers: Math.max(0, p.followers - 1) }));
-      } else {
-        await followsApi.follow(userId);
-        setIsFollowing(true);
-        setFollowCounts(p => ({ ...p, followers: p.followers + 1 }));
-      }
     } catch { /* ignore */ }
     setActionLoading(false);
   }
@@ -303,23 +295,14 @@ export default function ProfileView() {
     } catch { /* ignore */ }
   }
 
-  async function handleShare() {
-    if (!profile) return;
-    const url = `${window.location.origin}/profile/${userId}`;
-    const shareData = {
-      title: `${profile.first_name} en Aura SW`,
-      text: profile.bio ? profile.bio.slice(0, 100) : "Conocé este perfil en Aura SW",
-      url,
-    };
-    try {
-      if (navigator.share) {
-        await navigator.share(shareData);
-      } else {
-        await navigator.clipboard.writeText(url);
-        setShareCopied(true);
-        setTimeout(() => setShareCopied(false), 2000);
-      }
-    } catch { /* user cancelled */ }
+  async function handleSaveNote(text: string) {
+    try { const { data } = await profilesApi.setNote(text); setNote(data); }
+    catch { /* ignore */ }
+  }
+
+  async function handleDeleteNote() {
+    setNote(null);
+    try { await profilesApi.deleteNote(); } catch { /* ignore */ }
   }
 
   if (loading) return (
@@ -377,25 +360,8 @@ export default function ProfileView() {
         <p style={{ fontFamily: "var(--font-mono)", fontSize: 11, letterSpacing: "0.18em", color: "var(--mist)", textTransform: "uppercase" }}>
           {displayName}
         </p>
-        {!isOwnProfile && (
-          <div style={{ display: "flex", gap: 4 }}>
-            <Tooltip label={shareCopied ? "¡Link copiado!" : "Compartir"} position="bottom">
-              <button onClick={handleShare} style={{ padding: 8, background: "none", border: "none", color: "var(--mist)", cursor: "pointer" }}>
-                <Share2 size={16} strokeWidth={1.5}/>
-              </button>
-            </Tooltip>
-            <Tooltip label="Bloquear" position="bottom">
-              <button onClick={handleBlock} style={{ padding: 8, background: "none", border: "none", color: "var(--mist)", cursor: "pointer" }}>
-                <ShieldOff size={16} strokeWidth={1.5}/>
-              </button>
-            </Tooltip>
-            <Tooltip label="Reportar" position="bottom">
-              <button onClick={() => setShowReport(true)} style={{ padding: 8, background: "none", border: "none", color: "var(--mist)", cursor: "pointer" }}>
-                <Flag size={16} strokeWidth={1.5}/>
-              </button>
-            </Tooltip>
-          </div>
-        )}
+        {/* Acciones (compartir/bloquear/reportar) viven ahora en el overflow de ProfileActions */}
+        {!isOwnProfile && <div style={{ width: 34 }} aria-hidden />}
         {isOwnProfile && (
           <div style={{ display: "flex", gap: 4 }}>
             <Tooltip label="Mi QR" position="bottom">
@@ -403,13 +369,13 @@ export default function ProfileView() {
                 <QrCode size={16} strokeWidth={1.5}/>
               </button>
             </Tooltip>
-            <Tooltip label={shareCopied ? "¡Link copiado!" : "Compartir"} position="bottom">
-              <button onClick={handleShare} style={{ padding: 8, background: "none", border: "none", color: "var(--mist)", cursor: "pointer" }}>
+            <Tooltip label="Compartir" position="bottom">
+              <button onClick={() => setShowShareSheet(true)} style={{ padding: 8, background: "none", border: "none", color: "var(--mist)", cursor: "pointer" }}>
                 <Share2 size={16} strokeWidth={1.5}/>
               </button>
             </Tooltip>
             <Tooltip label="Editar perfil" position="bottom">
-              <button onClick={() => navigate("/dashboard")} style={{ padding: 8, background: "none", border: "none", color: "var(--gold)", cursor: "pointer" }}>
+              <button onClick={() => setShowEditDrawer(true)} style={{ padding: 8, background: "none", border: "none", color: "var(--gold)", cursor: "pointer" }}>
                 <Pencil size={16} strokeWidth={1.5}/>
               </button>
             </Tooltip>
@@ -421,16 +387,18 @@ export default function ProfileView() {
 
         {/* ── ZONA 1: Trust + Atracción ── */}
         <div style={{ position: "relative", textAlign: "center", padding: "32px 24px 0" }}>
-          {/* Foto grande — click abre lightbox */}
-          <button
+          {/* Nota temporal (estilo IG) sobre el avatar */}
+          {(note || isOwnProfile) && (
+            <ProfileNote note={note} isOwn={isOwnProfile} onSave={handleSaveNote} onDelete={handleDeleteNote} />
+          )}
+
+          {/* Avatar con anillo de story — click abre lightbox */}
+          <ProfileAvatar
+            photoUrl={profile.profile_photo_url}
+            hasActiveStory={profile.has_active_story}
+            storySeen={profile.story_seen}
             onClick={() => profile.profile_photo_url && setShowPhotoLightbox(true)}
-            style={{ width: 110, height: 110, borderRadius: "50%", overflow: "hidden", margin: "0 auto 16px", border: "2px solid var(--gold-deep)", boxShadow: "0 0 24px rgba(201,162,39,0.25)", display: "block", padding: 0, cursor: profile.profile_photo_url ? "zoom-in" : "default", background: "none" }}
-          >
-            {profile.profile_photo_url
-              ? <img src={profile.profile_photo_url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }}/>
-              : <div style={{ width: "100%", height: "100%", background: "var(--pewter)", display: "flex", alignItems: "center", justifyContent: "center" }}><User size={44} style={{ color: "var(--mist)" }}/></div>
-            }
-          </button>
+          />
 
           {/* Username + Badge — inseparables según La Estratega */}
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginBottom: 6 }}>
@@ -483,41 +451,28 @@ export default function ProfileView() {
 
           {/* ── ZONA 1b: Botones de acción ── */}
           {!isOwnProfile && (
-            <div style={{ display: "flex", gap: 10, justifyContent: "center", marginBottom: 20 }}>
-              <Button variant={isFollowing ? "ghost" : "primary"} size="sm" onClick={handleFollow}>
-                <Users size={13} strokeWidth={1.5}/>
-                {isFollowing ? "Siguiendo" : "Seguir"}
-              </Button>
-              <Button variant="ghost" size="sm" onClick={() => navigate(`/messages?with=${userId}`)}>
-                <MessageSquare size={13} strokeWidth={1.5}/>
-                Mensaje
-              </Button>
-              <button
-                onClick={handleLike}
-                style={{
-                  padding: "8px 16px", borderRadius: "var(--radius-pill)", fontSize: 11,
-                  fontFamily: "var(--font-mono)", letterSpacing: "0.14em", textTransform: "uppercase",
-                  border: `1px solid ${liked ? "rgba(194,90,90,0.5)" : "var(--ash)"}`,
-                  background: liked ? "rgba(194,90,90,0.08)" : "transparent",
-                  color: liked ? "var(--danger)" : "var(--mist)", cursor: "pointer",
-                  display: "flex", alignItems: "center", gap: 6,
-                }}
-              >
-                <Heart size={13} fill={liked ? "currentColor" : "none"} strokeWidth={1.5}/>
-                {liked ? "Te gusta" : "Me gusta"}
-              </button>
-            </div>
+            <ProfileActions
+              userId={userId!}
+              isPrivateAccount={profile.is_private}
+              liked={liked}
+              onLike={handleLike}
+              onFollowChange={(next, prev) => {
+                if (next.i_follow !== prev.i_follow) {
+                  setFollowCounts(p => ({ ...p, followers: Math.max(0, p.followers + (next.i_follow ? 1 : -1)) }));
+                }
+              }}
+              onShare={() => setShowShareSheet(true)}
+              onBlock={handleBlock}
+              onReport={() => setShowReport(true)}
+            />
           )}
         </div>
 
-        {/* ── ZONA 2: Bio ── */}
-        {(profile.bio || profile.city || profile.province) && (
+        {/* ── ZONA 2: Bio enriquecida (menciones, hashtags, links) ── */}
+        <RichBio bio={profile.bio} links={profile.profile_extended?.links} />
+
+        {(profile.city || profile.province || profile.profile_extended?.website) && (
           <div style={{ padding: "0 24px 20px" }}>
-            {profile.bio && (
-              <p style={{ fontFamily: "var(--font-sans)", fontSize: 14, color: "var(--silver)", lineHeight: 1.65, textAlign: "center", marginBottom: 10 }}>
-                {profile.bio}
-              </p>
-            )}
             {(profile.city || profile.province) && (
               <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}>
                 <MapPin size={12} style={{ color: "var(--mist)" }} strokeWidth={1.5}/>
@@ -574,26 +529,9 @@ export default function ProfileView() {
 
         {/* ── ZONA 3: Stats ── */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 1, margin: "0 0 24px", borderTop: "1px solid var(--border-soft)", borderBottom: "1px solid var(--border-soft)", background: "var(--border-soft)" }}>
-          {[
-            { value: followCounts.followers, label: "Seguidores", onClick: () => openFollowList("followers") },
-            { value: followCounts.following, label: "Siguiendo",  onClick: () => openFollowList("following") },
-            { value: profile.review_stats?.total_reviews || 0, label: "Reseñas", onClick: () => navigate(`/reviews/${userId}`) },
-          ].map((s, i) => (
-            <button
-              key={i}
-              onClick={s.onClick}
-              style={{ background: "var(--obsidian)", padding: "14px 8px", textAlign: "center", border: "none", color: "inherit", cursor: "pointer", transition: "background 0.15s" }}
-              onMouseEnter={e => { e.currentTarget.style.background = "rgba(201,162,39,0.04)"; }}
-              onMouseLeave={e => { e.currentTarget.style.background = "var(--obsidian)"; }}
-            >
-              <p style={{ fontFamily: "var(--font-display)", fontSize: 22, fontWeight: 400, color: "var(--paper)" }}>
-                {s.value}
-              </p>
-              <p style={{ fontFamily: "var(--font-mono)", fontSize: 8, color: "var(--mist)", letterSpacing: "0.12em", textTransform: "uppercase" }}>
-                {s.label}
-              </p>
-            </button>
-          ))}
+          <StatCounter value={followCounts.followers} label="Seguidores" onClick={() => openFollowList("followers")} />
+          <StatCounter value={followCounts.following} label="Siguiendo"  onClick={() => openFollowList("following")} />
+          <StatCounter value={profile.review_stats?.total_reviews || 0} label="Reseñas" onClick={() => navigate(`/reviews/${userId}`)} />
         </div>
 
         {/* ── ZONA 3b: Badges ── */}
@@ -601,150 +539,47 @@ export default function ProfileView() {
           <BadgeRow userId={userId!} maxShow={6} size="sm" />
         </div>
 
-        {/* ── ZONA 4: Galería IG-style ── */}
-        <div style={{ padding: "0 0 0" }}>
-          {/* Tab bar: Publicaciones / Albums */}
-          <div style={{ display: "flex", borderTop: "1px solid var(--border-soft)", borderBottom: "1px solid var(--border-soft)", marginBottom: 2 }}>
-            <div style={{ flex: 1, padding: "10px 0", textAlign: "center", borderBottom: "2px solid var(--gold)", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
-              <Images size={13} style={{ color: "var(--gold)" }}/>
-              <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.16em", textTransform: "uppercase", color: "var(--gold)" }}>
-                Publicaciones ({posts.length})
-              </span>
+        {/* ── ZONA 3c: Highlights ── */}
+        <HighlightsCarousel userId={userId!} isOwn={isOwnProfile} />
+
+        {/* ── ZONA 4: Grilla multi-tab (Publicaciones/Reels/Guardados/Etiquetados) ── */}
+        {profile.private_account ? (
+          <div style={{ padding: "48px 24px", textAlign: "center", borderTop: "1px solid var(--border-soft)" }}>
+            <Lock size={26} style={{ color: "var(--mist)", marginBottom: 12 }}/>
+            <p style={{ fontFamily: "var(--font-display)", fontSize: "var(--fs-display-s)", color: "var(--paper)", marginBottom: 6 }}>
+              Esta cuenta es privada
+            </p>
+            <p style={{ fontFamily: "var(--font-sans)", fontSize: 12, color: "var(--mist)", maxWidth: 280, margin: "0 auto" }}>
+              Seguí a {profile.first_name} para ver sus publicaciones y álbumes.
+            </p>
+          </div>
+        ) : (
+          <>
+            <div style={{ padding: "0 0 0" }}>
+              <ProfileFeedTabs tab={feedTab} onChange={setFeedTab} isOwn={isOwnProfile} />
+              <ProfileGrid
+                userId={userId!}
+                tab={feedTab}
+                isOwn={isOwnProfile}
+                pinnedPostId={profile?.profile_extended?.pinned_post_id as string | undefined}
+                pinLoading={pinLoading}
+                onTogglePin={handlePinPost}
+                onSelectPost={setSelectedPost}
+              />
             </div>
+
+            {/* ── ZONA 5: Albums exclusivos ── */}
             {albums.length > 0 && (
-              <div style={{ flex: 1, padding: "10px 0", textAlign: "center", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
-                <Lock size={12} style={{ color: "var(--mist)" }}/>
-                <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.16em", textTransform: "uppercase", color: "var(--mist)" }}>
-                  Exclusivos ({albums.length})
-                </span>
+              <div style={{ padding: "24px 16px" }}>
+                <p className="brand-eyebrow" style={{ marginBottom: 14 }}>Contenido exclusivo</p>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                  {albums.map(album => (
+                    <AlbumCard key={album.id} album={album} onRequestAccess={handleRequestAlbumAccess} onOpen={openAlbum}/>
+                  ))}
+                </div>
               </div>
             )}
-          </div>
-
-          {/* Grid posts */}
-          {posts.length === 0 ? (
-            <div style={{ padding: "40px 0", textAlign: "center" }}>
-              <Images size={28} style={{ color: "var(--ash)", margin: "0 auto 8px" }}/>
-              <p style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "var(--mist)", letterSpacing: "0.14em", textTransform: "uppercase" }}>Sin publicaciones aún</p>
-            </div>
-          ) : (
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 2 }}>
-              {(() => {
-                const pinnedId = profile?.profile_extended?.pinned_post_id as string | undefined;
-                const sorted   = pinnedId
-                  ? [...posts].sort((a, b) => (a.id === pinnedId ? -1 : b.id === pinnedId ? 1 : 0))
-                  : posts;
-                return sorted;
-              })().map(post => {
-                const pinnedId = profile?.profile_extended?.pinned_post_id as string | undefined;
-                const isPinned = post.id === pinnedId;
-                const isPoll      = post.type === "poll";
-                const items       = Array.isArray(post.media_urls) ? post.media_urls : [];
-                const isCarousel  = items.length > 1;
-                const firstItem   = items[0];
-                const coverIsVideo = firstItem?.type === "video";
-                const cover       = firstItem?.url || post.media_url;
-                return (
-                  <button
-                    key={post.id}
-                    onClick={() => setSelectedPost(post)}
-                    style={{ position: "relative", aspectRatio: "1", overflow: "hidden", background: "var(--smoke)", cursor: "pointer", border: "none", padding: 0 }}
-                  >
-                    {cover && coverIsVideo ? (
-                      <>
-                        <video
-                          src={cover}
-                          muted
-                          playsInline
-                          preload="metadata"
-                          onContextMenu={e => e.preventDefault()}
-                          style={{ width: "100%", height: "100%", objectFit: "cover", pointerEvents: "none" }}
-                        />
-                        <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.15)", pointerEvents: "none" }}>
-                          <div style={{ width: 34, height: 34, borderRadius: "50%", background: "rgba(0,0,0,0.55)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
-                          </div>
-                        </div>
-                      </>
-                    ) : cover ? (
-                      <img
-                        src={cover}
-                        alt=""
-                        draggable={false}
-                        onContextMenu={e => e.preventDefault()}
-                        style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                      />
-                    ) : (
-                      <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 10, background: isPoll ? "rgba(201,162,39,0.06)" : "var(--smoke)" }}>
-                        {isPoll && (
-                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" strokeWidth="1.5" style={{ marginBottom: 6, opacity: 0.7 }}>
-                            <rect x="3" y="3" width="18" height="18" rx="2"/>
-                            <line x1="8" y1="12" x2="16" y2="12"/>
-                            <line x1="8" y1="8" x2="13" y2="8"/>
-                            <line x1="8" y1="16" x2="11" y2="16"/>
-                          </svg>
-                        )}
-                        <p style={{ fontFamily: "var(--font-sans)", fontSize: 10, color: "var(--mist)", lineHeight: 1.4, textAlign: "center", overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical" }}>
-                          {(post.caption || post.poll_question)?.slice(0, 80)}
-                        </p>
-                      </div>
-                    )}
-                    {/* Overlay: carrusel */}
-                    {isCarousel && (
-                      <div style={{ position: "absolute", top: 5, right: 5, display: "flex", alignItems: "center", gap: 3, padding: "2px 6px", background: "rgba(2,2,7,0.7)", borderRadius: 6 }}>
-                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                          <rect x="7" y="7" width="14" height="14" rx="2"/>
-                          <path d="M3 17V5a2 2 0 0 1 2-2h12"/>
-                        </svg>
-                        <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "white", letterSpacing: "0.04em" }}>
-                          {post.media_urls.length}
-                        </span>
-                      </div>
-                    )}
-                    {/* Overlay: poll */}
-                    {isPoll && cover && (
-                      <div style={{ position: "absolute", top: 5, right: 5 }}>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
-                          <rect x="3" y="3" width="18" height="18" rx="2"/>
-                          <line x1="8" y1="12" x2="16" y2="12"/>
-                          <line x1="8" y1="8" x2="13" y2="8"/>
-                          <line x1="8" y1="16" x2="11" y2="16"/>
-                        </svg>
-                      </div>
-                    )}
-                    {/* Overlay: post fijado (badge 📌) */}
-                    {isPinned && (
-                      <div style={{ position: "absolute", top: 4, left: 4, background: "rgba(201,162,39,0.85)", borderRadius: 4, padding: "2px 5px", display: "flex", alignItems: "center", gap: 3 }}>
-                        <span style={{ fontSize: 10 }}>📌</span>
-                      </div>
-                    )}
-                    {/* Botón fijar/desfijar — solo en perfil propio */}
-                    {isOwnProfile && (
-                      <button
-                        onClick={e => { e.stopPropagation(); handlePinPost(post.id); }}
-                        style={{ position: "absolute", bottom: 4, right: 4, background: isPinned ? "rgba(201,162,39,0.85)" : "rgba(2,2,7,0.65)", borderRadius: 4, border: "none", padding: "3px 6px", cursor: "pointer", display: "flex", alignItems: "center", gap: 3, opacity: pinLoading ? 0.5 : 1 }}
-                        title={isPinned ? "Desfijar" : "Fijar en perfil"}
-                      >
-                        <span style={{ fontSize: 10 }}>📌</span>
-                      </button>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-        {/* ── ZONA 5: Albums exclusivos ── */}
-        {albums.length > 0 && (
-          <div style={{ padding: "24px 16px" }}>
-            <p className="brand-eyebrow" style={{ marginBottom: 14 }}>Contenido exclusivo</p>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-              {albums.map(album => (
-                <AlbumCard key={album.id} album={album} onRequestAccess={handleRequestAlbumAccess} onOpen={openAlbum}/>
-              ))}
-            </div>
-          </div>
+          </>
         )}
 
         {/* ── ZONA 6: Reseñas (preview) ── */}
@@ -916,7 +751,7 @@ export default function ProfileView() {
               post={selectedPost}
               currentUserId={me.id}
               onDelete={() => {
-                setPosts(prev => prev.filter(p => p.id !== selectedPost.id));
+                qc.invalidateQueries({ queryKey: ["userPosts", userId] });
                 setSelectedPost(null);
               }}
             />
@@ -990,6 +825,27 @@ export default function ProfileView() {
             ✕
           </button>
         </div>
+      )}
+
+      {/* ── Compartir perfil ── */}
+      {showShareSheet && (
+        <ShareProfileSheet
+          userId={userId!}
+          userName={`${profile.first_name} ${profile.last_name || ""}`.trim()}
+          onClose={() => setShowShareSheet(false)}
+        />
+      )}
+
+      {/* ── Editar perfil ── */}
+      {showEditDrawer && isOwnProfile && (
+        <EditProfileDrawer
+          onClose={() => setShowEditDrawer(false)}
+          onSaved={() => {
+            setShowEditDrawer(false);
+            setLoading(true);
+            profilesApi.get(userId!).then(r => setProfile(r.data)).catch(() => {}).finally(() => setLoading(false));
+          }}
+        />
       )}
     </div>
   );
