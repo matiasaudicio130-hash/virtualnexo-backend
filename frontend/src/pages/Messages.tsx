@@ -32,7 +32,6 @@ function ChatWindow({
 }: { conv: any; currentUserId: string; onClose: () => void }) {
   const navigate                          = useNavigate();
   const [messages, setMessages]           = useState<any[]>([]);
-  const [text, setText]                   = useState("");
   const [sending, setSending]             = useState(false);
   const [blocked, setBlocked]             = useState(conv.blocked_me);
   const [replyTo, setReplyTo]             = useState<any>(null);
@@ -42,7 +41,6 @@ function ChatWindow({
   const [otherTyping, setOtherTyping]     = useState(false);
   const [settings, setSettings]          = useState({ auto_delete_days: null as number|null, screenshot_alert: true });
   const bottomRef                         = useRef<HTMLDivElement>(null);
-  const typingTimer                       = useRef<any>(null);
   const pollTimer                         = useRef<any>(null);
   const other                             = conv.other_user;
 
@@ -66,34 +64,6 @@ function ChatWindow({
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, otherTyping]);
-
-  function handleTextChange(v: string) {
-    setText(v);
-    // Send typing indicator
-    messagingV2Api.setTyping(conv.id, true).catch(() => {});
-    clearTimeout(typingTimer.current);
-    typingTimer.current = setTimeout(() => {
-      messagingV2Api.setTyping(conv.id, false).catch(() => {});
-    }, 2500);
-  }
-
-  async function handleSend() {
-    if (!text.trim() || sending || blocked) return;
-    setSending(true);
-    messagingV2Api.setTyping(conv.id, false).catch(() => {});
-    try {
-      const { data } = await messagingApi.sendMessage(conv.id, {
-        recipient_id: other?.id,
-        content: text.trim(),
-        reply_to_id: replyTo?.id,
-      });
-      setMessages(prev => [...prev, data]);
-      setText(""); setReplyTo(null);
-    } catch (e: any) {
-      alert(e.response?.data?.detail ?? "No se pudo enviar");
-    }
-    setSending(false);
-  }
 
   const typeCfg   = other?.profile_type ? PROFILE_TYPE_CONFIG[other.profile_type as ProfileType] : null;
   const onlineStatus = useOnlineStatus(other?.id);

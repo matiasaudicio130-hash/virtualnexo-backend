@@ -394,7 +394,10 @@ async def record_view(user_id: str, request: Request):
     if viewer_id == user_id:
         return {"recorded": False}
     db = get_supabase()
-    db.table("profile_views").insert({"viewed_id": user_id, "viewer_id": viewer_id}).execute()
+    db.table("profile_views").upsert(
+        {"viewed_id": user_id, "viewer_id": viewer_id},
+        on_conflict="viewer_id,viewed_id",
+    ).execute()
     db.rpc("increment_profile_views", {"p_user_id": user_id}).execute()
     return {"recorded": True}
 
@@ -413,7 +416,6 @@ async def my_stats(request: Request):
     pending_album_reqs = db.table("album_access_requests").select("id", count="exact").eq("status", "pending").in_("album_id", [
         a["id"] for a in db.table("albums").select("id").eq("user_id", user_id).execute().data
     ] or ["none"]).execute()
-    likes_7d = db.table("profile_likes").select("id", count="exact").eq("liked_user_id", user_id).gte("created_at", seven_days_ago).execute() if False else None
 
     user = db.table("users").select("current_streak, profile_views_count").eq("id", user_id).execute().data
     u = user[0] if user else {}

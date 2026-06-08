@@ -17,6 +17,11 @@ import hashlib
 from datetime import datetime, timezone
 from typing import cast
 from PIL import Image, ImageDraw, ImageFont
+from pillow_heif import register_heif_opener
+
+# Permite que Image.open() decodifique HEIC/HEIF (formato por defecto de fotos
+# de iPhone) — sin esto, Pillow lanza UnidentifiedImageError con esos archivos.
+register_heif_opener()
 
 
 # ── Constantes ────────────────────────────────────────────────

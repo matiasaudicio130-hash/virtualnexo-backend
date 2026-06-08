@@ -214,7 +214,8 @@ export default function Feed() {
       } else {
         const { data } = await feedApi.getFeed(buildParams(0));
         newPosts = data.posts || [];
-        setHasMore(newPosts.length === LIMIT);
+        setOffset(data.next_offset ?? newPosts.length);
+        setHasMore(data.has_more ?? (newPosts.length === LIMIT));
         adsApi.feedAds("banner", 5).then(r => setFeedAds(r.data)).catch(() => {});
       }
       setPosts(newPosts);
@@ -231,12 +232,11 @@ export default function Feed() {
       if (!entry.isIntersecting || loadingMore || !hasMore || loading) return;
       setLoadingMore(true);
       try {
-        const newOffset = offset + LIMIT;
-        const { data } = await feedApi.getFeed(buildParams(newOffset));
+        const { data } = await feedApi.getFeed(buildParams(offset));
         const newPosts = data.posts || [];
         setPosts(prev => [...prev, ...newPosts]);
-        setOffset(newOffset);
-        setHasMore(newPosts.length === LIMIT);
+        setOffset(data.next_offset ?? (offset + LIMIT));
+        setHasMore(data.has_more ?? (newPosts.length === LIMIT));
       } catch { /* ignore */ }
       setLoadingMore(false);
     }, { threshold: 0.1 });

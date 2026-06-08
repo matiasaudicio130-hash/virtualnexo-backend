@@ -236,7 +236,10 @@ class MessagingService:
 
     def block_user(self, requester_id: str, conversation_id: str) -> None:
         db = get_supabase()
-        conv = db.table("conversations").select("*").eq("id", conversation_id).execute().data[0]
+        conv_r = db.table("conversations").select("*").eq("id", conversation_id).execute()
+        if not conv_r.data:
+            raise ValueError("Conversación no encontrada")
+        conv = conv_r.data[0]
         is_a = conv["participant_a"] == requester_id
         db.table("conversations").update(
             {"blocked_by_a": True} if is_a else {"blocked_by_b": True}

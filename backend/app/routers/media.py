@@ -13,7 +13,7 @@ router = APIRouter(prefix="/media", tags=["media"])
 
 MAX_AVATAR_BYTES = 5 * 1024 * 1024   # 5 MB
 MAX_MEDIA_BYTES  = 20 * 1024 * 1024  # 20 MB
-ALLOWED_MIME     = {"image/jpeg", "image/jpg", "image/png", "image/webp"}
+ALLOWED_MIME     = {"image/jpeg", "image/jpg", "image/png", "image/webp", "image/gif", "image/heic", "image/heif"}
 
 
 def _require_auth(request: Request) -> dict:
@@ -119,7 +119,7 @@ async def verify_leak(request: Request, file: UploadFile = File(...)):
     ADMIN: Analiza una imagen filtrada para identificar al usuario que la filtró.
     Extrae el watermark invisible (LSB) y devuelve user_id + timestamp.
     """
-    _require_admin(request)
+    admin_payload = _require_admin(request)
     image_bytes = await file.read()
     result = await storage_service.verify_leak(image_bytes)
 
@@ -136,7 +136,6 @@ async def verify_leak(request: Request, file: UploadFile = File(...)):
                 "name": f"{u['first_name']} {u['last_name']}",
             }
 
-    admin_payload = _require_admin(request)
     audit_service.log(
         action="media.verify_leak",
         actor_id=admin_payload["sub"],

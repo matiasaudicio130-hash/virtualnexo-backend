@@ -169,16 +169,6 @@ export const feedApi = {
   getTagged:    (userId: string, params?: { limit?: number; offset?: number })                  => api.get(`/feed/user/${userId}/tagged`, { params }),
   getStories:   (province?: string)              => api.get("/feed/stories", { params: province ? { province } : {} }),
   createPost:   (body: object)                   => api.post("/feed/posts", body),
-  uploadPost:   (file: File, params: object) => {
-    const form = new FormData();
-    form.append("file", file);
-    return uploadApi.post("/feed/posts/upload", form, { params });
-  },
-  uploadCarousel: (files: File[], params: object) => {
-    const form = new FormData();
-    files.forEach(f => form.append("files", f));
-    return uploadApi.post("/feed/posts/upload-carousel", form, { params });
-  },
   // Upload directo a Supabase Storage (bypass Railway para archivos grandes)
   signedUpload:   (body: { kind: "image"|"video"; filename?: string }) =>
     api.post("/feed/posts/signed-upload", body),

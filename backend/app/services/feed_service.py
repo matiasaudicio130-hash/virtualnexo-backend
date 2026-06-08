@@ -83,89 +83,112 @@ class FeedService:
         except Exception:
             pass
 
-        # 2. Query base — posts activos no expirados
-        q = db.table("posts").select(
-            "*, users!posts_user_id_fkey("
-            "id,first_name,last_name,profile_photo_url,province,username,"
-            "profile_type,is_shadow_banned,hide_from_solos,visible_to)"
-        ).eq("status", "active").neq("type", "story")  # stories van al StoryBar, no al feed
+        # 2-3. Query + filtrado en Python, en lotes — el filtrado (shadow ban,
+        # visible_to, interested_in, distancia) reduce el conteo de forma
+        # impredecible, así que pedimos de a lotes hasta juntar `limit` posts
+        # en lugar de un único `range` de tamaño fijo (eso producía huecos y
+        # duplicados al paginar, porque el offset que maneja el frontend cuenta
+        # posts filtrados, no filas crudas).
+        BATCH = max(limit * 3, 30)
+        MAX_RAW_SCAN = limit * 12   # tope de filas crudas a escanear por request
 
-        if post_type:
-            q = q.eq("type", post_type)
-
-        q = q.or_(f"expires_at.is.null,expires_at.gt.{datetime.now(timezone.utc).isoformat()}")
-
-        if province and not (viewer_lat and viewer_lng):
-            q = q.eq("province", province)
-
-        q = q.order("created_at", desc=True).range(offset, offset + limit * 3 - 1)
-        raw = q.execute().data
-
-        # 3. Filtrado en Python (shadow ban, visible_to, interested_in, distancia)
         posts = []
-        for p in raw:
-            user = p.get("users") or {}
-            uid  = user.get("id")
-            author_type = user.get("profile_type", "solo_h")
+        raw_offset  = offset
+        raw_scanned = 0
+        exhausted   = False
 
-            # El viewer siempre ve sus propios posts
-            is_own = uid == viewer_id
+        while len(posts) < limit and raw_scanned < MAX_RAW_SCAN:
+            q = db.table("posts").select(
+                "*, users!posts_user_id_fkey("
+                "id,first_name,last_name,profile_photo_url,province,username,"
+                "profile_type,is_shadow_banned,hide_from_solos,visible_to)"
+            ).eq("status", "active").neq("type", "story")  # stories van al StoryBar, no al feed
 
-            if not is_own:
-                # Bloqueos mutuos
-                if uid in blocked_ids:
-                    continue
+            if post_type:
+                q = q.eq("type", post_type)
 
-                # Shadow ban
-                if user.get("is_shadow_banned"):
-                    continue
+            q = q.or_(f"expires_at.is.null,expires_at.gt.{datetime.now(timezone.utc).isoformat()}")
 
-                # ── visible_to: filtro granular del autor ──────────────
-                # Sistema nuevo (visible_to array):
-                author_visible_to = user.get("visible_to") or []
-                if author_visible_to:
-                    # Resolver categorías a tipos de perfil concretos
-                    allowed_viewers = _resolve_interested_types(author_visible_to)
-                    if viewer_type not in allowed_viewers:
+            if province and not (viewer_lat and viewer_lng):
+                q = q.eq("province", province)
+
+            q = q.order("created_at", desc=True).range(raw_offset, raw_offset + BATCH - 1)
+            raw = q.execute().data
+
+            if not raw:
+                exhausted = True
+                break
+
+            raw_scanned += len(raw)
+            raw_offset  += len(raw)
+
+            for p in raw:
+                user = p.get("users") or {}
+                uid  = user.get("id")
+                author_type = user.get("profile_type", "solo_h")
+
+                # El viewer siempre ve sus propios posts
+                is_own = uid == viewer_id
+
+                if not is_own:
+                    # Bloqueos mutuos
+                    if uid in blocked_ids:
                         continue
-                elif user.get("hide_from_solos") and viewer_is_solo:
-                    # Fallback legacy: hide_from_solos booleano
-                    continue
 
-                # ── interested_in: qué quiere ver el viewer ────────────
-                if allowed_types and author_type not in allowed_types:
-                    continue
+                    # Shadow ban
+                    if user.get("is_shadow_banned"):
+                        continue
 
-                # ── Visibilidad por post ────────────────────────────────
-                visibility = (p.get("extra_data") or {}).get("visibility", "public")
-                if visibility == "only_me":
-                    continue   # Solo visible para el autor
-                if visibility == "followers" and uid not in viewer_following:
-                    continue   # Solo visible para seguidores del autor
+                    # ── visible_to: filtro granular del autor ──────────────
+                    # Sistema nuevo (visible_to array):
+                    author_visible_to = user.get("visible_to") or []
+                    if author_visible_to:
+                        # Resolver categorías a tipos de perfil concretos
+                        allowed_viewers = _resolve_interested_types(author_visible_to)
+                        if viewer_type not in allowed_viewers:
+                            continue
+                    elif user.get("hide_from_solos") and viewer_is_solo:
+                        # Fallback legacy: hide_from_solos booleano
+                        continue
 
-            # Distancia
-            dist_km = None
-            if viewer_lat and viewer_lng and p.get("lat") and p.get("lng"):
-                dist_km = round(_haversine_km(viewer_lat, viewer_lng, float(p["lat"]), float(p["lng"])), 1)
-                if dist_km > radius_km:
-                    continue
+                    # ── interested_in: qué quiere ver el viewer ────────────
+                    if allowed_types and author_type not in allowed_types:
+                        continue
 
-            posts.append({
-                **p,
-                "author": {
-                    "id":           uid,
-                    "name":         f"{user.get('first_name','')} {user.get('last_name','')}".strip(),
-                    "username":     user.get('username'),
-                    "avatar":       user.get("profile_photo_url"),
-                    "province":     user.get("province"),
-                    "profile_type": author_type,
-                },
-                "distance_km":   dist_km,
-                "is_story":      p.get("type") == "story",
-                "viewer_is_solo": viewer_is_solo,
-            })
+                    # ── Visibilidad por post ────────────────────────────────
+                    visibility = (p.get("extra_data") or {}).get("visibility", "public")
+                    if visibility == "only_me":
+                        continue   # Solo visible para el autor
+                    if visibility == "followers" and uid not in viewer_following:
+                        continue   # Solo visible para seguidores del autor
 
-            if len(posts) >= limit:
+                # Distancia
+                dist_km = None
+                if viewer_lat and viewer_lng and p.get("lat") and p.get("lng"):
+                    dist_km = round(_haversine_km(viewer_lat, viewer_lng, float(p["lat"]), float(p["lng"])), 1)
+                    if dist_km > radius_km:
+                        continue
+
+                posts.append({
+                    **p,
+                    "author": {
+                        "id":           uid,
+                        "name":         f"{user.get('first_name','')} {user.get('last_name','')}".strip(),
+                        "username":     user.get('username'),
+                        "avatar":       user.get("profile_photo_url"),
+                        "province":     user.get("province"),
+                        "profile_type": author_type,
+                    },
+                    "distance_km":   dist_km,
+                    "is_story":      p.get("type") == "story",
+                    "viewer_is_solo": viewer_is_solo,
+                })
+
+                if len(posts) >= limit:
+                    break
+
+            if len(raw) < BATCH:
+                exhausted = True
                 break
 
         # 4. Reacciones del viewer en estos posts
@@ -194,6 +217,11 @@ class FeedService:
             "posts":  posts,
             "total":  len(posts),
             "radius_km": radius_km if viewer_lat else None,
+            # El frontend debe usar `next_offset` (filas crudas ya escaneadas)
+            # para pedir la página siguiente, no `offset + limit` —de lo
+            # contrario el filtrado en Python desalinea la paginación.
+            "next_offset": raw_offset,
+            "has_more": not exhausted,
         }
 
     def get_stories(self, viewer_id: str, province: Optional[str] = None) -> list:
@@ -374,8 +402,19 @@ class FeedService:
 
     def record_story_view(self, post_id: str, viewer_id: str) -> None:
         db = get_supabase()
-        db.table("story_views").upsert({"post_id": post_id, "viewer_id": viewer_id}).execute()
-        db.table("posts").update({"views_count": db.table("posts").select("views_count").eq("id", post_id).execute().data[0]["views_count"] + 1}).eq("id", post_id).execute()
+        # Si ya estaba registrada, no recontar (evita inflar views_count en
+        # cada refresco/replay y reduce la ventana de carrera del incremento).
+        existing = db.table("story_views").select("post_id").eq("post_id", post_id).eq("viewer_id", viewer_id).execute()
+        if existing.data:
+            return
+        db.table("story_views").upsert(
+            {"post_id": post_id, "viewer_id": viewer_id},
+            on_conflict="post_id,viewer_id",
+        ).execute()
+        post_r = db.table("posts").select("views_count").eq("id", post_id).execute()
+        if post_r.data:
+            current = post_r.data[0].get("views_count") or 0
+            db.table("posts").update({"views_count": current + 1}).eq("id", post_id).execute()
 
     def delete_post(self, post_id: str, user_id: str) -> None:
         db = get_supabase()

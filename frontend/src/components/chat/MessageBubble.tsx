@@ -38,7 +38,7 @@ function MediaContent({ msg, isMe }: { msg: any; isMe: boolean }) {
 
   if (!msg.media_url) return null;
 
-  const mime = msg.media_type || "image";
+  const mime = msg.type || "image";
 
   // Vista única no vista
   if (msg.view_once && !viewed && !isMe) {
@@ -125,8 +125,8 @@ export function MessageBubble({ msg, isMe, currentUserId, onDelete, onReply, onR
   const [showActions, setShowActions] = useState(false);
   const deleted = msg.deleted_for_all;
   const hasMedia = !!msg.media_url;
-  const isAudio  = msg.media_type === "audio";
-  const isImage  = msg.media_type === "image" || (!msg.media_type && hasMedia);
+  const isAudio  = msg.type === "audio";
+  const isImage  = msg.type === "image" || (!msg.type && hasMedia);
 
   async function handleReact(emoji: string) {
     await messagingV2Api.reactMessage(msg.id, emoji);

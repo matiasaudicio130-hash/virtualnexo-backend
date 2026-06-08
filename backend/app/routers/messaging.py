@@ -289,7 +289,10 @@ async def send_message(_conv_id: str, body: SendMessageBody, request: Request):
 @router.post("/conversations/{conv_id}/block")
 async def block_in_conversation(conv_id: str, request: Request):
     payload = _require_auth(request)
-    messaging_service.block_user(payload["sub"], conv_id)
+    try:
+        messaging_service.block_user(payload["sub"], conv_id)
+    except ValueError as e:
+        raise HTTPException(404, str(e))
     return {"blocked": True}
 
 
@@ -494,10 +497,12 @@ async def upload_chat_media(
 
     ALLOWED = {
         "image/jpeg", "image/jpg", "image/png", "image/webp", "image/gif",
+        "image/heic", "image/heif",
         "video/mp4", "video/webm", "video/quicktime",
         "audio/webm", "audio/mp4", "audio/ogg", "audio/mpeg",
     }
-    if file.content_type not in ALLOWED:
+    content_type = (file.content_type or "").lower()
+    if content_type not in ALLOWED:
         raise HTTPException(400, "Tipo de archivo no permitido")
 
     MAX_SIZES = {
@@ -505,15 +510,30 @@ async def upload_chat_media(
         "video": 50 * 1024 * 1024,   # 50 MB
         "audio":  5 * 1024 * 1024,   # 5 MB
     }
-    media_kind = file.content_type.split("/")[0]
+    media_kind = content_type.split("/")[0]
     data = await file.read()
     max_size = MAX_SIZES.get(media_kind, 10 * 1024 * 1024)
     if len(data) > max_size:
         raise HTTPException(413, f"Archivo demasiado grande (max {max_size // 1024 // 1024}MB)")
 
+    ext = (file.filename or "file").rsplit(".", 1)[-1].lower() or "bin"
+
+    # HEIC/HEIF (fotos de iPhone) no se renderizan en navegadores — convertir a JPEG
+    if content_type in ("image/heic", "image/heif"):
+        try:
+            from PIL import Image
+            import io as _io
+            img = Image.open(_io.BytesIO(data)).convert("RGB")
+            buf = _io.BytesIO()
+            img.save(buf, format="JPEG", quality=90)
+            data = buf.getvalue()
+            content_type = "image/jpeg"
+            ext = "jpg"
+        except Exception:
+            raise HTTPException(400, "No se pudo procesar la imagen HEIC/HEIF")
+
     from app.db.supabase import get_supabase
     db  = get_supabase()
-    ext = (file.filename or "file").rsplit(".", 1)[-1].lower() or "bin"
     path = f"{payload['sub']}/{uuid.uuid4().hex}.{ext}"
 
     # Crear bucket "chat" si no existe (idempotente)
@@ -524,7 +544,7 @@ async def upload_chat_media(
 
     try:
         db.storage.from_("chat").upload(path, data, {
-            "content-type": file.content_type,
+            "content-type": content_type,
             "upsert": "true",
         })
     except Exception as e:
@@ -552,7 +572,7 @@ async def upload_chat_media(
         "url":   url,
         "path":  path,
         "type":  media_kind,
-        "mime":  file.content_type,
+        "mime":  content_type,
         "size":  len(data),
     }
 
