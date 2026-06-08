@@ -394,7 +394,7 @@ async def record_view(user_id: str, request: Request):
     if viewer_id == user_id:
         return {"recorded": False}
     db = get_supabase()
-    db.table("profile_views").insert({"profile_user_id": user_id, "viewer_user_id": viewer_id}).execute()
+    db.table("profile_views").insert({"viewed_id": user_id, "viewer_id": viewer_id}).execute()
     db.rpc("increment_profile_views", {"p_user_id": user_id}).execute()
     return {"recorded": True}
 
@@ -409,7 +409,7 @@ async def my_stats(request: Request):
     from datetime import timedelta
     seven_days_ago = (datetime.now(timezone.utc) - timedelta(days=7)).isoformat()
 
-    views_7d = db.table("profile_views").select("id", count="exact").eq("profile_user_id", user_id).gte("viewed_at", seven_days_ago).execute()
+    views_7d = db.table("profile_views").select("id", count="exact").eq("viewed_id", user_id).gte("viewed_at", seven_days_ago).execute()
     pending_album_reqs = db.table("album_access_requests").select("id", count="exact").eq("status", "pending").in_("album_id", [
         a["id"] for a in db.table("albums").select("id").eq("user_id", user_id).execute().data
     ] or ["none"]).execute()

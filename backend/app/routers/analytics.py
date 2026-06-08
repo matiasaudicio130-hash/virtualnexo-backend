@@ -39,9 +39,9 @@ async def analytics_overview(request: Request):
     # ── Vistas de perfil ─────────────────────────────────────────────────────
     try:
         views_7d_r  = db.table("profile_views").select("id", count="exact") \
-                        .eq("profile_user_id", user_id).gte("viewed_at", d7).execute()
+                        .eq("viewed_id", user_id).gte("viewed_at", d7).execute()
         views_30d_r = db.table("profile_views").select("id", count="exact") \
-                        .eq("profile_user_id", user_id).gte("viewed_at", d30).execute()
+                        .eq("viewed_id", user_id).gte("viewed_at", d30).execute()
         user_r = db.table("users").select("profile_views_count,current_streak") \
                    .eq("id", user_id).maybe_single().execute()
         u = user_r.data or {}
