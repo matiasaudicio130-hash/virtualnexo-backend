@@ -1,8 +1,18 @@
-from fastapi import APIRouter, Request, Query
-from app.core.auth import _require_auth
+from fastapi import APIRouter, HTTPException, Request, Query
+from app.core.security import decode_access_token
 from app.db.supabase import get_supabase
 
 router = APIRouter(prefix="/search", tags=["search"])
+
+
+def _require_auth(request: Request) -> dict:
+    auth = request.headers.get("Authorization", "")
+    if not auth.startswith("Bearer "):
+        raise HTTPException(401, "Token requerido")
+    payload = decode_access_token(auth.split(" ")[1])
+    if not payload:
+        raise HTTPException(401, "Token inválido")
+    return payload
 
 
 @router.get("/mentions")
