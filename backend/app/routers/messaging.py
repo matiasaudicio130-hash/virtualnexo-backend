@@ -29,6 +29,7 @@ class SendMessageBody(BaseModel):
     content: str = ""
     type: str = "text"
     media_url: Optional[str] = None
+    audio_duration: Optional[int] = None
     reply_to_id: Optional[str] = None
     view_once: bool = False
 
@@ -279,6 +280,7 @@ async def send_message(_conv_id: str, body: SendMessageBody, request: Request):
             content=body.content,
             msg_type=body.type,
             media_url=body.media_url,
+            audio_duration=body.audio_duration,
             reply_to_id=body.reply_to_id,
             view_once=body.view_once,
         )

@@ -108,6 +108,7 @@ class MessagingService:
         content: str,
         msg_type: str = "text",
         media_url: Optional[str] = None,
+        audio_duration: Optional[int] = None,
         reply_to_id: Optional[str] = None,
         view_once: bool = False,
     ) -> dict:
@@ -133,6 +134,7 @@ class MessagingService:
             "content":         content,
             "type":            msg_type,
             "media_url":       media_url,
+            "audio_duration":  audio_duration,
             "reply_to_id":     reply_to_id,
             "view_once":       view_once,
         }).execute().data[0]

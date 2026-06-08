@@ -252,6 +252,7 @@ function ChatWindow({
                 content:      msgData.content,
                 media_url:    msgData.media_url,
                 type:         msgData.media_type || "text",
+                audio_duration: msgData.audio_duration,
                 reply_to_id:  msgData.reply_to_id,
                 view_once:    msgData.view_once,
               });
