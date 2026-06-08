@@ -21,7 +21,7 @@ export default defineConfig({
       manifest: {
         name: "AURA — Exclusive Lifestyle",
         short_name: "AURA",
-        description: "La primera comunidad adulta con verificación de identidad real en Argentina. DNI y biometría. Fotos protegidas.",
+        description: "La primera comunidad adulta con verificación de identidad real en Argentina. Verificación DNI y biometría. Fotos protegidas.",
         theme_color: "#C9A227",
         background_color: "#040409",
         display: "standalone",
