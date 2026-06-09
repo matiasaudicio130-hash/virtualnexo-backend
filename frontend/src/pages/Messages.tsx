@@ -247,10 +247,7 @@ function ChatWindow({
             if (sending) return;
             setSending(true);
             try {
-              const recipientId = other?.id
-                ?? (conv.participant_a === currentUserId ? conv.participant_b : conv.participant_a);
               const { data } = await messagingApi.sendMessage(conv.id, {
-                recipient_id: recipientId,
                 content:      msgData.content,
                 media_url:    msgData.media_url,
                 type:         msgData.media_type || "text",

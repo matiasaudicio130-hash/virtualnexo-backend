@@ -25,7 +25,7 @@ class ConversationStartBody(BaseModel):
 
 
 class SendMessageBody(BaseModel):
-    recipient_id: str
+    recipient_id: Optional[str] = None  # si None, se deriva del conv_id en el endpoint
     content: str = ""
     type: str = "text"
     media_url: Optional[str] = None
@@ -271,12 +271,23 @@ async def get_messages(
 
 
 @router.post("/conversations/{conv_id}/messages", status_code=201)
-async def send_message(_conv_id: str, body: SendMessageBody, request: Request):
+async def send_message(conv_id: str, body: SendMessageBody, request: Request):
     payload = _require_auth(request)
+    user_id = payload["sub"]
+
+    recipient_id = body.recipient_id
+    if not recipient_id:
+        from app.db.supabase import get_supabase as _gs
+        c_r = _gs().table("conversations").select("participant_a,participant_b").eq("id", conv_id).execute()
+        if not c_r.data:
+            raise HTTPException(404, "Conversación no encontrada")
+        c = c_r.data[0]
+        recipient_id = c["participant_b"] if c["participant_a"] == user_id else c["participant_a"]
+
     try:
         return messaging_service.send_message(
-            sender_id=payload["sub"],
-            recipient_id=body.recipient_id,
+            sender_id=user_id,
+            recipient_id=recipient_id,
             content=body.content,
             msg_type=body.type,
             media_url=body.media_url,
