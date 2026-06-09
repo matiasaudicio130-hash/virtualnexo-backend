@@ -126,7 +126,7 @@ async def start_conversation(body: ConversationStartBody, request: Request):
     # ── Flujo normal ─────────────────────────────────────────────────────────
     try:
         conv  = messaging_service.get_or_create_conversation(user_id, recipient)
-        other = recip_data or None
+        other = recip_data if recip_data and recip_data.get("id") else {"id": recipient}
         return {**conv, "other_user": other, "unread_count": 0, "blocked_me": False, "status": "active"}
     except PermissionError as e:
         raise HTTPException(403, str(e))

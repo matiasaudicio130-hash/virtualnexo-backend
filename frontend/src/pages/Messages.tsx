@@ -247,8 +247,10 @@ function ChatWindow({
             if (sending) return;
             setSending(true);
             try {
+              const recipientId = other?.id
+                ?? (conv.participant_a === currentUserId ? conv.participant_b : conv.participant_a);
               const { data } = await messagingApi.sendMessage(conv.id, {
-                recipient_id: other?.id,
+                recipient_id: recipientId,
                 content:      msgData.content,
                 media_url:    msgData.media_url,
                 type:         msgData.media_type || "text",
@@ -259,7 +261,11 @@ function ChatWindow({
               setMessages(prev => [...prev, data]);
               setReplyTo(null);
             } catch (e: any) {
-              alert(e.response?.data?.detail ?? "No se pudo enviar");
+              const detail = e?.response?.data?.detail;
+              const msg = Array.isArray(detail)
+                ? detail.map((d: any) => d.msg ?? String(d)).join("; ")
+                : detail ?? "No se pudo enviar";
+              alert(msg);
             }
             setSending(false);
           }}

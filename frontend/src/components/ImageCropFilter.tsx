@@ -259,6 +259,8 @@ export function ImageCropFilter({ file, onDone, onCancel }: Props) {
   const txtDragRef   = useRef<{ id: string; cx: number; cy: number; ox: number; oy: number } | null>(null);
   const shapeDragRef = useRef<{ id: string; cx: number; cy: number; ox: number; oy: number } | null>(null);
 
+  const onCropComplete = useCallback((_: Area, pixels: Area) => setCropArea(pixels), []);
+
   // UI
   const [tab,      setTab]      = useState<Tab>("crop");
   const [applying, setApplying] = useState(false);
@@ -607,7 +609,7 @@ export function ImageCropFilter({ file, onDone, onCancel }: Props) {
               onCropChange={setCrop}
               onZoomChange={setZoom}
               onRotationChange={setRotation}
-              onCropComplete={useCallback((_: Area, pixels: Area) => setCropArea(pixels), [])}
+              onCropComplete={onCropComplete}
               style={{
                 containerStyle: { width: PREVIEW, height: PREVIEW, borderRadius: 8 },
                 cropAreaStyle:  { border: "2px solid rgba(255,255,255,0.85)", borderRadius: 4 },
