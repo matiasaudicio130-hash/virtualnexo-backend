@@ -255,9 +255,10 @@ export function ImageCropFilter({ file, onDone, onCancel }: Props) {
   const [sOpacity,  setSOpacity] = useState(1);
   const [sRotation, setSRotation] = useState(0);
 
-  // Text drag
+  // Text drag + pinch
   const txtDragRef   = useRef<{ id: string; cx: number; cy: number; ox: number; oy: number } | null>(null);
   const shapeDragRef = useRef<{ id: string; cx: number; cy: number; ox: number; oy: number } | null>(null);
+  const pinchRef     = useRef<{ id: string; startDist: number; startSize: number } | null>(null);
 
   const onCropComplete = useCallback((_: Area, pixels: Area) => setCropArea(pixels), []);
 
@@ -298,13 +299,52 @@ export function ImageCropFilter({ file, onDone, onCancel }: Props) {
   const presetCss      = FILTERS[filterIdx].css;
   const composedFilter = [adjCss, presetCss !== "none" ? presetCss : ""].filter(Boolean).join(" ");
 
-  // ── Text drag helpers ────────────────────────────────────────────────────
+  // ── Text drag + pinch + wheel helpers ────────────────────────────────────
   function startTxtDrag(e: React.MouseEvent | React.TouchEvent, id: string, ox: number, oy: number) {
     e.stopPropagation();
     const cx = "touches" in e ? e.touches[0].clientX : (e as React.MouseEvent).clientX;
     const cy = "touches" in e ? e.touches[0].clientY : (e as React.MouseEvent).clientY;
     txtDragRef.current = { id, cx, cy, ox, oy };
   }
+
+  function startPinch(id: string, t0: React.Touch, t1: React.Touch) {
+    const dist = Math.hypot(t1.clientX - t0.clientX, t1.clientY - t0.clientY);
+    const txt  = texts.find(t => t.id === id);
+    if (txt) pinchRef.current = { id, startDist: dist, startSize: txt.size };
+    txtDragRef.current = null;
+  }
+
+  function handlePreviewTouchStart(e: React.TouchEvent) {
+    if (tab === "draw") return;
+    if (e.touches.length >= 2) {
+      // Convert any active drag into a pinch on that text, or use selTextId
+      const pinchId = txtDragRef.current?.id ?? selTextId ?? null;
+      if (pinchId) startPinch(pinchId, e.touches[0], e.touches[1]);
+    }
+  }
+
+  function handlePreviewTouchMove(e: React.TouchEvent) {
+    if (tab === "draw") return;
+    if (e.touches.length >= 2 && pinchRef.current) {
+      e.preventDefault();
+      const t0 = e.touches[0], t1 = e.touches[1];
+      const dist  = Math.hypot(t1.clientX - t0.clientX, t1.clientY - t0.clientY);
+      const scale = dist / pinchRef.current.startDist;
+      const newSize = Math.max(18, Math.min(220, Math.round(pinchRef.current.startSize * scale)));
+      const { id } = pinchRef.current;
+      setTexts(prev => prev.map(t => t.id !== id ? t : { ...t, size: newSize }));
+    } else if (e.touches.length === 1) {
+      const touch = e.touches[0];
+      onPreviewPointerMove(touch.clientX, touch.clientY);
+    }
+  }
+
+  function handlePreviewTouchEnd() {
+    pinchRef.current = null;
+    txtDragRef.current = null;
+    shapeDragRef.current = null;
+  }
+
   function onPreviewPointerMove(cx: number, cy: number) {
     if (tab === "draw") return;
     const d = txtDragRef.current;
@@ -328,7 +368,11 @@ export function ImageCropFilter({ file, onDone, onCancel }: Props) {
       }));
     }
   }
-  function onPreviewPointerUp() { txtDragRef.current = null; shapeDragRef.current = null; }
+  function onPreviewPointerUp() {
+    txtDragRef.current = null;
+    shapeDragRef.current = null;
+    pinchRef.current = null;
+  }
 
   function startShapeDrag(e: React.MouseEvent | React.TouchEvent, id: string, ox: number, oy: number) {
     e.stopPropagation();
@@ -624,12 +668,13 @@ export function ImageCropFilter({ file, onDone, onCancel }: Props) {
         {/* Other tabs: static preview + overlays */}
         {!isCropTab && imgSrc && (
           <div
-            style={{ width: PREVIEW, height: PREVIEW, position: "relative", overflow: "hidden", background: "#000", borderRadius: 8, flexShrink: 0 }}
+            style={{ width: PREVIEW, height: PREVIEW, position: "relative", overflow: "hidden", background: "#000", borderRadius: 8, flexShrink: 0, touchAction: "none" }}
             onMouseMove={e => onPreviewPointerMove(e.clientX, e.clientY)}
             onMouseUp={onPreviewPointerUp}
             onMouseLeave={onPreviewPointerUp}
-            onTouchMove={e => { const t = e.touches[0]; onPreviewPointerMove(t.clientX, t.clientY); }}
-            onTouchEnd={onPreviewPointerUp}
+            onTouchStart={handlePreviewTouchStart}
+            onTouchMove={handlePreviewTouchMove}
+            onTouchEnd={handlePreviewTouchEnd}
           >
             {/* Base image */}
             <img
@@ -708,7 +753,24 @@ export function ImageCropFilter({ file, onDone, onCancel }: Props) {
               <div
                 key={t.id}
                 onMouseDown={e => { if (!isDrawTab) startTxtDrag(e, t.id, t.x, t.y); }}
-                onTouchStart={e => { if (!isDrawTab) { e.stopPropagation(); startTxtDrag(e, t.id, t.x, t.y); } }}
+                onTouchStart={e => {
+                  if (isDrawTab) return;
+                  e.stopPropagation();
+                  if (e.touches.length >= 2) {
+                    startPinch(t.id, e.touches[0], e.touches[1]);
+                  } else {
+                    startTxtDrag(e, t.id, t.x, t.y);
+                  }
+                }}
+                onWheel={e => {
+                  if (isDrawTab) return;
+                  e.preventDefault();
+                  e.stopPropagation();
+                  const delta = e.deltaY < 0 ? 6 : -6;
+                  setTexts(prev => prev.map(txt =>
+                    txt.id !== t.id ? txt : { ...txt, size: Math.max(18, Math.min(220, txt.size + delta)) }
+                  ));
+                }}
                 onClick={() => { if (!isDrawTab) selectText(t); }}
                 style={{
                   position:    "absolute",
