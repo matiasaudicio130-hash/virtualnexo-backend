@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useRef, useState, useCallback } from "react";
 import { Image as ImageIcon, X, MapPin, Clock, BarChart2, Plus, Trash2, Pencil, Play, Scissors, LayoutGrid } from "lucide-react";
 import { feedApi, mediaApi } from "@/lib/api";
 import { Button } from "@/components/ui/Button";
@@ -29,6 +29,25 @@ async function getVideoDuration(file: File): Promise<number> {
     // timeout de seguridad
     setTimeout(() => { cleanup(); resolve(v.duration || 0); }, 8000);
   });
+}
+
+type CityResult = { name: string; state: string; country: string; display: string };
+
+async function searchCities(q: string): Promise<CityResult[]> {
+  if (q.length < 2) return [];
+  const ctrl = new AbortController();
+  setTimeout(() => ctrl.abort(), 5000);
+  try {
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&featuretype=settlement&format=json&addressdetails=1&limit=6`,
+      { signal: ctrl.signal, headers: { "Accept-Language": "es" } }
+    );
+    return (await res.json()).map((r: any) => {
+      const name  = r.address?.city || r.address?.town || r.address?.village || r.name;
+      const state = r.address?.state || r.address?.province || "";
+      return { name, state, country: r.address?.country || "", display: [name, state, r.address?.country].filter(Boolean).join(", ") };
+    });
+  } catch { return []; }
 }
 
 interface Props {
@@ -94,7 +113,19 @@ export function CreatePost({ onCreated, onClose }: Props) {
   const [file,    setFile]    = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [isVideo, setIsVideo] = useState(false);
-  const [province, setProvince] = useState(user?.province || "");
+  const [province,     setProvince]    = useState(user?.province || "");
+  const [cityQuery,    setCityQuery]   = useState(user?.province || "");
+  const [cityResults,  setCityResults] = useState<CityResult[]>([]);
+  const cityTimer = useRef<ReturnType<typeof setTimeout>>();
+
+  const onCityInput = useCallback((val: string) => {
+    setCityQuery(val);
+    setProvince(val);
+    setCityResults([]);
+    clearTimeout(cityTimer.current);
+    if (val.length < 2) return;
+    cityTimer.current = setTimeout(async () => setCityResults(await searchCities(val)), 350);
+  }, []);
   const [pendingTrim, setPendingTrim] = useState<File | null>(null);
   const [showTrimmer, setShowTrimmer] = useState(false);
   const [overlongInfo, setOverlongInfo] = useState<{ duration: number; file: File } | null>(null);
@@ -671,15 +702,47 @@ export function CreatePost({ onCreated, onClose }: Props) {
               </>
             )}
 
-            {/* Province (todos los modos) */}
-            <div className="flex items-center gap-2 px-3 py-2 bg-bg-muted border border-border rounded-xl">
-              <MapPin size={14} className="text-text-muted flex-shrink-0" />
-              <input
-                value={province}
-                onChange={e => setProvince(e.target.value)}
-                placeholder="Provincia (opcional)"
-                className="bg-transparent flex-1 focus:outline-none text-xs"
-              />
+            {/* City search (todos los modos) */}
+            <div className="relative">
+              <div className="flex items-center gap-2 px-3 py-2 bg-bg-muted border border-border rounded-xl">
+                <MapPin size={14} className="text-text-muted flex-shrink-0" />
+                <input
+                  value={cityQuery}
+                  onChange={e => onCityInput(e.target.value)}
+                  onBlur={() => setTimeout(() => setCityResults([]), 150)}
+                  placeholder="Ubicación (opcional)"
+                  inputMode="search"
+                  className="bg-transparent flex-1 focus:outline-none text-xs"
+                />
+                {cityQuery && (
+                  <button
+                    type="button"
+                    onClick={() => { setCityQuery(""); setProvince(""); setCityResults([]); }}
+                    className="text-text-muted hover:text-white"
+                  >
+                    <X size={12} />
+                  </button>
+                )}
+              </div>
+              {cityResults.length > 0 && (
+                <div className="absolute top-full mt-1 left-0 right-0 z-50 bg-bg-card border border-border rounded-xl overflow-hidden shadow-xl">
+                  {cityResults.map((c, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      onMouseDown={() => {
+                        setCityQuery(c.display);
+                        setProvince(c.display);
+                        setCityResults([]);
+                      }}
+                      className="w-full text-left px-3 py-2.5 hover:bg-white/5 transition-colors border-b border-border last:border-0"
+                    >
+                      <div className="text-xs text-white font-medium">{c.name}</div>
+                      <div className="text-[10px] text-text-muted mt-0.5">{[c.state, c.country].filter(Boolean).join(", ")}</div>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             {error && <p className="text-xs text-status-error">{error}</p>}

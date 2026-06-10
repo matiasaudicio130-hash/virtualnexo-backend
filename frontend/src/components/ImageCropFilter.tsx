@@ -154,6 +154,66 @@ interface Props {
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
+
+// Detect ctx.filter support (Safari < 18 doesn't support it)
+const CTX_FILTER_SUPPORTED = (() => {
+  try {
+    const tc = document.createElement("canvas").getContext("2d");
+    return tc ? "filter" in tc : false;
+  } catch { return false; }
+})();
+
+// Pixel-level CSS filter fallback for browsers without ctx.filter support
+function applyPixelFilters(ctx: CanvasRenderingContext2D, W: number, H: number, filterStr: string) {
+  const id   = ctx.getImageData(0, 0, W, H);
+  const d    = id.data;
+  const ops: [string, number][] = [];
+  const re   = /([\w-]+)\(([^)]+)\)/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(filterStr)) !== null) {
+    const fn  = m[1];
+    const raw = m[2].trim();
+    // values: percentage (e.g. 30%) → divide by 100, otherwise use as-is
+    const v = parseFloat(raw) * (raw.endsWith("%") ? 0.01 : 1);
+    ops.push([fn, v]);
+  }
+  const clamp = (x: number) => x < 0 ? 0 : x > 255 ? 255 : x;
+  for (let i = 0; i < d.length; i += 4) {
+    let r = d[i], g = d[i + 1], b = d[i + 2];
+    for (const [fn, v] of ops) {
+      switch (fn) {
+        case "brightness": r *= v; g *= v; b *= v; break;
+        case "contrast":
+          r = v*(r-128)+128; g = v*(g-128)+128; b = v*(b-128)+128; break;
+        case "saturate": {
+          const l = 0.2126*r + 0.7152*g + 0.0722*b;
+          r = l+v*(r-l); g = l+v*(g-l); b = l+v*(b-l); break;
+        }
+        case "grayscale": {
+          const l = 0.2126*r + 0.7152*g + 0.0722*b;
+          r += v*(l-r); g += v*(l-g); b += v*(l-b); break;
+        }
+        case "sepia": {
+          const nr = Math.min(255, r*0.393+g*0.769+b*0.189);
+          const ng = Math.min(255, r*0.349+g*0.686+b*0.168);
+          const nb = Math.min(255, r*0.272+g*0.534+b*0.131);
+          r += v*(nr-r); g += v*(ng-g); b += v*(nb-b); break;
+        }
+        case "hue-rotate": {
+          // v = degrees
+          const cos = Math.cos(v*Math.PI/180), sin = Math.sin(v*Math.PI/180);
+          const nr = r*(0.213+cos*0.787-sin*0.213)+g*(0.715-cos*0.715-sin*0.715)+b*(0.072-cos*0.072+sin*0.928);
+          const ng = r*(0.213-cos*0.213+sin*0.143)+g*(0.715+cos*0.285+sin*0.140)+b*(0.072-cos*0.072-sin*0.283);
+          const nb = r*(0.213-cos*0.213-sin*0.787)+g*(0.715-cos*0.715+sin*0.715)+b*(0.072+cos*0.928+sin*0.072);
+          r = nr; g = ng; b = nb; break;
+        }
+      }
+    }
+    d[i] = clamp(r); d[i+1] = clamp(g); d[i+2] = clamp(b);
+  }
+  ctx.putImageData(id, 0, 0);
+}
+
 function loadImage(src: string): Promise<HTMLImageElement> {
   return new Promise((res, rej) => {
     const img = new Image();
@@ -533,9 +593,15 @@ export function ImageCropFilter({ file, onDone, onCancel }: Props) {
       const ctx  = out.getContext("2d")!;
 
       // 3. Draw image + filter
-      try { if (composedFilter) ctx.filter = composedFilter; } catch { /* iOS <18 fallback */ }
-      ctx.drawImage(cropped, 0, 0);
-      try { ctx.filter = "none"; } catch { /* ignore */ }
+      if (CTX_FILTER_SUPPORTED && composedFilter) {
+        try { ctx.filter = composedFilter; } catch { /* ignore */ }
+        ctx.drawImage(cropped, 0, 0);
+        try { ctx.filter = "none"; } catch { /* ignore */ }
+      } else {
+        ctx.drawImage(cropped, 0, 0);
+        // Pixel-level fallback for Safari < 18 (no ctx.filter support)
+        if (composedFilter) applyPixelFilters(ctx, W, H, composedFilter);
+      }
 
       // 3b. Vignette overlay
       if (vignet > 0) {
