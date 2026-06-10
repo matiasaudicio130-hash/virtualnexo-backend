@@ -326,7 +326,6 @@ export function ImageCropFilter({ file, onDone, onCancel }: Props) {
   function handlePreviewTouchMove(e: React.TouchEvent) {
     if (tab === "draw") return;
     if (e.touches.length >= 2 && pinchRef.current) {
-      e.preventDefault();
       const t0 = e.touches[0], t1 = e.touches[1];
       const dist  = Math.hypot(t1.clientX - t0.clientX, t1.clientY - t0.clientY);
       const scale = dist / pinchRef.current.startDist;
@@ -334,8 +333,7 @@ export function ImageCropFilter({ file, onDone, onCancel }: Props) {
       const { id } = pinchRef.current;
       setTexts(prev => prev.map(t => t.id !== id ? t : { ...t, size: newSize }));
     } else if (e.touches.length === 1) {
-      const touch = e.touches[0];
-      onPreviewPointerMove(touch.clientX, touch.clientY);
+      onPreviewPointerMove(e.touches[0].clientX, e.touches[0].clientY);
     }
   }
 
@@ -764,8 +762,6 @@ export function ImageCropFilter({ file, onDone, onCancel }: Props) {
                 }}
                 onWheel={e => {
                   if (isDrawTab) return;
-                  e.preventDefault();
-                  e.stopPropagation();
                   const delta = e.deltaY < 0 ? 6 : -6;
                   setTexts(prev => prev.map(txt =>
                     txt.id !== t.id ? txt : { ...txt, size: Math.max(18, Math.min(220, txt.size + delta)) }
