@@ -5,7 +5,7 @@ Max upload: 5MB avatars / 20MB media.
 """
 from fastapi import APIRouter, HTTPException, Request, UploadFile, File, Query
 
-from app.core.security import decode_access_token
+from app.core.security import require_auth as _require_auth
 from app.services.storage_service import storage_service
 from app.services.audit_service import audit_service
 
@@ -14,16 +14,6 @@ router = APIRouter(prefix="/media", tags=["media"])
 MAX_AVATAR_BYTES = 5 * 1024 * 1024   # 5 MB
 MAX_MEDIA_BYTES  = 20 * 1024 * 1024  # 20 MB
 ALLOWED_MIME     = {"image/jpeg", "image/jpg", "image/png", "image/webp", "image/gif", "image/heic", "image/heif"}
-
-
-def _require_auth(request: Request) -> dict:
-    auth = request.headers.get("Authorization", "")
-    if not auth.startswith("Bearer "):
-        raise HTTPException(401, "Token requerido")
-    payload = decode_access_token(auth.split(" ")[1])
-    if not payload:
-        raise HTTPException(401, "Token inválido")
-    return payload
 
 
 def _require_admin(request: Request) -> dict:

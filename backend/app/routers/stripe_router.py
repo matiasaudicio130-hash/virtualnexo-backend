@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, Request, Header
 from typing import Optional
 from pydantic import BaseModel
 
-from app.core.security import decode_access_token
+from app.core.security import require_auth as _require_auth
 from app.services.stripe_service import stripe_service
 from app.services.audit_service import audit_service
 from app.core.config import get_settings
@@ -18,16 +18,6 @@ class CheckoutRequest(BaseModel):
 
 class SimulateSuccessBody(BaseModel):
     session_id: str
-
-
-def _require_auth(request: Request) -> dict:
-    auth = request.headers.get("Authorization", "")
-    if not auth.startswith("Bearer "):
-        raise HTTPException(401, "Token requerido")
-    payload = decode_access_token(auth.split(" ")[1])
-    if not payload:
-        raise HTTPException(401, "Token inválido o expirado")
-    return payload
 
 
 @router.get("/config")

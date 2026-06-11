@@ -2,21 +2,11 @@ from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 from typing import Optional
 
-from app.core.security import decode_access_token
+from app.core.security import require_auth as _require_auth
 from app.core.config import get_settings
 
 router   = APIRouter(prefix="/push", tags=["push"])
 settings = get_settings()
-
-
-def _require_auth(request: Request) -> dict:
-    auth = request.headers.get("Authorization", "")
-    if not auth.startswith("Bearer "):
-        raise HTTPException(401, "Token requerido")
-    payload = decode_access_token(auth.split(" ")[1])
-    if not payload:
-        raise HTTPException(401, "Token inválido")
-    return payload
 
 
 class SubscribeBody(BaseModel):

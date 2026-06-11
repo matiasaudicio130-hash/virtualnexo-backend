@@ -24,7 +24,7 @@ import qrcode
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
-from app.core.security import decode_access_token, create_access_token, create_refresh_token
+from app.core.security import decode_access_token, create_access_token, create_refresh_token, require_auth as _require_auth
 from app.core.branding import APP_NAME
 from app.db.supabase import get_supabase
 
@@ -34,16 +34,6 @@ TOTP_ISSUER    = APP_NAME
 BACKUP_CODE_N  = 8    # Cantidad de códigos de respaldo
 # Token temporal para el step 2 del login: corta vida (5 min)
 TOTP_SESSION_EXPIRE_MINUTES = 5
-
-
-def _require_auth(request: Request) -> dict:
-    auth = request.headers.get("Authorization", "")
-    if not auth.startswith("Bearer "):
-        raise HTTPException(401, "Token requerido")
-    payload = decode_access_token(auth.split(" ")[1])
-    if not payload:
-        raise HTTPException(401, "Token inválido")
-    return payload
 
 
 def _generate_backup_codes() -> list[str]:

@@ -3,19 +3,9 @@ from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime, timezone
 
-from app.core.security import decode_access_token
+from app.core.security import require_auth as _require_auth
 
 router = APIRouter(prefix="/events", tags=["events"])
-
-
-def _require_auth(request: Request) -> dict:
-    auth = request.headers.get("Authorization", "")
-    if not auth.startswith("Bearer "):
-        raise HTTPException(401, "Token requerido")
-    payload = decode_access_token(auth.split(" ")[1])
-    if not payload:
-        raise HTTPException(401, "Token inválido")
-    return payload
 
 
 class CreateEventBody(BaseModel):

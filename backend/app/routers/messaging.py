@@ -4,20 +4,10 @@ from typing import Literal, Optional
 from datetime import datetime, timezone
 import uuid
 
-from app.core.security import decode_access_token
+from app.core.security import require_auth as _require_auth
 from app.services.messaging_service import messaging_service
 
 router = APIRouter(prefix="/messages", tags=["messages"])
-
-
-def _require_auth(request: Request) -> dict:
-    auth = request.headers.get("Authorization", "")
-    if not auth.startswith("Bearer "):
-        raise HTTPException(401, "Token requerido")
-    payload = decode_access_token(auth.split(" ")[1])
-    if not payload:
-        raise HTTPException(401, "Token inválido")
-    return payload
 
 
 class ConversationStartBody(BaseModel):
@@ -529,7 +519,16 @@ async def upload_chat_media(
     if len(data) > max_size:
         raise HTTPException(413, f"Archivo demasiado grande (max {max_size // 1024 // 1024}MB)")
 
-    ext = (file.filename or "file").rsplit(".", 1)[-1].lower() or "bin"
+    # Derivar la extensión del MIME ya validado, NO del filename (lo controla el cliente)
+    _ext_por_mime = {
+        "image/jpeg": "jpg", "image/jpg": "jpg", "image/png": "png",
+        "image/webp": "webp", "image/gif": "gif",
+        "image/heic": "heic", "image/heif": "heif",
+        "video/mp4": "mp4", "video/webm": "webm", "video/quicktime": "mov",
+        "audio/webm": "webm", "audio/mp4": "m4a", "audio/ogg": "ogg",
+        "audio/mpeg": "mp3",
+    }
+    ext = _ext_por_mime.get(content_type, "bin")
 
     # HEIC/HEIF (fotos de iPhone) no se renderizan en navegadores — convertir a JPEG
     if content_type in ("image/heic", "image/heif"):

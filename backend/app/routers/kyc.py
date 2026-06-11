@@ -2,23 +2,13 @@ from fastapi import APIRouter, HTTPException, Request, BackgroundTasks
 from datetime import datetime, timezone
 
 from app.core.config import get_settings
-from app.core.security import decode_access_token
+from app.core.security import require_auth as _require_auth
 from app.db.supabase import get_supabase
 from app.services.metamap_service import metamap_service
 from app.services.email_service import send_kyc_approved_email, send_kyc_rejected_email
 
 router = APIRouter(prefix="/kyc", tags=["kyc"])
 settings = get_settings()
-
-
-def _require_auth(request: Request) -> dict:
-    auth = request.headers.get("Authorization", "")
-    if not auth.startswith("Bearer "):
-        raise HTTPException(401, "Token requerido")
-    payload = decode_access_token(auth.split(" ")[1])
-    if not payload:
-        raise HTTPException(401, "Token inválido")
-    return payload
 
 
 @router.post("/start")

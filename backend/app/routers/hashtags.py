@@ -6,23 +6,13 @@ import re
 from fastapi import APIRouter, HTTPException, Request, Query
 from datetime import datetime, timezone, timedelta
 
-from app.core.security import decode_access_token
+from app.core.security import require_auth as _require_auth
 from app.db.supabase import get_supabase
 
 router = APIRouter(prefix="/hashtags", tags=["hashtags"])
 
 # Acepta letras (incluye tildes y ñ), números y guión bajo
 _HASHTAG_RE = re.compile(r"#([A-Za-z0-9À-ɏ_]{1,50})")
-
-
-def _require_auth(request: Request) -> dict:
-    auth = request.headers.get("Authorization", "")
-    if not auth.startswith("Bearer "):
-        raise HTTPException(401, "Token requerido")
-    payload = decode_access_token(auth.split(" ")[1])
-    if not payload:
-        raise HTTPException(401, "Token inválido")
-    return payload
 
 
 def extract_hashtags(text: str) -> list[str]:

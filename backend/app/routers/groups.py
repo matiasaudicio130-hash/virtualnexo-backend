@@ -7,7 +7,7 @@ from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime, timezone
 
-from app.core.security import decode_access_token
+from app.core.security import require_auth as _require_auth
 from app.db.supabase import get_supabase
 
 router = APIRouter(prefix="/groups", tags=["groups"])
@@ -15,16 +15,6 @@ router = APIRouter(prefix="/groups", tags=["groups"])
 MAX_MEMBERS   = 50
 MAX_NAME_LEN  = 60
 MAX_MSG_LEN   = 2000
-
-
-def _require_auth(request: Request) -> dict:
-    auth = request.headers.get("Authorization", "")
-    if not auth.startswith("Bearer "):
-        raise HTTPException(401, "Token requerido")
-    payload = decode_access_token(auth.split(" ")[1])
-    if not payload:
-        raise HTTPException(401, "Token inválido")
-    return payload
 
 
 def _require_member(db, group_id: str, user_id: str) -> dict:

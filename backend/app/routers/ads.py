@@ -3,7 +3,7 @@ from typing import Literal, Optional
 from pydantic import BaseModel
 import uuid
 
-from app.core.security import decode_access_token
+from app.core.security import require_auth as _require_auth
 from app.services.ads_service import ads_service
 from app.db.supabase import get_supabase
 
@@ -27,16 +27,6 @@ class AdUpdateBody(BaseModel):
     priority: Optional[int] = None
     ends_at: Optional[str] = None
     is_active: Optional[bool] = None
-
-
-def _require_auth(request: Request) -> dict:
-    auth = request.headers.get("Authorization", "")
-    if not auth.startswith("Bearer "):
-        raise HTTPException(401, "Token requerido")
-    payload = decode_access_token(auth.split(" ")[1])
-    if not payload:
-        raise HTTPException(401, "Token inválido")
-    return payload
 
 
 def _require_admin(request: Request) -> dict:

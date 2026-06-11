@@ -2,6 +2,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Optional
 from jose import JWTError, jwt
 from passlib.context import CryptContext
+from fastapi import Request, HTTPException
 import secrets
 import string
 
@@ -9,7 +10,7 @@ from app.core.config import get_settings
 
 settings = get_settings()
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto", bcrypt__rounds=12)
 
 
 def hash_password(password: str) -> str:
@@ -43,6 +44,23 @@ def decode_access_token(token: str) -> Optional[dict]:
         return payload
     except JWTError:
         return None
+
+
+def require_auth(request: Request) -> dict:
+    """
+    Valida el header `Authorization: Bearer <jwt>` y devuelve el payload.
+    Fuente única de verdad para la auth de los routers — antes esta función
+    estaba copiada (idéntica) en ~29 routers, así que un fix de seguridad había
+    que replicarlo a mano en cada uno. Los routers la importan aliasada como
+    `_require_auth` para no tocar sus call sites.
+    """
+    auth = request.headers.get("Authorization", "")
+    if not auth.startswith("Bearer "):
+        raise HTTPException(401, "Token requerido")
+    payload = decode_access_token(auth.split(" ")[1])
+    if not payload:
+        raise HTTPException(401, "Token inválido")
+    return payload
 
 
 def create_totp_session_token(user_id: str, session_id: str) -> str:
