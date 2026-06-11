@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from app.db.supabase import get_supabase
 from app.services.notifications_service import create_notification
 from app.utils.profile_constants import ATTRACTION_MAP
+from app.utils.blocks import blocked_user_ids, block_between
 
 
 def _resolve_viewer_category(viewer_type: str) -> str:
@@ -103,16 +104,9 @@ class ProfileService:
         db = get_supabase()
 
         # ¿El viewer bloqueó al target o viceversa? (tabla opcional)
-        try:
-            block = db.table("user_blocks").select("id,blocker_id").or_(
-                f"and(blocker_id.eq.{viewer_id},blocked_id.eq.{target_id}),"
-                f"and(blocker_id.eq.{target_id},blocked_id.eq.{viewer_id})"
-            ).limit(1).execute()
-            if block.data:
-                i_blocked = block.data[0]["blocker_id"] == viewer_id
-                return {"blocked": True, "i_blocked_them": i_blocked}
-        except Exception:
-            pass
+        blocker = block_between(db, viewer_id, target_id)
+        if blocker:
+            return {"blocked": True, "i_blocked_them": blocker == viewer_id}
 
         # Datos base del usuario — query core, si falla retornamos None
         r = db.table("users").select(
@@ -337,15 +331,7 @@ class ProfileService:
         return {"blocked": True}
 
     def get_blocked_ids(self, user_id: str) -> set:
-        db = get_supabase()
-        r = db.table("user_blocks").select("blocked_id,blocker_id").or_(
-            f"blocker_id.eq.{user_id},blocked_id.eq.{user_id}"
-        ).execute()
-        ids = set()
-        for row in r.data:
-            other = row["blocked_id"] if row["blocker_id"] == user_id else row["blocker_id"]
-            ids.add(other)
-        return ids
+        return blocked_user_ids(get_supabase(), user_id)
 
     # ── Reportes ─────────────────────────────────────────────────
     def report_user(self, reporter_id: str, reported_id: str, reason: str, details: str = "") -> dict:

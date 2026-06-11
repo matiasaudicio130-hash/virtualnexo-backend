@@ -5,6 +5,7 @@ from pydantic import BaseModel
 from app.core.security import require_auth as _require_auth
 from app.services.feed_service import feed_service
 from app.services.storage_service import storage_service
+from app.utils.blocks import block_between
 
 router = APIRouter(prefix="/feed", tags=["feed"])
 
@@ -113,16 +114,8 @@ async def get_user_posts(
     # Bloqueo mutuo: si el viewer y el autor se bloquearon (en cualquier
     # dirección), no exponer ningún post. Mantiene este endpoint coherente con
     # GET /profiles/{id}, que ya devuelve 403 ante un bloqueo.
-    if author_id != viewer_id:
-        try:
-            blk = db.table("user_blocks").select("id").or_(
-                f"and(blocker_id.eq.{viewer_id},blocked_id.eq.{author_id}),"
-                f"and(blocker_id.eq.{author_id},blocked_id.eq.{viewer_id})"
-            ).limit(1).execute()
-            if blk.data:
-                return {"posts": []}
-        except Exception:
-            pass
+    if author_id != viewer_id and block_between(db, viewer_id, author_id):
+        return {"posts": []}
 
     # Pre-fetch seguimiento para filtro followers (solo si es perfil ajeno)
     viewer_following: set = set()

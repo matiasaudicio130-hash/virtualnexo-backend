@@ -13,6 +13,7 @@ from typing import Optional
 from app.db.supabase import get_supabase
 from app.services.notifications_service import create_notification
 from app.utils.profile_constants import SOLO_TYPES, resolve_interested_types
+from app.utils.blocks import blocked_user_ids
 
 
 def _haversine_km(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
@@ -64,16 +65,7 @@ class FeedService:
             allowed_types = _resolve_interested_types(interested_in)
 
         # IDs bloqueados en ambas direcciones — excluir del feed
-        blocked_ids: set = set()
-        try:
-            block_r = db.table("user_blocks").select("blocker_id,blocked_id").or_(
-                f"blocker_id.eq.{viewer_id},blocked_id.eq.{viewer_id}"
-            ).execute()
-            for b in block_r.data:
-                other = b["blocked_id"] if b["blocker_id"] == viewer_id else b["blocker_id"]
-                blocked_ids.add(other)
-        except Exception:
-            pass
+        blocked_ids = blocked_user_ids(db, viewer_id)
 
         # Usuarios que el viewer sigue (para filtro visibility=followers)
         viewer_following: set = set()

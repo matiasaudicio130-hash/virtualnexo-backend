@@ -9,15 +9,9 @@ from datetime import datetime, timezone
 from typing import Optional
 
 from app.db.supabase import get_supabase
-from app.utils.profile_constants import ATTRACTION_MAP
+from app.utils.profile_constants import resolve_interested_types
+from app.utils.blocks import block_between
 from app.services.notifications_service import create_notification
-
-
-def _resolve_blocked_types(categories: list[str]) -> set[str]:
-    types: set[str] = set()
-    for cat in categories:
-        types |= ATTRACTION_MAP.get(cat, set())
-    return types
 
 
 class MessagingService:
@@ -60,7 +54,7 @@ class MessagingService:
         # Filtro no_messages_from (columna opcional)
         no_msg = recipient.get("no_messages_from") or []
         if no_msg:
-            blocked_types = _resolve_blocked_types(no_msg)
+            blocked_types = resolve_interested_types(no_msg)
             sender_type   = sender.get("profile_type", "solo_h")
             if sender_type in blocked_types:
                 return False, "Este usuario no acepta mensajes de tu tipo de perfil"
@@ -68,9 +62,7 @@ class MessagingService:
         # Filtro visible_to (columna opcional)
         visible_to = recipient.get("visible_to") or []
         if visible_to:
-            allowed_viewer_types = set()
-            for cat in visible_to:
-                allowed_viewer_types |= ATTRACTION_MAP.get(cat, set())
+            allowed_viewer_types = resolve_interested_types(visible_to)
             sender_type = sender.get("profile_type", "solo_h")
             if sender_type not in allowed_viewer_types:
                 return False, "Este usuario no acepta mensajes de tu tipo de perfil"
@@ -79,15 +71,8 @@ class MessagingService:
         # corta los DMs en ambas direcciones. Antes este sistema estaba
         # desconectado del de conversaciones (blocked_by_a/b) y permitía escribir
         # a un usuario al que habías bloqueado desde su perfil.
-        try:
-            blk = db.table("user_blocks").select("id").or_(
-                f"and(blocker_id.eq.{sender_id},blocked_id.eq.{recipient_id}),"
-                f"and(blocker_id.eq.{recipient_id},blocked_id.eq.{sender_id})"
-            ).limit(1).execute()
-            if blk.data:
-                return False, "No se puede contactar a este usuario"
-        except Exception:
-            pass  # tabla ausente en entornos sin migración — no bloquear por eso
+        if block_between(db, sender_id, recipient_id):
+            return False, "No se puede contactar a este usuario"
 
         return True, "ok"
 
