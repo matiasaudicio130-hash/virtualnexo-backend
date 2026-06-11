@@ -75,6 +75,20 @@ class MessagingService:
             if sender_type not in allowed_viewer_types:
                 return False, "Este usuario no acepta mensajes de tu tipo de perfil"
 
+        # Bloqueo manual (tabla user_blocks): un bloqueo desde el perfil también
+        # corta los DMs en ambas direcciones. Antes este sistema estaba
+        # desconectado del de conversaciones (blocked_by_a/b) y permitía escribir
+        # a un usuario al que habías bloqueado desde su perfil.
+        try:
+            blk = db.table("user_blocks").select("id").or_(
+                f"and(blocker_id.eq.{sender_id},blocked_id.eq.{recipient_id}),"
+                f"and(blocker_id.eq.{recipient_id},blocked_id.eq.{sender_id})"
+            ).limit(1).execute()
+            if blk.data:
+                return False, "No se puede contactar a este usuario"
+        except Exception:
+            pass  # tabla ausente en entornos sin migración — no bloquear por eso
+
         return True, "ok"
 
     def get_or_create_conversation(self, user_a: str, user_b: str) -> dict:

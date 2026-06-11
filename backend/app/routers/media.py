@@ -41,7 +41,7 @@ async def upload_avatar(request: Request, file: UploadFile = File(...)):
     """
     payload = _require_auth(request)
 
-    if file.content_type not in ALLOWED_MIME:
+    if (file.content_type or "").lower() not in ALLOWED_MIME:
         raise HTTPException(400, f"Formato no permitido. Usar: {', '.join(ALLOWED_MIME)}")
 
     image_bytes = await file.read()
@@ -71,7 +71,7 @@ async def upload_post_image(request: Request, file: UploadFile = File(...)):
     """Sube una imagen para una publicación. Devuelve signed URL (1h)."""
     payload = _require_auth(request)
 
-    if file.content_type not in ALLOWED_MIME:
+    if (file.content_type or "").lower() not in ALLOWED_MIME:
         raise HTTPException(400, f"Formato no permitido. Usar: {', '.join(ALLOWED_MIME)}")
 
     image_bytes = await file.read()

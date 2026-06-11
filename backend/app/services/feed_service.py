@@ -198,14 +198,15 @@ class FeedService:
             rxn_r = db.table("post_reactions").select("post_id,type").eq("user_id", viewer_id).in_("post_id", post_ids).execute()
             viewer_reactions = {r["post_id"]: r["type"] for r in rxn_r.data}
 
-        # 5. Conteo de reacciones por post
+        # 5. Conteo de reacciones por post (una sola query en lote, sin N+1)
         reaction_counts: dict = {}
         if post_ids:
-            for pid in post_ids:
-                rc = db.table("post_reactions").select("type").eq("post_id", pid).execute()
-                from collections import Counter
-                cnt = Counter(r["type"] for r in rc.data)
-                reaction_counts[pid] = dict(cnt)
+            from collections import defaultdict, Counter
+            rc_all = db.table("post_reactions").select("post_id,type").in_("post_id", post_ids).execute()
+            grouped: dict = defaultdict(Counter)
+            for row in rc_all.data:
+                grouped[row["post_id"]][row["type"]] += 1
+            reaction_counts = {pid: dict(c) for pid, c in grouped.items()}
 
         for p in posts:
             p["viewer_reaction"] = viewer_reactions.get(p["id"])

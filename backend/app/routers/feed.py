@@ -105,7 +105,7 @@ async def get_user_posts(
     SELECT = (
         "id,user_id,caption,media_url,media_urls,storage_path,type,created_at,city,province,"
         "expires_at,extra_data,allow_share,"
-        "users!posts_user_id_fkey(id,first_name,last_name,profile_photo_url,profile_type,username)"
+        "users!posts_user_id_fkey(id,first_name,last_name,profile_photo_url,profile_type,username,is_shadow_banned)"
     )
     types = ["video"] if kind == "video" else ["photo", "video", "text", "poll"]
     rows = (
@@ -120,6 +120,20 @@ async def get_user_posts(
         .data
     )
 
+    # Bloqueo mutuo: si el viewer y el autor se bloquearon (en cualquier
+    # dirección), no exponer ningún post. Mantiene este endpoint coherente con
+    # GET /profiles/{id}, que ya devuelve 403 ante un bloqueo.
+    if author_id != viewer_id:
+        try:
+            blk = db.table("user_blocks").select("id").or_(
+                f"and(blocker_id.eq.{viewer_id},blocked_id.eq.{author_id}),"
+                f"and(blocker_id.eq.{author_id},blocked_id.eq.{viewer_id})"
+            ).limit(1).execute()
+            if blk.data:
+                return {"posts": []}
+        except Exception:
+            pass
+
     # Pre-fetch seguimiento para filtro followers (solo si es perfil ajeno)
     viewer_following: set = set()
     if author_id != viewer_id:
@@ -133,6 +147,9 @@ async def get_user_posts(
     for r in rows:
         # Filtro de visibilidad por post
         if author_id != viewer_id:
+            # Shadow-ban: los posts del autor baneado no se muestran a otros
+            if (r.get("users") or {}).get("is_shadow_banned"):
+                continue
             visibility = (r.get("extra_data") or {}).get("visibility", "public")
             if visibility == "only_me":
                 continue
@@ -161,17 +178,16 @@ async def get_user_posts(
         except Exception:
             pass
 
-    # Conteo de reacciones por post
+    # Conteo de reacciones por post (una sola query en lote, sin N+1)
     if post_ids:
         try:
-            from collections import Counter
-            for pid in post_ids:
-                rc = db.table("post_reactions").select("type").eq("post_id", pid).execute()
-                cnt = Counter(r["type"] for r in rc.data)
-                for p in posts:
-                    if p["id"] == pid:
-                        p["reactions"] = dict(cnt)
-                        break
+            from collections import defaultdict, Counter
+            rc_all = db.table("post_reactions").select("post_id,type").in_("post_id", post_ids).execute()
+            grouped: dict = defaultdict(Counter)
+            for row in rc_all.data:
+                grouped[row["post_id"]][row["type"]] += 1
+            for p in posts:
+                p["reactions"] = dict(grouped.get(p["id"], {}))
         except Exception:
             pass
 
