@@ -412,10 +412,16 @@ class FeedService:
             {"post_id": post_id, "viewer_id": viewer_id},
             on_conflict="post_id,viewer_id",
         ).execute()
-        post_r = db.table("posts").select("views_count").eq("id", post_id).execute()
-        if post_r.data:
-            current = post_r.data[0].get("views_count") or 0
-            db.table("posts").update({"views_count": current + 1}).eq("id", post_id).execute()
+        # Incremento atómico vía RPC para no perder conteos cuando dos personas
+        # ven la story al mismo tiempo (read-then-write se pisaba). Si la RPC aún
+        # no está aplicada en la base, caemos al método viejo (no atómico).
+        try:
+            db.rpc("increment_post_views", {"p_post_id": post_id}).execute()
+        except Exception:
+            post_r = db.table("posts").select("views_count").eq("id", post_id).execute()
+            if post_r.data:
+                current = post_r.data[0].get("views_count") or 0
+                db.table("posts").update({"views_count": current + 1}).eq("id", post_id).execute()
 
     def delete_post(self, post_id: str, user_id: str) -> None:
         db = get_supabase()

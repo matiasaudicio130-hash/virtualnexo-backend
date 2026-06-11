@@ -200,17 +200,23 @@ class MessagingService:
             f"participant_a.eq.{user_id},participant_b.eq.{user_id}"
         ).order("last_message_at", desc=True).execute().data
 
+        # Contar no leídos de TODAS las conversaciones en una sola query y
+        # agrupar en Python (antes era una query por conversación: N+1)
+        from collections import Counter
+        conv_ids = [c["id"] for c in convs]
+        unread_by_conv: Counter = Counter()
+        if conv_ids:
+            unread_rows = db.table("messages").select("conversation_id").in_(
+                "conversation_id", conv_ids
+            ).neq("sender_id", user_id).is_("read_at", "null").execute().data
+            unread_by_conv = Counter(m["conversation_id"] for m in unread_rows)
+
         # Determinar quién es el "otro" en cada conversación
         result = []
         for c in convs:
             is_a  = c["participant_a"] == user_id
             other = c.get("user_b") if is_a else c.get("user_a")
             blocked_me = c.get("blocked_by_b") if is_a else c.get("blocked_by_a")
-
-            # Contar no leídos
-            unread = db.table("messages").select("id").eq(
-                "conversation_id", c["id"]
-            ).neq("sender_id", user_id).is_("read_at", "null").execute().data
 
             result.append({
                 "id":                   c["id"],
@@ -219,7 +225,7 @@ class MessagingService:
                 "last_message_at":      c.get("last_message_at"),
                 "last_sender_id":       c.get("last_sender_id"),
                 "is_last_sender":       c.get("last_sender_id") == user_id,
-                "unread_count":         len(unread),
+                "unread_count":         unread_by_conv.get(c["id"], 0),
                 "blocked_me":           blocked_me,
             })
 
@@ -241,12 +247,12 @@ class MessagingService:
             "created_at", desc=False
         ).range(offset, offset + limit - 1).execute().data
 
-        # Marcar como leídos los mensajes del otro
+        # Marcar como leídos los mensajes del otro — un solo UPDATE en lote
+        # (antes era un UPDATE por mensaje: N+1 y ventana de carrera más amplia)
         unread_ids = [m["id"] for m in msgs if m["sender_id"] != user_id and not m["read_at"]]
         if unread_ids:
             now = datetime.now(timezone.utc).isoformat()
-            for mid in unread_ids:
-                db.table("messages").update({"read_at": now}).eq("id", mid).execute()
+            db.table("messages").update({"read_at": now}).in_("id", unread_ids).execute()
 
         return msgs
 
