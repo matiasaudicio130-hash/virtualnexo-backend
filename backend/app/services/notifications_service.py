@@ -3,6 +3,7 @@ Helper para crear notificaciones in-app.
 Módulo independiente para evitar imports circulares.
 """
 import logging
+from datetime import datetime, timezone
 from app.db.supabase import get_supabase
 
 logger = logging.getLogger(__name__)
@@ -17,7 +18,8 @@ def create_notification(
     actor_id: str | None = None,
 ) -> None:
     """Crea una notificación. Nunca lanza excepciones — falla silenciosamente.
-    Si se provee actor_id, enriquece data con actor_name y actor_avatar."""
+    Si se provee actor_id, enriquece data con actor_name y actor_avatar.
+    Para new_message: agrupa mensajes del mismo remitente en una sola notificación no leída."""
     try:
         db = get_supabase()
         payload = dict(data or {})
@@ -30,6 +32,31 @@ def create_notification(
                 u = actor_r.data[0]
                 payload["actor_name"]   = f"{u['first_name']} {u['last_name']}".strip()
                 payload["actor_avatar"] = u.get("profile_photo_url") or ""
+
+        # Agrupar notificaciones de mensajes del mismo remitente
+        if notif_type == "new_message" and actor_id:
+            try:
+                existing_r = db.table("notifications").select("id,data").eq(
+                    "user_id", user_id
+                ).eq("type", "new_message").is_("read_at", "null").filter(
+                    "data->>sender_id", "eq", actor_id
+                ).limit(1).execute()
+                if existing_r.data:
+                    existing = existing_r.data[0]
+                    prev_data = existing.get("data") or {}
+                    count = prev_data.get("msg_count", 1) + 1
+                    actor_name = payload.get("actor_name") or prev_data.get("actor_name") or "Alguien"
+                    new_payload = {**prev_data, **payload, "msg_count": count}
+                    new_title = f"{actor_name} te mandó {count} mensajes"
+                    db.table("notifications").update({
+                        "title":      new_title,
+                        "body":       body,
+                        "data":       new_payload,
+                        "created_at": datetime.now(timezone.utc).isoformat(),
+                    }).eq("id", existing["id"]).execute()
+                    return
+            except Exception:
+                pass  # Si falla el agrupado, crear notificación nueva normalmente
 
         db.table("notifications").insert({
             "user_id": user_id,

@@ -110,25 +110,35 @@ export function PostCard({ post, currentUserId, onDelete, initialSaved = false }
 
   async function handleReact(type: string) {
     if (loading) return;
+
+    // Optimistic update: aplicar el cambio visualmente de inmediato
+    const prevReactions  = reactions;
+    const prevMyReaction = myReaction;
+
     setLoading(true);
-    try {
-      const { data } = await feedApi.react(post.id, type);
+    if (myReaction === type) {
+      setReactions(prev => ({ ...prev, [type]: Math.max(0, (prev[type] || 0) - 1) }));
+      setMyReaction(undefined);
+    } else if (myReaction) {
       setReactions(prev => {
         const next = { ...prev };
-        if (data.action === "removed") {
-          next[type] = Math.max(0, (next[type] || 0) - 1);
-          setMyReaction(undefined);
-        } else if (data.action === "changed") {
-          if (myReaction) next[myReaction] = Math.max(0, (next[myReaction] || 0) - 1);
-          next[type] = (next[type] || 0) + 1;
-          setMyReaction(type);
-        } else {
-          next[type] = (next[type] || 0) + 1;
-          setMyReaction(type);
-        }
+        next[myReaction!] = Math.max(0, (next[myReaction!] || 0) - 1);
+        next[type] = (next[type] || 0) + 1;
         return next;
       });
-    } catch { /* ignore */ }
+      setMyReaction(type);
+    } else {
+      setReactions(prev => ({ ...prev, [type]: (prev[type] || 0) + 1 }));
+      setMyReaction(type);
+    }
+
+    try {
+      await feedApi.react(post.id, type);
+    } catch {
+      // Rollback si falla la API
+      setReactions(prevReactions);
+      setMyReaction(prevMyReaction);
+    }
     setLoading(false);
   }
 
@@ -378,27 +388,33 @@ export function PostCard({ post, currentUserId, onDelete, initialSaved = false }
           {REACTIONS.map(({ type, Icon, colorActive }) => {
             const count  = reactions?.[type] || 0;
             const active = myReaction === type;
+            const label  = type === "heart" ? "Me gusta" : "Me encanta";
             return (
               <button
                 key={type}
                 onClick={() => handleReact(type)}
                 disabled={loading}
-                className="flex items-center gap-1.5 transition-transform active:scale-110"
-                aria-label={type === "heart" ? "Me gusta" : "Fuego"}
+                className="flex flex-col items-center gap-0.5 transition-transform active:scale-110"
+                aria-label={label}
               >
-                <Icon
-                  size={20}
-                  weight={active ? "fill" : "light"}
-                  style={{ color: active ? colorActive : "var(--color-text-muted, #6b7280)" }}
-                />
-                {count > 0 && (
-                  <span
-                    className="text-xs font-medium tabular-nums"
+                <div className="flex items-center gap-1">
+                  <Icon
+                    size={20}
+                    weight={active ? "fill" : "light"}
                     style={{ color: active ? colorActive : "var(--color-text-muted, #6b7280)" }}
-                  >
-                    {count}
-                  </span>
-                )}
+                  />
+                  {count > 0 && (
+                    <span
+                      className="text-xs font-medium tabular-nums"
+                      style={{ color: active ? colorActive : "var(--color-text-muted, #6b7280)" }}
+                    >
+                      {count}
+                    </span>
+                  )}
+                </div>
+                <span className="text-[9px] leading-none" style={{ color: active ? colorActive : "var(--color-text-muted, #6b7280)" }}>
+                  {label}
+                </span>
               </button>
             );
           })}
@@ -409,7 +425,7 @@ export function PostCard({ post, currentUserId, onDelete, initialSaved = false }
           {/* Guardar */}
           <button
             onClick={handleSave}
-            className="p-1 transition-colors"
+            className="flex flex-col items-center gap-0.5 transition-colors"
             title={saved ? "Guardado" : "Guardar"}
           >
             <BookmarkSimple
@@ -417,16 +433,20 @@ export function PostCard({ post, currentUserId, onDelete, initialSaved = false }
               weight={saved ? "fill" : "light"}
               style={{ color: saved ? "var(--gold, #C9A227)" : "var(--color-text-muted, #6b7280)" }}
             />
+            <span className="text-[9px] leading-none" style={{ color: saved ? "var(--gold, #C9A227)" : "var(--color-text-muted, #6b7280)" }}>
+              {saved ? "Guardado" : "Guardar"}
+            </span>
           </button>
 
           {/* Compartir */}
           {post.allow_share !== false && (
             <button
               onClick={() => setShowShare(true)}
-              className="p-1 text-text-muted transition-colors hover:text-text-primary"
+              className="flex flex-col items-center gap-0.5 text-text-muted transition-colors hover:text-text-primary"
               title="Compartir"
             >
               <PaperPlaneTilt size={19} weight="light" />
+              <span className="text-[9px] leading-none">Compartir</span>
             </button>
           )}
 
@@ -434,11 +454,12 @@ export function PostCard({ post, currentUserId, onDelete, initialSaved = false }
           {!isOwner && (
             <button
               onClick={() => navigate(`/messages?with=${post.author.id}`)}
-              className="p-1 transition-colors hover:text-accent-purple"
+              className="flex flex-col items-center gap-0.5 transition-colors hover:text-accent-purple"
               title="Enviar mensaje"
               style={{ color: "var(--color-text-muted, #6b7280)" }}
             >
               <ChatCircle size={19} weight="light" />
+              <span className="text-[9px] leading-none">Mensaje</span>
             </button>
           )}
         </div>

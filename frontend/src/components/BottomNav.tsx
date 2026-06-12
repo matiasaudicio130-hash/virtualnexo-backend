@@ -125,6 +125,28 @@ export function BottomNav() {
     setNotifCount(prev => Math.max(0, prev - 1));
   }
 
+  function getNotifUrl(n: Notification): string | null {
+    switch (n.type) {
+      case "new_message":
+        return n.data?.sender_id ? `/messages?with=${n.data.sender_id}` : "/messages";
+      case "new_reaction":
+      case "new_like":
+      case "like":
+        return "/feed";
+      case "new_follower":
+        return n.data?.actor_id ? `/profile/${n.data.actor_id}` : null;
+      case "match":
+        return n.data?.matched_user_id ? `/profile/${n.data.matched_user_id}` : null;
+      case "new_review":
+        return "/reviews";
+      case "comment":
+      case "comment_reply":
+        return "/feed";
+      default:
+        return null;
+    }
+  }
+
   async function markAll() {
     await notificationsApi.markAllRead().catch(() => {});
     setNotifCount(0);
@@ -191,9 +213,13 @@ export function BottomNav() {
                 return (
                   <div
                     key={n.id}
-                    onClick={() => unread && markOne(n.id)}
-                    className={`flex items-start gap-3 px-4 py-3 transition-colors ${
-                      unread ? "bg-accent-purple/5 cursor-pointer hover:bg-accent-purple/10" : ""
+                    onClick={() => {
+                      if (unread) markOne(n.id);
+                      const url = getNotifUrl(n);
+                      if (url) { setShowPanel(false); navigate(url); }
+                    }}
+                    className={`flex items-start gap-3 px-4 py-3 transition-colors cursor-pointer ${
+                      unread ? "bg-accent-purple/5 hover:bg-accent-purple/10" : "hover:bg-bg-muted"
                     }`}
                   >
                     {/* Avatar con ícono de tipo superpuesto */}

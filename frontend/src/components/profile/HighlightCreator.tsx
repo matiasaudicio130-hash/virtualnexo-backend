@@ -60,9 +60,30 @@ export function HighlightCreator({ existing, onClose, onSaved }: Props) {
   function handleCover(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    setCoverFile(file);
-    setCoverPreview(URL.createObjectURL(file));
     e.target.value = "";
+    // Comprimir a máx 600x600 antes de mostrar y subir (reduce el tiempo de upload ~80%)
+    const img = new Image();
+    img.onload = () => {
+      const MAX = 600;
+      let { width, height } = img;
+      if (width > MAX || height > MAX) {
+        const ratio = Math.min(MAX / width, MAX / height);
+        width  = Math.round(width  * ratio);
+        height = Math.round(height * ratio);
+      }
+      const canvas = document.createElement("canvas");
+      canvas.width  = width;
+      canvas.height = height;
+      canvas.getContext("2d")!.drawImage(img, 0, 0, width, height);
+      canvas.toBlob(blob => {
+        if (!blob) return;
+        const compressed = new File([blob], "cover.jpg", { type: "image/jpeg" });
+        setCoverFile(compressed);
+        setCoverPreview(URL.createObjectURL(compressed));
+      }, "image/jpeg", 0.85);
+      URL.revokeObjectURL(img.src);
+    };
+    img.src = URL.createObjectURL(file);
   }
 
   async function handleSave() {

@@ -45,7 +45,7 @@ export function ChatInput({
   const [showAudio, setShowAudio] = useState(false);
   const [viewOnce, setViewOnce]   = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [mediaPreview, setMediaPreview] = useState<{url: string; type: string; blob?: Blob; remoteUrl?: string; remotePath?: string} | null>(null);
+  const [mediaPreview, setMediaPreview] = useState<{url: string; type: string; blob?: Blob; remoteUrl?: string; remotePath?: string; gifTitle?: string} | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const typingTimer = useRef<any>(null);
@@ -126,13 +126,8 @@ export function ChatInput({
   }
 
   function handleGifSelect(gif: { url: string; title: string }) {
-    onSend({
-      content:    gif.title || "GIF",
-      media_url:  gif.url,
-      media_type: "image",
-      reply_to_id: replyTo?.id,
-    });
-    onCancelReply?.();
+    // Mostrar como preview para que el usuario confirme antes de enviar
+    setMediaPreview({ url: gif.url, type: "gif", remoteUrl: gif.url, gifTitle: gif.title });
     setPanel(null);
   }
 
@@ -146,10 +141,13 @@ export function ChatInput({
 
     if (mediaPreview) {
       if (!mediaPreview.remoteUrl) { alert("Espera a que termine de subir"); return; }
+      const defaultContent =
+        mediaPreview.type === "gif"   ? (mediaPreview.gifTitle || "🎬 GIF") :
+        mediaPreview.type === "video" ? "📹 Video" : "📷 Foto";
       onSend({
-        content:     text.trim() || (mediaPreview.type === "video" ? "📹 Video" : "📷 Foto"),
+        content:     text.trim() || defaultContent,
         media_url:   mediaPreview.remoteUrl,
-        media_type:  mediaPreview.type,
+        media_type:  mediaPreview.type === "gif" ? "image" : mediaPreview.type,
         view_once:   viewOnce,
         reply_to_id: replyTo?.id,
       });
@@ -212,22 +210,28 @@ export function ChatInput({
             </div>
             <div className="flex-1 space-y-2">
               <div className="flex items-center gap-1.5">
-                {mediaPreview.type === "video" ? <Video size={13} className="text-accent-purple"/> : <ImageIcon size={13} className="text-accent-purple"/>}
-                <span className="text-xs text-text-muted capitalize">{mediaPreview.type}</span>
+                {mediaPreview.type === "video" ? <Video size={13} className="text-accent-purple"/> :
+                 mediaPreview.type === "gif"   ? <Film size={13} className="text-accent-purple"/> :
+                 <ImageIcon size={13} className="text-accent-purple"/>}
+                <span className="text-xs text-text-muted capitalize">
+                  {mediaPreview.type === "gif" ? "GIF" : mediaPreview.type}
+                </span>
                 {uploading && <span className="text-[10px] text-text-muted">Subiendo...</span>}
               </div>
-              {/* Vista única toggle */}
-              <button
-                onClick={() => setViewOnce(v => !v)}
-                className={`flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg border transition-all ${
-                  viewOnce
-                    ? "border-accent-purple/60 bg-accent-purple/10 text-accent-purple"
-                    : "border-border text-text-muted hover:border-accent-purple/40"
-                }`}
-              >
-                {viewOnce ? <EyeOff size={11}/> : <Eye size={11}/>}
-                {viewOnce ? "Vista única" : "Permanente"}
-              </button>
+              {/* Vista única toggle — no aplica a GIFs externos */}
+              {mediaPreview.type !== "gif" && (
+                <button
+                  onClick={() => setViewOnce(v => !v)}
+                  className={`flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg border transition-all ${
+                    viewOnce
+                      ? "border-accent-purple/60 bg-accent-purple/10 text-accent-purple"
+                      : "border-border text-text-muted hover:border-accent-purple/40"
+                  }`}
+                >
+                  {viewOnce ? <EyeOff size={11}/> : <Eye size={11}/>}
+                  {viewOnce ? "Vista única" : "Permanente"}
+                </button>
+              )}
             </div>
             <button onClick={removeMedia} className="p-1 text-text-muted hover:text-status-error transition-colors">
               <X size={15}/>
@@ -284,24 +288,27 @@ export function ChatInput({
         <div className="flex items-end gap-2 px-4 py-3">
 
           {/* Left actions */}
-          <div className="flex items-center gap-1 flex-shrink-0 pb-0.5">
+          <div className="flex items-center gap-0.5 flex-shrink-0 pb-0.5">
             <button
               onClick={() => togglePanel("emoji")}
-              className={`p-2 rounded-xl transition-colors ${panel === "emoji" ? "text-accent-purple" : "text-text-muted hover:text-text-primary"}`}
+              className={`flex flex-col items-center gap-0.5 px-2 py-1 rounded-xl transition-colors ${panel === "emoji" ? "text-accent-purple" : "text-text-muted hover:text-text-primary"}`}
             >
-              <Smile size={20}/>
+              <Smile size={18}/>
+              <span className="text-[9px] leading-none">Emoji</span>
             </button>
             <button
               onClick={() => togglePanel("attach")}
-              className={`p-2 rounded-xl transition-colors ${panel === "attach" ? "text-accent-purple" : "text-text-muted hover:text-text-primary"}`}
+              className={`flex flex-col items-center gap-0.5 px-2 py-1 rounded-xl transition-colors ${panel === "attach" ? "text-accent-purple" : "text-text-muted hover:text-text-primary"}`}
             >
-              <Paperclip size={20}/>
+              <Paperclip size={18}/>
+              <span className="text-[9px] leading-none">Adjunto</span>
             </button>
             <button
               onClick={() => togglePanel("gif")}
-              className={`p-2 rounded-xl transition-colors text-[11px] font-bold tracking-tight ${panel === "gif" ? "text-accent-purple" : "text-text-muted hover:text-text-primary"}`}
+              className={`flex flex-col items-center gap-0.5 px-2 py-1 rounded-xl transition-colors ${panel === "gif" ? "text-accent-purple" : "text-text-muted hover:text-text-primary"}`}
             >
-              GIF
+              <span className="text-[13px] font-bold tracking-tight leading-none">GIF</span>
+              <span className="text-[9px] leading-none">Buscar</span>
             </button>
           </div>
 
@@ -331,9 +338,10 @@ export function ChatInput({
             ) : (
               <button
                 onClick={() => setShowAudio(true)}
-                className="p-2.5 rounded-xl transition-colors text-text-muted hover:text-text-primary"
+                className="flex flex-col items-center gap-0.5 px-2 py-1 rounded-xl transition-colors text-text-muted hover:text-text-primary"
               >
-                <Mic size={20}/>
+                <Mic size={18}/>
+                <span className="text-[9px] leading-none">Audio</span>
               </button>
             )}
           </div>

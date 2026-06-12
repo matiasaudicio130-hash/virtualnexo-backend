@@ -44,10 +44,14 @@ class TypingBody(BaseModel):
 
 
 @router.get("/conversations")
-async def list_conversations(request: Request):
-    """Lista todas las conversaciones del usuario con unreads."""
+async def list_conversations(
+    request: Request,
+    limit: int       = Query(40, ge=1, le=100),
+    before_ts: Optional[str] = Query(None),
+):
+    """Lista las conversaciones más recientes del usuario (paginado por cursor)."""
     payload = _require_auth(request)
-    return messaging_service.get_conversations(payload["sub"])
+    return messaging_service.get_conversations(payload["sub"], limit=limit, before_ts=before_ts)
 
 
 class MessageRequestBody(BaseModel):
@@ -77,6 +81,9 @@ async def start_conversation(body: ConversationStartBody, request: Request):
         recip_data = recip_r.data or {}
     except Exception:
         recip_data = {}
+
+    if not recip_data.get("id"):
+        raise HTTPException(404, "Usuario no encontrado")
 
     msg_settings = (recip_data.get("profile_extended") or {}).get("message_settings", "everyone")
 
@@ -225,8 +232,10 @@ async def accept_message_request(from_id: str, request: Request):
     if first_msg:
         try:
             messaging_service.send_message(from_id, user_id, first_msg)
+        except (PermissionError, ValueError) as e:
+            raise HTTPException(400, f"No se pudo enviar el primer mensaje: {e}")
         except Exception:
-            pass
+            pass  # Errores de red/DB no deben bloquear la aceptación de la solicitud
 
     return {**conv, "status": "active", "accepted": True}
 
@@ -504,7 +513,7 @@ async def upload_chat_media(
         "video/mp4", "video/webm", "video/quicktime",
         "audio/webm", "audio/mp4", "audio/ogg", "audio/mpeg",
     }
-    content_type = (file.content_type or "").lower()
+    content_type = (file.content_type or "").split(";")[0].strip().lower()
     if content_type not in ALLOWED:
         raise HTTPException(400, "Tipo de archivo no permitido")
 
@@ -543,6 +552,16 @@ async def upload_chat_media(
             ext = "jpg"
         except Exception:
             raise HTTPException(400, "No se pudo procesar la imagen HEIC/HEIF")
+
+    # Aplicar watermarks a imágenes de chat (videos y audios no tienen LSB)
+    if content_type.startswith("image/"):
+        try:
+            from app.services.watermark_service import watermark_service
+            data, _ = watermark_service.process_post_image(data, payload["sub"])
+            content_type = "image/png"
+            ext = "png"
+        except Exception:
+            pass  # Si falla, subir igual sin watermark
 
     from app.db.supabase import get_supabase
     db  = get_supabase()

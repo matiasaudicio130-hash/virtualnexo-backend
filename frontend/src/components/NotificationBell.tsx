@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { Bell, MessageSquare, Flame, Star, Award, Info, Heart, UserPlus, X } from "lucide-react";
 import { notificationsApi } from "@/lib/api";
 
@@ -72,7 +73,30 @@ function ActorAvatar({ url, name, color }: { url?: string; name?: string; color:
   );
 }
 
+function getNotifUrl(n: Notification): string | null {
+  switch (n.type) {
+    case "new_message":
+      return n.data?.sender_id ? `/messages?with=${n.data.sender_id}` : "/messages";
+    case "new_reaction":
+    case "new_like":
+    case "like":
+      return "/feed";
+    case "new_follower":
+      return n.data?.actor_id ? `/profile/${n.data.actor_id}` : null;
+    case "match":
+      return n.data?.matched_user_id ? `/profile/${n.data.matched_user_id}` : null;
+    case "new_review":
+      return "/reviews";
+    case "comment":
+    case "comment_reply":
+      return "/feed";
+    default:
+      return null;
+  }
+}
+
 export function NotificationBell() {
+  const navigate                = useNavigate();
   const [open, setOpen]         = useState(false);
   const [count, setCount]       = useState(0);
   const [items, setItems]       = useState<Notification[]>([]);
@@ -170,9 +194,13 @@ export function NotificationBell() {
               return (
                 <div
                   key={n.id}
-                  onClick={() => unread && markOne(n.id)}
-                  className={`flex items-start gap-3 px-4 py-3 transition-colors ${
-                    unread ? "bg-accent-purple/5 cursor-pointer hover:bg-accent-purple/10" : "hover:bg-bg-muted"
+                  onClick={() => {
+                    if (unread) markOne(n.id);
+                    const url = getNotifUrl(n);
+                    if (url) { setOpen(false); navigate(url); }
+                  }}
+                  className={`flex items-start gap-3 px-4 py-3 transition-colors cursor-pointer ${
+                    unread ? "bg-accent-purple/5 hover:bg-accent-purple/10" : "hover:bg-bg-muted"
                   }`}
                 >
                   {/* Avatar o ícono del tipo */}
