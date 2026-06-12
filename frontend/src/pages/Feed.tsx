@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Plus, X } from "lucide-react";
 import { SlidersHorizontal, MagnifyingGlass, MapPin, PaperPlaneTilt } from "@phosphor-icons/react";
 import { NavLogo }    from "@/components/AuraLogo";
@@ -119,6 +119,24 @@ function PostSkeleton() {
 // ── Componente principal ──────────────────────────────────────
 export default function Feed() {
   const { user } = useAuthStore();
+  const [searchParams] = useSearchParams();
+
+  // Scroll al post específico cuando se llega desde una notificación (?post=ID)
+  useEffect(() => {
+    const postId = searchParams.get("post");
+    if (!postId) return;
+    const tryScroll = (attempts = 0) => {
+      const el = document.getElementById(`post-${postId}`);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        el.classList.add("ring-2", "ring-accent-purple/60", "ring-offset-2", "ring-offset-bg-base");
+        setTimeout(() => el.classList.remove("ring-2", "ring-accent-purple/60", "ring-offset-2", "ring-offset-bg-base"), 3000);
+      } else if (attempts < 8) {
+        setTimeout(() => tryScroll(attempts + 1), 500);
+      }
+    };
+    tryScroll();
+  }, [searchParams]);
 
   // Feed state
   const [posts, setPosts]             = useState<Post[]>([]);
@@ -467,7 +485,7 @@ export default function Feed() {
 
           {/* Sin ad fijo al tope — va intercalado según membresía */}
           {(posts as any[]).map((post, idx) => (
-            <div key={post.id}>
+            <div key={post.id} id={`post-${post.id}`}>
               <PostCard post={post} currentUserId={user.id} onDelete={removePost} />
               {/* Ad intercalado según plan — vitalicios no ven ads */}
               {feedAds.length > 0 &&

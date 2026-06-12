@@ -397,11 +397,17 @@ class FeedService:
             post_r = db.table("posts").select("user_id").eq("id", post_id).execute()
             if post_r.data and post_r.data[0]["user_id"] != user_id:
                 emojis = {"fire": "🔥", "heart": "❤️", "star": "⭐"}
+                emoji_str = emojis.get(reaction_type, reaction_type)
+                actor_r = db.table("users").select("first_name,last_name").eq("id", user_id).execute()
+                actor_name = "Alguien"
+                if actor_r.data:
+                    u = actor_r.data[0]
+                    actor_name = f"{u['first_name']} {u.get('last_name', '')}".strip()
                 create_notification(
                     user_id=post_r.data[0]["user_id"],
                     notif_type="new_reaction",
-                    title="Nueva reacción",
-                    body=f"Alguien reaccionó con {emojis.get(reaction_type, reaction_type)} a tu publicación",
+                    title=f"{actor_name} reaccionó con {emoji_str} a tu publicación",
+                    body="",
                     data={"post_id": post_id, "reaction": reaction_type},
                     actor_id=user_id,
                 )

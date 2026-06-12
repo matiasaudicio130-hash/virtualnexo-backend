@@ -80,7 +80,7 @@ function getNotifUrl(n: Notification): string | null {
     case "new_reaction":
     case "new_like":
     case "like":
-      return "/feed";
+      return n.data?.post_id ? `/feed?post=${n.data.post_id}` : "/feed";
     case "new_follower":
       return n.data?.actor_id ? `/profile/${n.data.actor_id}` : null;
     case "match":
@@ -89,7 +89,7 @@ function getNotifUrl(n: Notification): string | null {
       return "/reviews";
     case "comment":
     case "comment_reply":
-      return "/feed";
+      return n.data?.post_id ? `/feed?post=${n.data.post_id}` : "/feed";
     default:
       return null;
   }
