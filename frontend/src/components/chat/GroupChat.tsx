@@ -308,6 +308,9 @@ function GroupChatWindow({
                 {m.media_url && m.media_type === "image" && (
                   <img src={m.media_url} alt="" className="rounded-lg max-h-48 mb-1 w-full object-cover" />
                 )}
+                {m.media_url && m.media_type === "video" && (
+                  <video src={m.media_url} controls className="rounded-lg max-h-48 mb-1 w-full" />
+                )}
                 {m.media_url && m.media_type === "audio" && (
                   <audio src={m.media_url} controls className="h-8 mb-1" style={{ colorScheme: "dark" }}/>
                 )}

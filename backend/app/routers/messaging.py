@@ -551,7 +551,7 @@ async def upload_chat_media(
         "image/jpeg", "image/jpg", "image/png", "image/webp", "image/gif",
         "image/heic", "image/heif",
         "video/mp4", "video/webm", "video/quicktime",
-        "audio/webm", "audio/mp4", "audio/ogg", "audio/mpeg",
+        "audio/webm", "audio/mp4", "audio/x-m4a", "audio/ogg", "audio/mpeg",
     }
     content_type = (file.content_type or "").split(";")[0].strip().lower()
     if content_type not in ALLOWED:
@@ -574,8 +574,8 @@ async def upload_chat_media(
         "image/webp": "webp", "image/gif": "gif",
         "image/heic": "heic", "image/heif": "heif",
         "video/mp4": "mp4", "video/webm": "webm", "video/quicktime": "mov",
-        "audio/webm": "webm", "audio/mp4": "m4a", "audio/ogg": "ogg",
-        "audio/mpeg": "mp3",
+        "audio/webm": "webm", "audio/mp4": "m4a", "audio/x-m4a": "m4a",
+        "audio/ogg": "ogg", "audio/mpeg": "mp3",
     }
     ext = _ext_por_mime.get(content_type, "bin")
 

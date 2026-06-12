@@ -8,6 +8,7 @@ import {
   MessageSquare, Flame, Star, Award, Heart, UserPlus, Info,
 } from "lucide-react";
 import { notificationsApi } from "@/lib/api";
+import { getNotifUrl } from "@/lib/notifUtils";
 
 interface Notification {
   id: string;
@@ -123,28 +124,6 @@ export function BottomNav() {
     await notificationsApi.markRead(id).catch(() => {});
     setNotifications(prev => prev.map(n => n.id === id ? { ...n, read_at: new Date().toISOString() } : n));
     setNotifCount(prev => Math.max(0, prev - 1));
-  }
-
-  function getNotifUrl(n: Notification): string | null {
-    switch (n.type) {
-      case "new_message":
-        return n.data?.sender_id ? `/messages?with=${n.data.sender_id}` : "/messages";
-      case "new_reaction":
-      case "new_like":
-      case "like":
-        return n.data?.post_id ? `/feed?post=${n.data.post_id}` : "/feed";
-      case "new_follower":
-        return n.data?.actor_id ? `/profile/${n.data.actor_id}` : null;
-      case "match":
-        return n.data?.matched_user_id ? `/profile/${n.data.matched_user_id}` : null;
-      case "new_review":
-        return "/reviews";
-      case "comment":
-      case "comment_reply":
-        return "/feed";
-      default:
-        return null;
-    }
   }
 
   async function markAll() {

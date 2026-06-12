@@ -98,9 +98,10 @@ export function ChatInput({
         remoteUrl:  data.url,
         remotePath: data.path,
       } : null);
-    } catch {
+    } catch (e: any) {
       setMediaPreview(null);
-      alert("Error al subir el archivo");
+      const detail = e?.response?.data?.detail ?? "Error al subir el archivo";
+      alert(typeof detail === "string" ? detail : JSON.stringify(detail));
     }
     setUploading(false);
   }
@@ -109,7 +110,9 @@ export function ChatInput({
     setPanel(null);
     setUploading(true);
     try {
-      const file = new File([blob], "audio.webm", { type: "audio/webm" });
+      const mime = blob.type || "audio/webm";
+      const ext  = mime.includes("mp4") ? "m4a" : mime.includes("ogg") ? "ogg" : "webm";
+      const file = new File([blob], `audio.${ext}`, { type: mime });
       const { data } = await chatMediaApi.upload(file);
       onSend({
         content: "🎤 Audio",

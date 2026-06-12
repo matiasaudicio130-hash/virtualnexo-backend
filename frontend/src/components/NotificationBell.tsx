@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Bell, MessageSquare, Flame, Star, Award, Info, Heart, UserPlus, X } from "lucide-react";
 import { notificationsApi } from "@/lib/api";
+import { getNotifUrl } from "@/lib/notifUtils";
 
 interface Notification {
   id: string;
@@ -71,28 +72,6 @@ function ActorAvatar({ url, name, color }: { url?: string; name?: string; color:
       {initials}
     </div>
   );
-}
-
-function getNotifUrl(n: Notification): string | null {
-  switch (n.type) {
-    case "new_message":
-      return n.data?.sender_id ? `/messages?with=${n.data.sender_id}` : "/messages";
-    case "new_reaction":
-    case "new_like":
-    case "like":
-      return n.data?.post_id ? `/feed?post=${n.data.post_id}` : "/feed";
-    case "new_follower":
-      return n.data?.actor_id ? `/profile/${n.data.actor_id}` : null;
-    case "match":
-      return n.data?.matched_user_id ? `/profile/${n.data.matched_user_id}` : null;
-    case "new_review":
-      return "/reviews";
-    case "comment":
-    case "comment_reply":
-      return n.data?.post_id ? `/feed?post=${n.data.post_id}` : "/feed";
-    default:
-      return null;
-  }
 }
 
 export function NotificationBell() {
