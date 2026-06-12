@@ -117,6 +117,8 @@ export const notificationsApi = {
   unreadCount: () => api.get("/notifications/unread-count"),
   markRead: (id: string) => api.post(`/notifications/${id}/read`),
   markAllRead: () => api.post("/notifications/read-all"),
+  markConversationRead: (senderId: string) =>
+    api.post(`/notifications/read-conversation/${senderId}`),
 };
 
 export const extendedProfileApi = {

@@ -33,17 +33,21 @@ def create_notification(
                 payload["actor_name"]   = f"{u['first_name']} {u['last_name']}".strip()
                 payload["actor_avatar"] = u.get("profile_photo_url") or ""
 
-        # Agrupar notificaciones de mensajes del mismo remitente
+        # Agrupar notificaciones de mensajes del mismo remitente.
+        # Se buscan todas las no leídas del tipo y se filtra en Python
+        # para evitar dependencia del operador ->> de JSONB en supabase-py.
         if notif_type == "new_message" and actor_id:
             try:
-                existing_r = db.table("notifications").select("id,data").eq(
+                unread_r = db.table("notifications").select("id,data").eq(
                     "user_id", user_id
-                ).eq("type", "new_message").is_("read_at", "null").filter(
-                    "data->>sender_id", "eq", actor_id
-                ).limit(1).execute()
-                if existing_r.data:
-                    existing = existing_r.data[0]
-                    prev_data = existing.get("data") or {}
+                ).eq("type", "new_message").is_("read_at", "null").execute()
+                match = next(
+                    (n for n in (unread_r.data or [])
+                     if (n.get("data") or {}).get("sender_id") == actor_id),
+                    None,
+                )
+                if match:
+                    prev_data = match.get("data") or {}
                     count = prev_data.get("msg_count", 1) + 1
                     actor_name = payload.get("actor_name") or prev_data.get("actor_name") or "Alguien"
                     new_payload = {**prev_data, **payload, "msg_count": count}
@@ -53,7 +57,7 @@ def create_notification(
                         "body":       body,
                         "data":       new_payload,
                         "created_at": datetime.now(timezone.utc).isoformat(),
-                    }).eq("id", existing["id"]).execute()
+                    }).eq("id", match["id"]).execute()
                     return
             except Exception:
                 pass  # Si falla el agrupado, crear notificación nueva normalmente

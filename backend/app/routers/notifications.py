@@ -50,3 +50,26 @@ async def mark_all_read(request: Request):
         "read_at": datetime.now(timezone.utc).isoformat()
     }).eq("user_id", payload["sub"]).is_("read_at", "null").execute()
     return {"all_read": True}
+
+
+@router.post("/read-conversation/{sender_id}")
+async def mark_conversation_read(sender_id: str, request: Request):
+    """Marca como leídas todas las notificaciones new_message de un remitente específico."""
+    payload = _require_auth(request)
+    user_id = payload["sub"]
+    db = get_supabase()
+    try:
+        unread_r = db.table("notifications").select("id,data").eq(
+            "user_id", user_id
+        ).eq("type", "new_message").is_("read_at", "null").execute()
+        ids = [
+            n["id"] for n in (unread_r.data or [])
+            if (n.get("data") or {}).get("sender_id") == sender_id
+        ]
+        if ids:
+            now = datetime.now(timezone.utc).isoformat()
+            for nid in ids:
+                db.table("notifications").update({"read_at": now}).eq("id", nid).execute()
+    except Exception:
+        pass
+    return {"cleared": True}

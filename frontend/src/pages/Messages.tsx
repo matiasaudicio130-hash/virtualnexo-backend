@@ -4,7 +4,7 @@ import {
   ArrowLeft, MessageSquare, Lock, Heart, User,
   Shield, Settings, X, Users, Search,
 } from "lucide-react";
-import { messagingApi, profilesApi, messagingV2Api } from "@/lib/api";
+import { messagingApi, profilesApi, messagingV2Api, notificationsApi } from "@/lib/api";
 import { useAuthStore } from "@/store/authStore";
 import { useScreenCapture } from "@/hooks/useScreenCapture";
 import { ProtectedAvatar } from "@/components/ProtectedImage";
@@ -299,6 +299,12 @@ export default function Messages() {
   const [matches, setMatches]             = useState<any[]>([]);
   const [requests, setRequests]           = useState<any[]>([]);
   const [activeConv, setActiveConv]       = useState<any | null>(null);
+
+  function openConv(conv: any) {
+    setActiveConv(conv);
+    const senderId = conv?.other_user?.id ?? conv?.participant_a ?? null;
+    if (senderId) notificationsApi.markConversationRead(senderId).catch(() => {});
+  }
   const [loading, setLoading]             = useState(true);
   const [matchesLoading, setMatchesLoading] = useState(false);
   const [requestAction, setRequestAction] = useState<string | null>(null);
@@ -330,6 +336,8 @@ export default function Messages() {
           if (r.data.status === "request_sent") {
             setRequestSentMsg("Tu solicitud fue enviada. Si te acepta, podrán chatear.");
           } else if (r.data.status === "active" || r.data.id) {
+            // also marks notifs from this sender as read
+            notificationsApi.markConversationRead(target).catch(() => {});
             setActiveConv(r.data);
           }
         })
@@ -468,7 +476,7 @@ export default function Messages() {
                         key={r.message_id}
                         onClick={() => {
                           const conv = conversations.find(c => c.id === r.conversation_id);
-                          if (conv) { setActiveConv(conv); setSearchQuery(""); setMsgResults([]); }
+                          if (conv) { openConv(conv); setSearchQuery(""); setMsgResults([]); }
                         }}
                         className="w-full flex items-start gap-3 px-4 py-3 hover:bg-bg-muted/50 transition-colors text-left"
                       >
@@ -517,7 +525,7 @@ export default function Messages() {
                       {filtered.map(conv => {
                         const other = conv.other_user;
                         return (
-                          <button key={conv.id} onClick={() => { setActiveConv(conv); setSearchQuery(""); setMsgResults([]); }}
+                          <button key={conv.id} onClick={() => { openConv(conv); setSearchQuery(""); setMsgResults([]); }}
                             className="w-full flex items-center gap-3 px-4 py-3 hover:bg-bg-muted/50 transition-colors text-left">
                             <ProtectedAvatar src={other?.profile_photo_url || ""} size={40} />
                             <div className="flex-1 min-w-0">
@@ -574,7 +582,7 @@ export default function Messages() {
                     )}
                   </button>
                   {/* Contenido → chat */}
-                  <button className="flex-1 min-w-0 text-left" onClick={() => setActiveConv(conv)}>
+                  <button className="flex-1 min-w-0 text-left" onClick={() => openConv(conv)}>
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-1 min-w-0">
                         <p className={`text-sm truncate ${conv.unread_count > 0 ? "font-semibold" : "font-normal"}`}>
@@ -660,7 +668,7 @@ export default function Messages() {
                           try {
                             const { data } = await messagingApi.acceptRequest(req.from_id);
                             setRequests(prev => prev.filter(r => r.from_id !== req.from_id));
-                            setActiveConv({ ...data, other_user: { id: req.from_id, first_name: req.from_name?.split(" ")[0] || "", profile_photo_url: req.from_avatar }, unread_count: 0 });
+                            openConv({ ...data, other_user: { id: req.from_id, first_name: req.from_name?.split(" ")[0] || "", profile_photo_url: req.from_avatar }, unread_count: 0 });
                           } catch { /* ignore */ }
                           setRequestAction(null);
                         }}
@@ -737,7 +745,7 @@ export default function Messages() {
                     onClick={e => {
                       e.stopPropagation();
                       messagingApi.startConversation(m.id)
-                        .then(r => setActiveConv({ ...r.data, other_user: m, unread_count: 0 }))
+                        .then(r => openConv({ ...r.data, other_user: m, unread_count: 0 }))
                         .catch(() => {});
                     }}
                     className="flex-shrink-0 p-2 rounded-xl bg-accent-purple/10 hover:bg-accent-purple/20 transition-colors"
