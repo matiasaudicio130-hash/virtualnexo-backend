@@ -83,6 +83,7 @@ export function PostCard({ post, currentUserId, onDelete, initialSaved = false }
   const [reactions, setReactions] = useState(post.reactions);
   const [myReaction, setMyReaction] = useState(post.viewer_reaction);
   const [loading, setLoading]     = useState(false);
+  const [poppingReaction, setPoppingReaction] = useState<string | null>(null);
   const [showMenu, setShowMenu]   = useState(false);
   const [saved, setSaved]         = useState(initialSaved);
   const [showShare,  setShowShare]  = useState(false);
@@ -110,6 +111,10 @@ export function PostCard({ post, currentUserId, onDelete, initialSaved = false }
 
   async function handleReact(type: string) {
     if (loading) return;
+
+    // Pop animation feedback
+    setPoppingReaction(type);
+    setTimeout(() => setPoppingReaction(null), 280);
 
     // Optimistic update: aplicar el cambio visualmente de inmediato
     const prevReactions  = reactions;
@@ -162,7 +167,7 @@ export function PostCard({ post, currentUserId, onDelete, initialSaved = false }
   }
 
   return (
-    <article className="bg-bg-card border border-border rounded-2xl overflow-hidden">
+    <article className="bg-bg-card border border-border rounded-2xl overflow-hidden card-hover hover:border-accent-purple/20">
 
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3">
@@ -394,10 +399,12 @@ export function PostCard({ post, currentUserId, onDelete, initialSaved = false }
                 key={type}
                 onClick={() => handleReact(type)}
                 disabled={loading}
-                className="flex flex-col items-center gap-0.5 transition-transform active:scale-110"
+                className={`flex flex-col items-center gap-0.5 transition-transform active:scale-95 ${poppingReaction === type ? "animate-pop" : ""}`}
                 aria-label={label}
               >
-                <div className="flex items-center gap-1">
+                <div
+                  className={`flex items-center gap-1 px-2 py-1 rounded-xl transition-all duration-150 ${active ? "bg-white/[0.05]" : ""}`}
+                >
                   <Icon
                     size={20}
                     weight={active ? "fill" : "light"}

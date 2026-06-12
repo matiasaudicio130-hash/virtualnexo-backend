@@ -269,12 +269,16 @@ export function MessageBubble({ msg, isMe, currentUserId, onDelete, onReply, onR
           {/* Burbuja — long press en mobile para mostrar acciones */}
           <div
             className={`relative rounded-2xl overflow-hidden select-none ${
-              isMe ? "rounded-br-sm" : "rounded-bl-sm"
+              isMe ? "rounded-br-sm shadow-md" : "rounded-bl-sm shadow-sm"
             } ${
               isImage ? "p-0" : isAudio
-                ? `px-3 py-2.5 ${isMe ? "bg-accent-purple" : "bg-bg-card border border-border"}`
-                : `px-4 py-2.5 ${isMe ? "bg-accent-purple text-white" : "bg-bg-card border border-border text-text-primary"}`
+                ? `px-3 py-2.5 ${isMe ? "" : "bg-bg-card border border-border"}`
+                : `px-4 py-2.5 ${isMe ? "" : "bg-bg-card border border-border text-text-primary"}`
             }`}
+            style={isMe && !isImage ? {
+              background: "var(--gradient-brand, linear-gradient(135deg,#C9A227,#FFE566))",
+              color: "var(--obsidian,#020207)",
+            } : undefined}
             onTouchStart={startLongPress}
             onTouchEnd={cancelLongPress}
             onTouchMove={cancelLongPress}
@@ -304,21 +308,22 @@ export function MessageBubble({ msg, isMe, currentUserId, onDelete, onReply, onR
                   }}
                   autoFocus
                   rows={2}
-                  className="bg-white/10 rounded-lg px-2 py-1 text-sm text-white resize-none outline-none w-full"
+                  className="bg-black/10 rounded-lg px-2 py-1 text-sm resize-none outline-none w-full"
+                  style={{ color: "var(--obsidian,#020207)" }}
                   onClick={e => e.stopPropagation()}
                   onMouseDown={e => e.stopPropagation()}
                 />
                 <div className="flex items-center gap-2 justify-end">
                   <button
                     onClick={e => { e.stopPropagation(); setEditing(false); setEditText(msg.content); }}
-                    className="text-[10px] text-white/50 hover:text-white/80"
+                    className="text-[10px] opacity-50 hover:opacity-80"
                   >
                     Cancelar
                   </button>
                   <button
                     onClick={e => { e.stopPropagation(); saveEdit(); }}
                     disabled={savingEdit}
-                    className="text-[10px] text-white font-semibold disabled:opacity-50"
+                    className="text-[10px] font-semibold disabled:opacity-50"
                   >
                     {savingEdit ? "…" : "Guardar"}
                   </button>
@@ -327,10 +332,10 @@ export function MessageBubble({ msg, isMe, currentUserId, onDelete, onReply, onR
             ) : (
               /* Texto del mensaje */
               (!hasMedia || (hasMedia && msg.content && !["📷 Foto","📹 Video","🎤 Audio","GIF"].includes(msg.content))) && (
-                <p className={`text-sm leading-relaxed ${isImage ? "px-4 pt-2 pb-1" : ""} ${isMe ? "text-white" : "text-text-primary"}`}>
+                <p className={`text-sm leading-relaxed ${isImage ? "px-4 pt-2 pb-1" : ""} ${isMe ? "" : "text-text-primary"}`}>
                   {msg.content}
                   {msg.edited_at && (
-                    <span className={`text-[9px] ml-1 ${isMe ? "text-white/40" : "text-text-muted/50"}`}>(editado)</span>
+                    <span className={`text-[9px] ml-1 opacity-50`}>(editado)</span>
                   )}
                 </p>
               )
@@ -340,13 +345,13 @@ export function MessageBubble({ msg, isMe, currentUserId, onDelete, onReply, onR
             {!editing && (
               <p className={`text-[10px] flex items-center gap-0.5 mt-0.5 ${
                 isImage ? "px-4 pb-2 pt-0" : ""
-              } ${isMe ? "text-white/55 justify-end" : "text-text-muted justify-start"}`}>
+              } ${isMe ? "opacity-60 justify-end" : "text-text-muted justify-start"}`}>
                 {timeAgo(msg.created_at)}
-                {msg.view_once && <span className="text-amber-400 ml-0.5">· 1×</span>}
+                {msg.view_once && <span className={`ml-0.5 ${isMe ? "" : "text-amber-400"}`}>· 1×</span>}
                 {isMe && (
                   <span
                     className={`ml-1.5 text-[11px] font-bold leading-none tracking-tighter ${
-                      msg.read_at ? "text-[#4FC3F7]" : "text-white/40"
+                      msg.read_at ? "text-[#0ea5e9]" : "opacity-50"
                     }`}
                     title={msg.read_at ? "Leído" : "Entregado"}
                   >

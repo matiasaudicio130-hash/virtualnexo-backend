@@ -129,7 +129,7 @@ export function NotificationBell() {
       >
         <Bell size={20} />
         {count > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] bg-status-error text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1">
+          <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] bg-status-error text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1 animate-badge-pulse">
             {count > 99 ? "99+" : count}
           </span>
         )}
@@ -155,12 +155,25 @@ export function NotificationBell() {
           {/* Lista */}
           <div className="max-h-96 overflow-y-auto divide-y divide-border">
             {loading && (
-              <div className="p-6 text-center text-text-muted text-sm">Cargando…</div>
+              <div className="divide-y divide-border">
+                {[...Array(4)].map((_, i) => (
+                  <div key={i} className="flex items-center gap-3 px-4 py-3">
+                    <div className="w-9 h-9 rounded-full skeleton flex-shrink-0"/>
+                    <div className="flex-1 space-y-2">
+                      <div className="h-3 skeleton rounded-full w-3/4"/>
+                      <div className="h-2 skeleton rounded-full w-1/2"/>
+                    </div>
+                  </div>
+                ))}
+              </div>
             )}
             {!loading && items.length === 0 && (
-              <div className="p-6 text-center text-text-muted text-sm">
-                <Bell size={24} className="mx-auto mb-2 opacity-30" />
-                Sin notificaciones
+              <div className="p-7 text-center">
+                <div className="w-11 h-11 rounded-full bg-bg-muted mx-auto mb-3 flex items-center justify-center">
+                  <Bell size={18} className="text-text-muted opacity-40"/>
+                </div>
+                <p className="text-sm font-medium text-text-secondary">Todo al día</p>
+                <p className="text-xs text-text-muted mt-0.5">No tenés notificaciones nuevas</p>
               </div>
             )}
             {items.map(n => {

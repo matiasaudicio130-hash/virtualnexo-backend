@@ -70,8 +70,8 @@ describe("ChatInput — GIF confirmation (BUG: GIF se enviaba sin confirmar)", (
     // El preview debe estar ahí antes de enviar
     expect(container.querySelector('img[src="https://media.tenor.com/test.gif"]')).not.toBeNull();
 
-    // Presionar el botón Send (botón bg-accent-purple = el send button)
-    const sendBtn = container.querySelector("button.bg-accent-purple") as HTMLButtonElement;
+    // Presionar el botón Send (tiene clase shadow-glow-sm = el send button con gradiente)
+    const sendBtn = container.querySelector("button.shadow-glow-sm") as HTMLButtonElement;
     expect(sendBtn).not.toBeNull();
     fireEvent.click(sendBtn);
 

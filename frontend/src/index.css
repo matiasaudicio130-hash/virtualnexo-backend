@@ -271,10 +271,32 @@ html:has([data-theme="light"]) {
 /* ─── Utilities ───────────────────────────────────────────── */
 @layer utilities {
   .bg-gradient-card { background: var(--gradient-card); }
-  .shadow-glow { box-shadow: 0 0 24px var(--glow-color); }
-  .border-accent { border-color: rgb(var(--accent-primary) / 0.35); }
-  .min-h-dvh { min-height: 100dvh; }
-  .h-dvh     { height: 100dvh; }
+  .shadow-glow      { box-shadow: 0 0 24px var(--glow-color); }
+  .shadow-glow-sm   { box-shadow: 0 0 12px var(--glow-color); }
+  .border-accent    { border-color: rgb(var(--accent-primary) / 0.35); }
+  .min-h-dvh        { min-height: 100dvh; }
+  .h-dvh            { height: 100dvh; }
+
+  /* Skeleton loader — shimmer gradient */
+  .skeleton {
+    background: linear-gradient(
+      90deg,
+      rgb(var(--bg-muted)) 25%,
+      rgb(var(--bg-card) / 0.9) 50%,
+      rgb(var(--bg-muted)) 75%
+    );
+    background-size: 200% auto;
+    animation: shimmer 1.6s ease-in-out infinite;
+  }
+
+  /* Card interactive lift */
+  .card-hover {
+    transition: box-shadow 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
+  }
+  .card-hover:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.45);
+  }
 }
 
 /* ─── Safe Area iOS PWA — FUERA de @layer para que Tailwind no las purgue ── */

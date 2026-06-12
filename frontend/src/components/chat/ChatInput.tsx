@@ -294,21 +294,21 @@ export function ChatInput({
           <div className="flex items-center gap-0.5 flex-shrink-0 pb-0.5">
             <button
               onClick={() => togglePanel("emoji")}
-              className={`flex flex-col items-center gap-0.5 px-2 py-1 rounded-xl transition-colors ${panel === "emoji" ? "text-accent-purple" : "text-text-muted hover:text-text-primary"}`}
+              className={`flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-xl transition-all ${panel === "emoji" ? "text-accent-purple bg-accent-purple/10" : "text-text-muted hover:text-text-primary hover:bg-bg-muted"}`}
             >
               <Smile size={18}/>
               <span className="text-[9px] leading-none">Emoji</span>
             </button>
             <button
               onClick={() => togglePanel("attach")}
-              className={`flex flex-col items-center gap-0.5 px-2 py-1 rounded-xl transition-colors ${panel === "attach" ? "text-accent-purple" : "text-text-muted hover:text-text-primary"}`}
+              className={`flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-xl transition-all ${panel === "attach" ? "text-accent-purple bg-accent-purple/10" : "text-text-muted hover:text-text-primary hover:bg-bg-muted"}`}
             >
               <Paperclip size={18}/>
               <span className="text-[9px] leading-none">Adjunto</span>
             </button>
             <button
               onClick={() => togglePanel("gif")}
-              className={`flex flex-col items-center gap-0.5 px-2 py-1 rounded-xl transition-colors ${panel === "gif" ? "text-accent-purple" : "text-text-muted hover:text-text-primary"}`}
+              className={`flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-xl transition-all ${panel === "gif" ? "text-accent-purple bg-accent-purple/10" : "text-text-muted hover:text-text-primary hover:bg-bg-muted"}`}
             >
               <span className="text-[13px] font-bold tracking-tight leading-none">GIF</span>
               <span className="text-[9px] leading-none">Buscar</span>
@@ -334,9 +334,10 @@ export function ChatInput({
             {canSend ? (
               <button
                 onClick={handleSend}
-                className="p-2.5 bg-accent-purple rounded-xl text-white hover:bg-accent-purple/90 active:scale-95 transition-all"
+                className="p-2.5 rounded-xl text-white active:scale-95 transition-all shadow-glow-sm hover:opacity-90"
+                style={{ background: "var(--gradient-brand, linear-gradient(135deg,#C9A227,#FFE566))" }}
               >
-                <Send size={18}/>
+                <Send size={18} style={{ color: "var(--obsidian,#020207)" }}/>
               </button>
             ) : (
               <button

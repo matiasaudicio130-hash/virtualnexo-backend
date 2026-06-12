@@ -174,12 +174,25 @@ export function BottomNav() {
 
             <div className="overflow-y-auto flex-1 divide-y divide-border">
               {loadingNotifs && (
-                <div className="p-6 text-center text-text-muted text-sm">Cargando…</div>
+                <div className="divide-y divide-border">
+                  {[...Array(4)].map((_, i) => (
+                    <div key={i} className="flex items-center gap-3 px-4 py-3">
+                      <div className="w-9 h-9 rounded-full skeleton flex-shrink-0"/>
+                      <div className="flex-1 space-y-2">
+                        <div className="h-3 skeleton rounded-full w-3/4"/>
+                        <div className="h-2 skeleton rounded-full w-1/2"/>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               )}
               {!loadingNotifs && notifications.length === 0 && (
-                <div className="p-8 text-center text-text-muted text-sm">
-                  <Bell size={28} weight="light" className="mx-auto mb-2 opacity-30" />
-                  Sin notificaciones
+                <div className="p-8 text-center">
+                  <div className="w-12 h-12 rounded-full bg-bg-muted mx-auto mb-3 flex items-center justify-center">
+                    <Bell size={20} weight="light" className="text-text-muted opacity-50"/>
+                  </div>
+                  <p className="text-sm font-medium text-text-secondary">Todo al día</p>
+                  <p className="text-xs text-text-muted mt-1">No tenés notificaciones sin leer</p>
                 </div>
               )}
               {notifications.map(n => {
@@ -251,9 +264,18 @@ export function BottomNav() {
                     navigate(tabPath);
                   }
                 }}
-                className="flex flex-col items-center gap-1 px-3 py-1 relative"
+                className="flex flex-col items-center gap-1 px-3 pt-2.5 pb-1 relative"
                 aria-label={label}
               >
+                {/* Active indicator pill */}
+                <span
+                  className="absolute top-0 h-[2px] rounded-full transition-all duration-250"
+                  style={{
+                    width: active ? "24px" : "0px",
+                    background: "var(--gold)",
+                    opacity: active ? 1 : 0,
+                  }}
+                />
                 <div className="relative">
                   <Icon
                     size={ICON_SIZE}
@@ -261,13 +283,15 @@ export function BottomNav() {
                     style={{ color: active ? "var(--gold)" : "var(--color-text-muted, #6b7280)" }}
                   />
                   {id === "alerts" && notifCount > 0 && (
-                    <span className="absolute -top-1 -right-1.5 min-w-[14px] h-[14px] bg-status-error text-white text-[9px] font-bold rounded-full flex items-center justify-center px-0.5 leading-none">
+                    <span
+                      className="absolute -top-1 -right-1.5 min-w-[14px] h-[14px] bg-status-error text-white text-[9px] font-bold rounded-full flex items-center justify-center px-0.5 leading-none animate-badge-pulse"
+                    >
                       {notifCount > 9 ? "9+" : notifCount}
                     </span>
                   )}
                 </div>
                 <span
-                  className="text-[10px] tracking-wide leading-none"
+                  className="text-[10px] tracking-wide leading-none transition-colors duration-150"
                   style={{
                     color: active ? "var(--gold)" : "var(--color-text-muted, #6b7280)",
                     fontFamily: "var(--font-sans, Manrope, sans-serif)",
