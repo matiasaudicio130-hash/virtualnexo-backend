@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
+import { SEOHead } from "@/components/SEOHead";
 import { Logo, Wordmark } from "@/components/brand/Logo";
 
 gsap.registerPlugin(ScrollTrigger, useGSAP);
@@ -257,6 +258,12 @@ export default function Landing() {
   }, []);
 
   return (
+    <>
+    <SEOHead
+      title="AURA — Red Social Adultos Verificados Argentina | Lifestyle &amp; Swingers"
+      description="La primera comunidad adulta verificada de Argentina. Conectá con parejas, solos y solas del mundo lifestyle y swinger con identidad real (DNI + biometría). Privacidad por diseño. Personas reales."
+      canonical="https://aurasw.club/"
+    />
     <div style={{ background: "var(--obsidian)", color: "var(--paper)", overflowX: "hidden", fontFamily: "var(--font-sans)" }}>
 
       {/* NAV */}
@@ -530,5 +537,6 @@ export default function Landing() {
 
       <style>{`@keyframes aura-bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-7px)} }`}</style>
     </div>
+    </>
   );
 }

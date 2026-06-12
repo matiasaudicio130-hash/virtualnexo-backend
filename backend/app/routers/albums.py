@@ -403,9 +403,16 @@ async def my_stats(request: Request):
     seven_days_ago = (datetime.now(timezone.utc) - timedelta(days=7)).isoformat()
 
     views_7d = db.table("profile_views").select("id", count="exact").eq("viewed_id", user_id).gte("viewed_at", seven_days_ago).execute()
-    pending_album_reqs = db.table("album_access_requests").select("id", count="exact").eq("status", "pending").in_("album_id", [
-        a["id"] for a in db.table("albums").select("id").eq("user_id", user_id).execute().data
-    ] or ["none"]).execute()
+
+    # Dos queries secuenciales en lugar de una subquery anidada —
+    # permite cortocircuitar si el usuario no tiene álbumes.
+    album_ids = [a["id"] for a in db.table("albums").select("id").eq("user_id", user_id).execute().data]
+    if album_ids:
+        pending_album_reqs = db.table("album_access_requests").select("id", count="exact") \
+            .eq("status", "pending").in_("album_id", album_ids).execute()
+        pending_count = pending_album_reqs.count or 0
+    else:
+        pending_count = 0
 
     user = db.table("users").select("current_streak, profile_views_count").eq("id", user_id).execute().data
     u = user[0] if user else {}
@@ -413,6 +420,6 @@ async def my_stats(request: Request):
     return {
         "profile_views_7d":       views_7d.count or 0,
         "profile_views_total":    u.get("profile_views_count", 0),
-        "pending_album_requests": pending_album_reqs.count or 0,
+        "pending_album_requests": pending_count,
         "current_streak":         u.get("current_streak", 0),
     }

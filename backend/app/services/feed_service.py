@@ -7,6 +7,7 @@ Servicio del feed social.
 - Los stories expiran a las 24h automáticamente.
 """
 import math
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone, timedelta
 from typing import Optional
 
@@ -53,8 +54,29 @@ class FeedService:
         """
         db = get_supabase()
 
-        # 1. Datos del viewer: tipo + lo que quiere ver
-        viewer_data    = self._get_viewer_data(viewer_id)
+        # 1. Las 3 queries de contexto del viewer son independientes entre sí:
+        #    las ejecutamos en paralelo con threads para reducir latencia total.
+        def _fetch_viewer():
+            return self._get_viewer_data(viewer_id)
+
+        def _fetch_blocked():
+            return blocked_user_ids(get_supabase(), viewer_id)
+
+        def _fetch_following():
+            try:
+                r = get_supabase().table("user_follows").select("following_id").eq("follower_id", viewer_id).execute()
+                return {f["following_id"] for f in r.data}
+            except Exception:
+                return set()
+
+        with ThreadPoolExecutor(max_workers=3) as _ex:
+            _f_viewer   = _ex.submit(_fetch_viewer)
+            _f_blocked  = _ex.submit(_fetch_blocked)
+            _f_following = _ex.submit(_fetch_following)
+            viewer_data    = _f_viewer.result()
+            blocked_ids    = _f_blocked.result()
+            viewer_following = _f_following.result()
+
         viewer_type    = viewer_data.get("profile_type", "solo_h")
         viewer_is_solo = viewer_type in SOLO_TYPES
         interested_in  = viewer_data.get("interested_in") or []
@@ -63,17 +85,6 @@ class FeedService:
         allowed_types: Optional[set] = None
         if interested_in:
             allowed_types = _resolve_interested_types(interested_in)
-
-        # IDs bloqueados en ambas direcciones — excluir del feed
-        blocked_ids = blocked_user_ids(db, viewer_id)
-
-        # Usuarios que el viewer sigue (para filtro visibility=followers)
-        viewer_following: set = set()
-        try:
-            follow_r = db.table("user_follows").select("following_id").eq("follower_id", viewer_id).execute()
-            viewer_following = {f["following_id"] for f in follow_r.data}
-        except Exception:
-            pass
 
         # 2-3. Query + filtrado en Python, en lotes — el filtrado (shadow ban,
         # visible_to, interested_in, distancia) reduce el conteo de forma
@@ -232,8 +243,11 @@ class FeedService:
 
         raw = q.execute().data
 
-        banned_r = db.table("users").select("id").eq("is_shadow_banned", True).execute()
-        banned_ids = {u["id"] for u in banned_r.data if u["id"] != viewer_id}
+        # is_shadow_banned ya viene en el JOIN de la query anterior — sin query extra.
+        banned_ids = {
+            p["users"]["id"] for p in raw
+            if p.get("users") and p["users"].get("is_shadow_banned") and p["users"]["id"] != viewer_id
+        }
 
         # Batch: viewer's follows + viewer's partner_id
         follows_r = db.table("user_follows").select("following_id").eq("follower_id", viewer_id).execute()

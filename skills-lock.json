@@ -7,6 +7,12 @@
       "skillPath": "security/SKILL.md",
       "computedHash": "5717187bba9c22030c7174c74012f01c359f21e2ce87e0eb80e24244d8b8c915"
     },
+    "dev-toolbar-review": {
+      "source": "supabase/supabase",
+      "sourceType": "github",
+      "skillPath": ".claude/skills/dev-toolbar-review/SKILL.md",
+      "computedHash": "95e05bc2f236922ce7b0797f2d7cc283472f95f941591c86cd4b823c80f4d50a"
+    },
     "fastapi-templates": {
       "source": "wshobson/agents",
       "sourceType": "github",
@@ -19,11 +25,65 @@
       "skillPath": "skills/find-skills/SKILL.md",
       "computedHash": "9e1c8b3103f92fa8092568a44fe64858de7c5c9dc65ce4bea8f168080e889cfd"
     },
+    "gsap-core": {
+      "source": "greensock/gsap-skills",
+      "sourceType": "github",
+      "skillPath": "skills/gsap-core/SKILL.md",
+      "computedHash": "c4a01101d9e1aafbf4b49f75d74f9349790d8741981ba0237c990093863035a6"
+    },
+    "gsap-frameworks": {
+      "source": "greensock/gsap-skills",
+      "sourceType": "github",
+      "skillPath": "skills/gsap-frameworks/SKILL.md",
+      "computedHash": "4852e85a48088d9044b08ebd1db607915b628c0c3ec7e04300713f546728fbdf"
+    },
+    "gsap-performance": {
+      "source": "greensock/gsap-skills",
+      "sourceType": "github",
+      "skillPath": "skills/gsap-performance/SKILL.md",
+      "computedHash": "863842ac2d7aee53fd4f0025c960173d7ad3e658a5715b89b2211fa280213c1f"
+    },
+    "gsap-plugins": {
+      "source": "greensock/gsap-skills",
+      "sourceType": "github",
+      "skillPath": "skills/gsap-plugins/SKILL.md",
+      "computedHash": "791bda0e6e460511fe82a78e745db519b88ffaeeab4d04a74879a03ca4f41740"
+    },
+    "gsap-react": {
+      "source": "greensock/gsap-skills",
+      "sourceType": "github",
+      "skillPath": "skills/gsap-react/SKILL.md",
+      "computedHash": "7d3b52822681a4158e371f895c58fb7030ecaf33f585a534b7162f9e92c5d893"
+    },
+    "gsap-scrolltrigger": {
+      "source": "greensock/gsap-skills",
+      "sourceType": "github",
+      "skillPath": "skills/gsap-scrolltrigger/SKILL.md",
+      "computedHash": "1cdc5647693783cb7a662d84a5de434c88a051ed56b4d33597c9b5782b5973e6"
+    },
+    "gsap-timeline": {
+      "source": "greensock/gsap-skills",
+      "sourceType": "github",
+      "skillPath": "skills/gsap-timeline/SKILL.md",
+      "computedHash": "54981c2feec5a9c0d57988aeb32315af32bdeadd261550d5e9db7a7b1f08b487"
+    },
+    "gsap-utils": {
+      "source": "greensock/gsap-skills",
+      "sourceType": "github",
+      "skillPath": "skills/gsap-utils/SKILL.md",
+      "computedHash": "1ab2387f6e694718a4f1b5acf2a4ab16e1b884c3428adf5f6b26d830f00826cf"
+    },
     "python-testing-patterns": {
       "source": "wshobson/agents",
       "sourceType": "github",
       "skillPath": "plugins/python-development/skills/python-testing-patterns/SKILL.md",
       "computedHash": "69915bb276b6aec61fe5b283a933f96584f66d14b616ce2060d95757629c6866"
+    },
+    "safe-sql-execution": {
+      "source": "supabase/supabase",
+      "sourceType": "github",
+      "skillPath": ".claude/skills/safe-sql-execution/SKILL.md",
+      "computedHash": "8dd13d3dd8d59c909eeb03e7a7709e907d55e78ecedc373b52cd3bf52c8c525b"
     },
     "security-requirement-extraction": {
       "source": "wshobson/agents",
@@ -36,6 +96,42 @@
       "sourceType": "github",
       "skillPath": "skills/stripe-best-practices/SKILL.md",
       "computedHash": "4cedb294535650bd178718515c248d837325c4093d09b722bd748fc61834af69"
+    },
+    "studio-best-practices": {
+      "source": "supabase/supabase",
+      "sourceType": "github",
+      "skillPath": ".claude/skills/studio-best-practices/SKILL.md",
+      "computedHash": "f23cfa20905d68f58c36ca6c69de35596f29eafed4259b02ca481612554a31f5"
+    },
+    "studio-e2e-tests": {
+      "source": "supabase/supabase",
+      "sourceType": "github",
+      "skillPath": ".claude/skills/studio-e2e-tests/SKILL.md",
+      "computedHash": "0d3a8baf4ef32809198a68a328e5c03c4dc39c097a98724a1f16e46825a775f6"
+    },
+    "studio-error-handling": {
+      "source": "supabase/supabase",
+      "sourceType": "github",
+      "skillPath": ".claude/skills/studio-error-handling/SKILL.md",
+      "computedHash": "43ecf7a6c200102dea69496a2d6d3aadf21fc30b6f81a2c5c9803b4e9bfb0d37"
+    },
+    "studio-queries": {
+      "source": "supabase/supabase",
+      "sourceType": "github",
+      "skillPath": ".claude/skills/studio-queries/SKILL.md",
+      "computedHash": "4844886251ce852e7a9a9f2fdc6498a4e81fd0bb7d6009705a2b0b1b019a0305"
+    },
+    "studio-testing": {
+      "source": "supabase/supabase",
+      "sourceType": "github",
+      "skillPath": ".claude/skills/studio-testing/SKILL.md",
+      "computedHash": "5b0a36599ed4a1cf23eea1641eaf284cab70c61a9ca6085427b47d578978ed60"
+    },
+    "studio-ui-patterns": {
+      "source": "supabase/supabase",
+      "sourceType": "github",
+      "skillPath": ".claude/skills/studio-ui-patterns/SKILL.md",
+      "computedHash": "5aebd634a7612f739589c7a1046df3901f92d99c69ead8b735eb2034b953e29a"
     },
     "supabase": {
       "source": "supabase/agent-skills",
@@ -55,11 +151,35 @@
       "skillPath": "plugins/frontend-mobile-development/skills/tailwind-design-system/SKILL.md",
       "computedHash": "988d80e52c67c3692d43cc963b6a048a239895e88b272b061de55370d0f8efc3"
     },
+    "telemetry-standards": {
+      "source": "supabase/supabase",
+      "sourceType": "github",
+      "skillPath": ".claude/skills/telemetry-standards/SKILL.md",
+      "computedHash": "48d994e146a908d37af5e7a53ea2fbff412e032ebd4fac11a287c045191d102c"
+    },
+    "use-static-effect-event": {
+      "source": "supabase/supabase",
+      "sourceType": "github",
+      "skillPath": ".claude/skills/use-static-effect-event/SKILL.md",
+      "computedHash": "c6dc8240354113c909794a9c4b96170346ded615b6cdcabc78634e5e44222de1"
+    },
+    "vercel-composition-patterns": {
+      "source": "supabase/supabase",
+      "sourceType": "github",
+      "skillPath": ".claude/skills/vercel-composition-patterns/SKILL.md",
+      "computedHash": "ef613d4c6067c6c1ce278bd2fc7d8ee0f11aa69d7fbbe871a6f2965d26b99602"
+    },
     "vercel-react-best-practices": {
       "source": "vercel-labs/agent-skills",
       "sourceType": "github",
       "skillPath": "skills/react-best-practices/SKILL.md",
       "computedHash": "ca7b0c0c6e5f2750043f7f0cd72d16ac4e2abc48f9b5500d047a4b77a2506212"
+    },
+    "vitest": {
+      "source": "supabase/supabase",
+      "sourceType": "github",
+      "skillPath": ".agents/skills/vitest/SKILL.md",
+      "computedHash": "669c7275f7e1379b06b2bcfa593603aead4c983b951c7e8edbc09640aa38d0a1"
     },
     "webapp-testing": {
       "source": "anthropics/skills",

@@ -27,7 +27,7 @@ export function ShareModal({ postId, authorId, currentUserId, caption, onClose }
 
   useEffect(() => {
     messagingApi.conversations()
-      .then(r => setConversations(r.data))
+      .then(r => setConversations(r.data.conversations ?? r.data))
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);

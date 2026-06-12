@@ -313,6 +313,22 @@ async def create_post_from_storage(body: FromStorageBody, request: Request):
         raise HTTPException(403, "Path inválido")
 
     db = get_supabase()
+
+    # Aplicar watermarks a imágenes (el frontend sube directo a Supabase sin pasar
+    # por el backend, así que este es el único momento para marcarlo)
+    if body.kind == "image":
+        try:
+            from app.services.watermark_service import watermark_service
+            file_bytes = db.storage.from_("media").download(body.path)
+            processed, _ = watermark_service.process_post_image(file_bytes, user_id)
+            db.storage.from_("media").upload(
+                path=body.path,
+                file=processed,
+                file_options={"content-type": "image/png", "upsert": "true"},
+            )
+        except Exception:
+            pass  # No bloquear la creación del post si el watermark falla
+
     public_url = db.storage.from_("media").get_public_url(body.path)
 
     post = feed_service.create_post(

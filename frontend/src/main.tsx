@@ -1,7 +1,18 @@
 import React, { Component, ReactNode } from "react";
 import ReactDOM from "react-dom/client";
+
+// Aviso anti-ingeniería social (igual que Facebook/Instagram)
+console.log(
+  "%c⚠ STOP",
+  "color:#C9A227;font-size:48px;font-weight:900;",
+);
+console.log(
+  "%cEsta es una función del navegador para desarrolladores.\n\nSi alguien te pidió que pegues algo acá, es una estafa.\nPueden robar tu cuenta o la de otros usuarios.",
+  "color:#fff;font-size:14px;line-height:1.6;",
+);
 import { BrowserRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { HelmetProvider } from "react-helmet-async";
 import { useRegisterSW } from "virtual:pwa-register/react";
 import App from "./App";
 import "./index.css";
@@ -82,13 +93,15 @@ const queryClient = new QueryClient({
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
-    <ErrorBoundary>
-      <QueryClientProvider client={queryClient}>
-        <BrowserRouter>
-          <App />
-          <UpdateBanner />
-        </BrowserRouter>
-      </QueryClientProvider>
-    </ErrorBoundary>
+    <HelmetProvider>
+      <ErrorBoundary>
+        <QueryClientProvider client={queryClient}>
+          <BrowserRouter>
+            <App />
+            <UpdateBanner />
+          </BrowserRouter>
+        </QueryClientProvider>
+      </ErrorBoundary>
+    </HelmetProvider>
   </React.StrictMode>
 );

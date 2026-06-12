@@ -1,10 +1,17 @@
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { Logo } from "@/components/brand/Logo";
+import { SEOHead } from "@/components/SEOHead";
 
 export default function Privacidad() {
   const navigate = useNavigate();
   return (
+    <>
+    <SEOHead
+      title="Política de Privacidad | AURA — Comunidad Adulta Verificada Argentina"
+      description="Conocé cómo AURA protege tu información personal. Esteganografía en fotos, cifrado de mensajes, verificación privada. Tu privacidad es nuestra prioridad."
+      canonical="https://aurasw.club/privacidad"
+    />
     <div className="min-h-screen" style={{ background: "var(--obsidian)", color: "var(--paper)" }}>
       <header className="sticky top-0 z-20 backdrop-blur-md px-6 pt-safe-3 pb-4"
         style={{ background: "rgba(2,2,7,0.92)", borderBottom: "1px solid var(--border)" }}>
@@ -49,5 +56,6 @@ export default function Privacidad() {
         </div>
       </main>
     </div>
+    </>
   );
 }

@@ -1,6 +1,10 @@
+import logging
 from pydantic_settings import BaseSettings
+from pydantic import model_validator
 from typing import List
 from functools import lru_cache
+
+logger = logging.getLogger(__name__)
 
 
 class Settings(BaseSettings):
@@ -50,6 +54,42 @@ class Settings(BaseSettings):
     @property
     def is_dev(self) -> bool:
         return self.APP_ENV == "development"
+
+    @model_validator(mode="after")
+    def _check_secrets(self):
+        """
+        Defensa en profundidad: avisa (sin crashear) si faltan secretos importantes.
+        NO usamos `raise` para no tirar abajo producción en un deploy — solo logueamos.
+        Los secretos verdaderamente críticos (JWT/SUPABASE_*) ya fallan al arrancar
+        porque no tienen valor por defecto.
+        """
+        avisos: list[str] = []
+
+        if len(self.JWT_SECRET_KEY) < 32:
+            avisos.append(
+                "JWT_SECRET_KEY es corto (<32 chars): riesgo de forja de tokens. "
+                "Generá uno fuerte: python -c \"import secrets; print(secrets.token_urlsafe(48))\""
+            )
+
+        if self.APP_ENV == "production":
+            opcionales = {
+                "SMTP_PASSWORD":     self.SMTP_PASSWORD,      # emails de verificación
+                "VAPID_PRIVATE_KEY": self.VAPID_PRIVATE_KEY,  # push notifications
+                "STRIPE_SECRET_KEY": self.STRIPE_SECRET_KEY,  # pagos (aún no activo)
+            }
+            faltantes = [k for k, v in opcionales.items() if not v]
+            if not self.METAMAP_SIMULATION_MODE and not self.METAMAP_CLIENT_SECRET:
+                faltantes.append("METAMAP_CLIENT_SECRET")  # KYC real activado pero sin secreto
+            if faltantes:
+                avisos.append(
+                    "Secretos opcionales sin configurar (sus features no funcionarán): "
+                    + ", ".join(faltantes)
+                )
+
+        for aviso in avisos:
+            logger.warning("⚠️  Config: %s", aviso)
+
+        return self
 
     class Config:
         env_file = ".env"

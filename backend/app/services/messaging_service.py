@@ -175,15 +175,23 @@ class MessagingService:
 
         return msg
 
-    def get_conversations(self, user_id: str) -> list:
+    def get_conversations(self, user_id: str, limit: int = 40, before_ts: Optional[str] = None) -> dict:
         db = get_supabase()
-        convs = db.table("conversations").select(
+        q = db.table("conversations").select(
             "*, "
             "user_a:users!conversations_participant_a_fkey(id,first_name,last_name,profile_photo_url,profile_type),"
             "user_b:users!conversations_participant_b_fkey(id,first_name,last_name,profile_photo_url,profile_type)"
         ).or_(
             f"participant_a.eq.{user_id},participant_b.eq.{user_id}"
-        ).order("last_message_at", desc=True).execute().data
+        ).order("last_message_at", desc=True)
+
+        if before_ts:
+            q = q.lt("last_message_at", before_ts)
+
+        # Pedir 1 extra para detectar si hay más páginas sin un COUNT extra
+        convs = q.limit(limit + 1).execute().data
+        has_more = len(convs) > limit
+        convs = convs[:limit]
 
         # Contar no leídos de TODAS las conversaciones en una sola query y
         # agrupar en Python (antes era una query por conversación: N+1)
@@ -214,7 +222,8 @@ class MessagingService:
                 "blocked_me":           blocked_me,
             })
 
-        return result
+        next_cursor = convs[-1]["last_message_at"] if has_more and convs else None
+        return {"conversations": result, "has_more": has_more, "next_cursor": next_cursor}
 
     def get_messages(self, conversation_id: str, user_id: str, limit: int = 50, offset: int = 0) -> list:
         db = get_supabase()
@@ -247,6 +256,8 @@ class MessagingService:
         if not conv_r.data:
             raise ValueError("Conversación no encontrada")
         conv = conv_r.data[0]
+        if requester_id not in (conv["participant_a"], conv["participant_b"]):
+            raise ValueError("No sos participante de esta conversación")
         is_a = conv["participant_a"] == requester_id
         db.table("conversations").update(
             {"blocked_by_a": True} if is_a else {"blocked_by_b": True}

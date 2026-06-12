@@ -5,22 +5,30 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#C9A227" />
 
+    <!-- Compliance adulto — obligatorio para Safe Search de Google -->
+    <meta name="rating" content="adult" />
+    <meta name="rating" content="RTA-5042-1996-1400-1577-RTA" />
+
     <!-- SEO primario -->
-    <title>AURA — La comunidad adulta verificada de Argentina</title>
-    <meta name="description" content="La primera comunidad adulta con verificación de identidad real (DNI + biometría) en Argentina. Fotos protegidas. Personas reales. Privacidad por diseño." />
-    <meta name="keywords"    content="comunidad adulta argentina, red social adultos verificados, privacidad adultos, encuentros verificados argentina, comunidad lifestyle adultos" />
-    <meta name="robots"      content="index, follow" />
-    <link rel="canonical"    href="https://aurasw.club" />
+    <title>AURA — Red Social Adultos Verificados Argentina | Lifestyle &amp; Swingers</title>
+    <meta name="description" content="La primera comunidad adulta verificada de Argentina. Conectá con parejas, solos y solas del mundo lifestyle y swinger con identidad real (DNI + biometría). Privacidad por diseño. Personas reales." />
+    <meta name="keywords" content="red social adultos argentina, comunidad adulta verificada argentina, swingers argentina, club swinger argentina, pareja swinger argentina, lifestyle adultos argentina, comunidad lifestyle argentina, piña lifestyle, ananá swinger, pineapple lifestyle argentina, conexión adultos argentina, encuentros verificados argentina, parejas argentina, solos y solas lifestyle, comunidad abierta argentina, plataforma adulta verificada, red social +18 argentina, app swingers argentina, club lifestyle buenos aires, parejas liberales argentina, encuentros seguros argentina, comunidad verificada adultos, perfil verificado adultos" />
+    <meta name="robots" content="index, follow" />
+
+    <!-- Canonical + hreflang -->
+    <link rel="canonical" href="https://aurasw.club/" />
+    <link rel="alternate" hreflang="es-AR" href="https://aurasw.club/" />
+    <link rel="alternate" hreflang="es" href="https://aurasw.club/" />
 
     <!-- Open Graph -->
     <meta property="og:type"        content="website" />
     <meta property="og:site_name"   content="AURA" />
     <meta property="og:title"       content="AURA — La comunidad adulta verificada de Argentina" />
-    <meta property="og:description" content="Verificación con DNI y biometría. Fotos protegidas por esteganografía. La única plataforma adulta donde la identidad siempre es real." />
+    <meta property="og:description" content="Conectá con el mundo lifestyle con identidad verificada. DNI + biometría. Parejas, solos, solas. Privacidad real." />
     <meta property="og:image"       content="https://aurasw.club/brand/og-image.png" />
     <meta property="og:image:width"  content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:url"         content="https://aurasw.club" />
+    <meta property="og:url"         content="https://aurasw.club/" />
     <meta property="og:locale"      content="es_AR" />
 
     <!-- Twitter / X -->
@@ -50,19 +58,131 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Cinzel:wght@400;500;600;700&family=Manrope:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
 
-    <!-- JSON-LD structured data -->
+    <!-- JSON-LD: Organization (Knowledge Panel) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "AURA",
+      "alternateName": ["AURA SW", "Aura Lifestyle", "AuraSW"],
+      "url": "https://aurasw.club",
+      "logo": "https://aurasw.club/icons/icon-192.png",
+      "description": "La primera comunidad adulta verificada de Argentina para el mundo lifestyle. Verificación con DNI y biometría.",
+      "foundingLocation": { "@type": "Place", "name": "Argentina" },
+      "areaServed": { "@type": "Country", "name": "Argentina" },
+      "sameAs": ["https://twitter.com/aurasw"]
+    }
+    </script>
+
+    <!-- JSON-LD: WebSite con SearchAction (Sitelinks Search Box) -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
       "@type": "WebSite",
       "name": "AURA",
       "url": "https://aurasw.club",
-      "description": "La primera comunidad adulta con verificación de identidad real en Argentina. DNI y biometría. Fotos protegidas.",
       "inLanguage": "es-AR",
       "potentialAction": {
-        "@type": "RegisterAction",
-        "target": "https://aurasw.club/registro"
+        "@type": "SearchAction",
+        "target": {
+          "@type": "EntryPoint",
+          "urlTemplate": "https://aurasw.club/buscar?q={search_term_string}"
+        },
+        "query-input": "required name=search_term_string"
       }
+    }
+    </script>
+
+    <!-- JSON-LD: FAQPage (rich snippets en SERP) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "¿Qué es AURA y qué es el mundo lifestyle?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "AURA es la primera red social adulta verificada de Argentina, diseñada para la comunidad lifestyle: personas y parejas que exploran conexiones auténticas con otras personas verificadas. El mundo lifestyle reúne a adultos que valoran la honestidad, el consenso y la privacidad por encima de todo. En AURA, cada perfil fue verificado con DNI real y biometría facial, por lo que sabés con certeza con quién estás hablando."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "¿Es seguro conectarse con swingers en Argentina a través de AURA?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Sí. AURA es la plataforma más segura de Argentina para la comunidad swinger y lifestyle porque cada miembro pasó por verificación de identidad con DNI y biometría facial antes de poder acceder. Además, tus fotos llevan una firma digital invisible (esteganografía) que permite identificar la fuente si alguien las comparte sin permiso. Ningún perfil falso o anónimo puede existir en AURA."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "¿Qué significa la piña (o ananá / pineapple) en el mundo swinger?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "La piña o ananá (pineapple en inglés) es un símbolo reconocido mundialmente dentro de la comunidad swinger y lifestyle. Cuando se muestra invertida, es una señal discreta que indica apertura a conocer otras parejas o personas del mundo lifestyle. En Argentina, este símbolo es ampliamente conocido dentro de la comunidad y AURA es el espacio digital donde esa comunidad se reúne de forma verificada y privada."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "¿Cómo funciona la verificación de identidad en AURA?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "La verificación de AURA tiene tres etapas: primero presentás tu DNI real (anverso y reverso), luego completás una verificación biométrica facial en tiempo real que confirma que sos quien decís ser, y finalmente un equipo humano revisa tu solicitud antes de activar tu perfil. Todo el proceso toma menos de cinco minutos y es completamente privado. Ningún dato de verificación es visible para otros usuarios."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "¿Qué diferencia a AURA de otras apps de citas o redes adultas?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "La diferencia principal es la verificación de identidad real. Mientras que otras plataformas permiten perfiles anónimos o con fotos falsas, en AURA cada persona confirmó su identidad con DNI y biometría. Además, tus fotos están protegidas por esteganografía: cada imagen lleva una firma digital invisible que permite rastrear filtraciones. No hay bots, no hay perfiles falsos, no hay anonimato irresponsable."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "¿Pueden unirse solos y solas, o solo parejas?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "AURA es para todos: parejas, solos y solas que forman parte del mundo lifestyle. No hace falta estar en pareja para ser parte de la comunidad. Lo que sí es obligatorio es ser una persona real verificada, mayor de 18 años, y respetar las normas de la comunidad."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "¿AURA es solo para Buenos Aires o para toda Argentina?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "AURA está disponible para toda Argentina. Tenemos miembros en Buenos Aires, Córdoba, Rosario, Mendoza, y otras provincias. La plataforma incluye un modo de viaje que te permite conectar con miembros de otras ciudades cuando viajás, y un módulo de descubrimiento por ubicación para encontrar personas cerca tuyo."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "¿Es privado mi perfil en AURA?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Sí. Tu perfil solo es visible para otros miembros verificados de AURA, nunca para el público general ni para motores de búsqueda. Vos decidís qué información mostrar y a quién. Los mensajes son privados, las fotos tienen protección por esteganografía, y podés bloquear o reportar a cualquier usuario en cualquier momento."
+          }
+        }
+      ]
+    }
+    </script>
+
+    <!-- JSON-LD: SoftwareApplication -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "AURA",
+      "applicationCategory": "SocialNetworkingService",
+      "operatingSystem": "Web, iOS, Android",
+      "url": "https://aurasw.club",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "ARS"
+      },
+      "description": "Red social adulta verificada para la comunidad lifestyle y swinger en Argentina. Verificación de identidad con DNI y biometría.",
+      "inLanguage": "es-AR"
     }
     </script>
   </head>

@@ -1,20 +1,32 @@
 User-agent: *
 Allow: /
-Allow: /privacidad
-Allow: /terminos
 
-# No indexar rutas de la app (requieren autenticación)
+# Rutas autenticadas de la app
 Disallow: /dashboard
 Disallow: /feed
 Disallow: /profile/
 Disallow: /messages
-Disallow: /admin
-Disallow: /kyc
-Disallow: /checkout
-Disallow: /eventos
+Disallow: /events
 Disallow: /travel
+Disallow: /explore
+Disallow: /groups
+Disallow: /analytics
+Disallow: /saved
+Disallow: /reviews/
+Disallow: /onboarding
+Disallow: /kyc
+Disallow: /aprobacion-pendiente
+Disallow: /checkout
+Disallow: /checkout/
+
+# Auth y utilidades (sin valor SEO)
 Disallow: /registro
 Disallow: /login
+Disallow: /verificar-email
+Disallow: /acceso-denegado
+
+# Admin y API
+Disallow: /admin
 Disallow: /api/
 
 Sitemap: https://aurasw.club/sitemap.xml
