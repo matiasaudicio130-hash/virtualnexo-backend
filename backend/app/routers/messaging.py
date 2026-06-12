@@ -34,6 +34,16 @@ class ReactionBody(BaseModel):
     emoji: Literal["❤️", "🔥", "😮", "😂", "👍", "👎"]
 
 
+class EditMessageBody(BaseModel):
+    content: str
+
+    def model_post_init(self, __context) -> None:
+        if not self.content.strip():
+            raise ValueError("El contenido no puede estar vacío")
+        if len(self.content) > 2000:
+            raise ValueError("El mensaje no puede superar los 2000 caracteres")
+
+
 class ConvSettingsBody(BaseModel):
     auto_delete_days: Optional[Literal[15, 30, 90]] = None
     screenshot_alert: bool = True
@@ -327,6 +337,36 @@ async def unread_count(request: Request):
 
 
 # ── Nuevos endpoints v2 ───────────────────────────────────────
+
+@router.put("/messages/{message_id}")
+async def edit_message(message_id: str, body: EditMessageBody, request: Request):
+    """Edita el contenido de un mensaje de texto. Solo el emisor puede editar."""
+    payload = _require_auth(request)
+    from app.db.supabase import get_supabase
+    db = get_supabase()
+
+    msg = db.table("messages").select("sender_id,type,view_once,deleted_at").eq(
+        "id", message_id
+    ).execute()
+    if not msg.data:
+        raise HTTPException(404, "Mensaje no encontrado")
+    m = msg.data[0]
+    if m["sender_id"] != payload["sub"]:
+        raise HTTPException(403, "Solo podés editar tus propios mensajes")
+    if m.get("type") not in ("text", None):
+        raise HTTPException(400, "Solo podés editar mensajes de texto")
+    if m.get("view_once"):
+        raise HTTPException(400, "No se pueden editar mensajes de vista única")
+    if m.get("deleted_at"):
+        raise HTTPException(400, "El mensaje fue eliminado")
+
+    db.table("messages").update({
+        "content":   body.content.strip(),
+        "edited_at": datetime.now(timezone.utc).isoformat(),
+    }).eq("id", message_id).execute()
+
+    return {"edited": True}
+
 
 @router.delete("/messages/{message_id}")
 async def delete_message(

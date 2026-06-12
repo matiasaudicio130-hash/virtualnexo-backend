@@ -177,7 +177,12 @@ function ChatWindow({
             <input type="checkbox" checked={settings.screenshot_alert}
               onChange={e => setSettings(s => ({ ...s, screenshot_alert: e.target.checked }))}
               className="rounded"/>
-            <span className="text-xs text-text-secondary">Alerta al detectar captura</span>
+            <div className="flex flex-col">
+              <span className="text-xs text-text-secondary">Alerta al detectar captura</span>
+              <span className="text-[9px] text-text-muted/50 mt-0.5">
+                No disponible en iPhone/iPad (el contenido lleva marca de agua)
+              </span>
+            </div>
           </label>
 
           <button onClick={saveSettings}
@@ -309,7 +314,7 @@ export default function Messages() {
 
   useEffect(() => {
     messagingApi.conversations()
-      .then(r => { setConversations(r.data); setLoading(false); })
+      .then(r => { setConversations(r.data.conversations ?? r.data); setLoading(false); })
       .catch(() => setLoading(false));
 
     messagingApi.messageRequests()
@@ -337,7 +342,7 @@ export default function Messages() {
     if (activeConv) return;
     const t = setInterval(() => {
       messagingApi.conversations()
-        .then(r => setConversations(r.data))
+        .then(r => setConversations(r.data.conversations ?? r.data))
         .catch(() => {});
     }, 15000);
     return () => clearInterval(t);
@@ -417,7 +422,7 @@ export default function Messages() {
             currentUserId={user.id}
             onClose={() => {
               setActiveConv(null);
-              messagingApi.conversations().then(r => setConversations(r.data));
+              messagingApi.conversations().then(r => setConversations(r.data.conversations ?? r.data));
             }}
           />
         </div>

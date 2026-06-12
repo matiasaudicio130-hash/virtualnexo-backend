@@ -282,6 +282,7 @@ export const messagingV2Api = {
   getTyping:        (convId: string)                    => api.get(`/messages/conversations/${convId}/typing`),
   updateSettings:   (convId: string, settings: object)  => api.put(`/messages/conversations/${convId}/settings`, settings),
   clearHistory:     (convId: string)                    => api.delete(`/messages/conversations/${convId}/history`),
+  editMessage:      (msgId: string, content: string)    => api.put(`/messages/messages/${msgId}`, { content }),
 };
 
 export const couplesApi = {
