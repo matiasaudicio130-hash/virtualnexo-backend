@@ -41,6 +41,8 @@ import CheckoutCancel from "@/pages/CheckoutCancel";
 // Admin
 import AdminPanel from "@/pages/admin/AdminPanel";
 
+import { Toaster } from "@/components/ui/Toaster";
+
 export default function App() {
   const theme = useThemeStore((s) => s.theme);
   useEffect(() => {
@@ -48,6 +50,7 @@ export default function App() {
   }, [theme]);
 
   return (
+    <>
     <Routes>
       {/* Públicas */}
       <Route path="/" element={<Landing />} />
@@ -96,5 +99,7 @@ export default function App() {
       {/* Fallback */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+    <Toaster />
+    </>
   );
 }

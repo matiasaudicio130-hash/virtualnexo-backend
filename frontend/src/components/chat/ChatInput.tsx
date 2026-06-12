@@ -12,6 +12,7 @@ import { EmojiPicker } from "./EmojiPicker";
 import { GifPicker }   from "./GifPicker";
 import { AudioRecorder } from "./AudioRecorder";
 import { chatMediaApi } from "@/lib/api";
+import { toast } from "@/store/toastStore";
 
 interface ReplyTo {
   id: string;
@@ -101,7 +102,7 @@ export function ChatInput({
     } catch (e: any) {
       setMediaPreview(null);
       const detail = e?.response?.data?.detail ?? "Error al subir el archivo";
-      alert(typeof detail === "string" ? detail : JSON.stringify(detail));
+      toast.error(typeof detail === "string" ? detail : JSON.stringify(detail));
     }
     setUploading(false);
   }
@@ -123,7 +124,7 @@ export function ChatInput({
       });
       onCancelReply?.();
     } catch {
-      alert("Error al enviar audio");
+      toast.error("Error al enviar audio");
     }
     setUploading(false);
   }
@@ -143,7 +144,7 @@ export function ChatInput({
     if (disabled || uploading) return;
 
     if (mediaPreview) {
-      if (!mediaPreview.remoteUrl) { alert("Espera a que termine de subir"); return; }
+      if (!mediaPreview.remoteUrl) { toast.warning("Espera a que termine de subir"); return; }
       const defaultContent =
         mediaPreview.type === "gif"   ? (mediaPreview.gifTitle || "🎬 GIF") :
         mediaPreview.type === "video" ? "📹 Video" : "📷 Foto";

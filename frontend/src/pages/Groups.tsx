@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { groupsApi, searchApi } from "@/lib/api";
 import { useAuthStore } from "@/store/authStore";
+import { toast } from "@/store/toastStore";
 import { BottomNav } from "@/components/BottomNav";
 
 interface Group {
@@ -183,7 +184,7 @@ function CreateGroupModal({ onClose, onCreate }: { onClose: () => void; onCreate
       const { data } = await groupsApi.create({ name: name.trim(), description: desc.trim() || undefined });
       onCreate(data);
     } catch {
-      alert("Error al crear el grupo.");
+      toast.error("Error al crear el grupo.");
     }
     setLoading(false);
   }
@@ -436,7 +437,7 @@ function GroupSettings({
       setAddResults([]);
       setShowAddMember(false);
     } catch (e: any) {
-      alert(e?.response?.data?.detail ?? "No se pudo agregar.");
+      toast.error(e?.response?.data?.detail ?? "No se pudo agregar.");
     }
   }
 
@@ -448,7 +449,7 @@ function GroupSettings({
       onUpdated({ ...group, ...data, members });
       setEditingName(false);
     } catch (e: any) {
-      alert(e?.response?.data?.detail ?? "Error al guardar.");
+      toast.error(e?.response?.data?.detail ?? "Error al guardar.");
     }
     setSaving(false);
   }
@@ -461,7 +462,7 @@ function GroupSettings({
       setMembers(updated);
       onUpdated({ ...group, members: updated });
     } catch (e: any) {
-      alert(e?.response?.data?.detail ?? "No se pudo cambiar el rol.");
+      toast.error(e?.response?.data?.detail ?? "No se pudo cambiar el rol.");
     }
   }
 
@@ -473,7 +474,7 @@ function GroupSettings({
       setMembers(updated);
       onUpdated({ ...group, members: updated });
     } catch (e: any) {
-      alert(e?.response?.data?.detail ?? "Error al expulsar.");
+      toast.error(e?.response?.data?.detail ?? "Error al expulsar.");
     }
   }
 
@@ -483,7 +484,7 @@ function GroupSettings({
       await groupsApi.removeMember(group.id, userId);
       onLeft();
     } catch (e: any) {
-      alert(e?.response?.data?.detail ?? "No se pudo salir del grupo.");
+      toast.error(e?.response?.data?.detail ?? "No se pudo salir del grupo.");
     }
   }
 
@@ -493,7 +494,7 @@ function GroupSettings({
       await groupsApi.delete(group.id);
       onDeleted();
     } catch (e: any) {
-      alert(e?.response?.data?.detail ?? "No se pudo eliminar el grupo.");
+      toast.error(e?.response?.data?.detail ?? "No se pudo eliminar el grupo.");
     }
   }
 

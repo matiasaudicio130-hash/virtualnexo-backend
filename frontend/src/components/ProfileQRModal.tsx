@@ -1,4 +1,5 @@
 import { useRef } from "react";
+import { toast } from "@/store/toastStore";
 import { X, Download, Share2 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 
@@ -69,7 +70,7 @@ export function ProfileQRModal({ userId, userName, onClose }: Props) {
       } catch { /* cancelled */ }
     } else {
       await navigator.clipboard.writeText(profileUrl);
-      alert("¡Link copiado al portapapeles!");
+      toast.success("¡Link copiado al portapapeles!");
     }
   }
 

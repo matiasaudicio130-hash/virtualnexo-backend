@@ -6,6 +6,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Eye, Images, Lock, Plus, Flame, AlertCircle, X } from "lucide-react";
 import { albumsApi } from "@/lib/api";
+import { toast } from "@/store/toastStore";
 import { useAuthStore } from "@/store/authStore";
 import { Button } from "@/components/ui/Button";
 import { VerifiedBadge } from "@/components/ui/VerifiedBadge";
@@ -56,7 +57,7 @@ function UsernameSetup({ onSaved }: { onSaved: (u: string) => void }) {
       const { data } = await albumsApi.setUsername(value.toLowerCase());
       onSaved(data.username);
     } catch (e: any) {
-      alert(e.response?.data?.detail ?? "Error al guardar");
+      toast.error(e.response?.data?.detail ?? "Error al guardar");
     }
     setSaving(false);
   }

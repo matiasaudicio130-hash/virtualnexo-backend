@@ -34,6 +34,7 @@ import { PostCard } from "@/components/PostCard";
 import { Button } from "@/components/ui/Button";
 import { PROFILE_TYPE_CONFIG, ORIENTATION_CONFIG } from "@/types";
 import type { ProfileType, SexualOrientation, ProfileNote as TProfileNote } from "@/types";
+import { toast } from "@/store/toastStore";
 
 const SEEKING_LABELS: Record<string, string> = {
   explorar_sin_apuro:    "Explorar sin apuro",
@@ -219,7 +220,7 @@ export default function ProfileView() {
       setBlocked(data.blocked);
       if (data.blocked) navigate(-1);
     } catch {
-      alert("No se pudo bloquear. Intentá de nuevo.");
+      toast.error("No se pudo bloquear. Intentá de nuevo.");
     }
     setActionLoading(false);
   }
@@ -238,7 +239,7 @@ export default function ProfileView() {
         setMatched(r.data.matched ?? false);
       }).catch(() => setError("notfound")).finally(() => setLoading(false));
     } catch {
-      alert("No se pudo desbloquear. Intentá de nuevo.");
+      toast.error("No se pudo desbloquear. Intentá de nuevo.");
     }
     setActionLoading(false);
   }

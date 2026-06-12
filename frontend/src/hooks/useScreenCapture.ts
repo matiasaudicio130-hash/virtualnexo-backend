@@ -13,6 +13,7 @@
  * ID del usuario, lo que permite rastrear filtraciones.
  */
 import { useEffect, useCallback, useRef } from "react";
+import { toast } from "@/store/toastStore";
 
 interface Options {
   onDetected?: () => void;
@@ -59,10 +60,8 @@ export function useScreenCapture({ onDetected, warn = true }: Options = {}) {
     if (warn && !warned.current) {
       warned.current = true;
       setTimeout(() => { warned.current = false; }, 5000);
-      alert(
-        "Captura de pantalla detectada.\n\n" +
-        "El contenido está protegido y marcado con tu ID de usuario. " +
-        "La distribución no autorizada puede resultar en la suspensión de tu cuenta."
+      toast.warning(
+        "Captura detectada — el contenido está marcado con tu ID. La distribución no autorizada puede resultar en la suspensión de tu cuenta."
       );
     }
   }, [warn, onDetected]);

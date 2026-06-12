@@ -4,6 +4,7 @@ import { X, ImagePlus, Check, Trash2 } from "lucide-react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import { highlightsApi, mediaApi } from "@/lib/api";
+import { toast } from "@/store/toastStore";
 import type { Highlight, MyStory } from "@/types";
 
 interface Props {
@@ -109,7 +110,7 @@ export function HighlightCreator({ existing, onClose, onSaved }: Props) {
       }
       onSaved();
     } catch (err: any) {
-      alert(err?.response?.data?.detail ?? "No se pudo guardar. Intentá de nuevo.");
+      toast.error(err?.response?.data?.detail ?? "No se pudo guardar. Intentá de nuevo.");
     }
     setSaving(false);
   }
@@ -122,7 +123,7 @@ export function HighlightCreator({ existing, onClose, onSaved }: Props) {
       await highlightsApi.delete(existing.id);
       onSaved();
     } catch {
-      alert("No se pudo eliminar. Intentá de nuevo.");
+      toast.error("No se pudo eliminar. Intentá de nuevo.");
       setBusy(false);
     }
   }

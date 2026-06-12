@@ -34,6 +34,7 @@ import { Bell, EyeOff } from "lucide-react";
 import { discoveryApi } from "@/lib/api";
 import { PROFILE_TYPE_CONFIG, ORIENTATION_CONFIG } from "@/types";
 import type { ProfileType, SexualOrientation } from "@/types";
+import { toast } from "@/store/toastStore";
 
 const THEMES: { id: Theme; color: string; label_es: string; label_en: string }[] = [
   { id: "dark",  color: "#8B5CF6", label_es: "Dark",       label_en: "Dark"    },
@@ -317,7 +318,7 @@ export default function Dashboard() {
                       a.download = "aura_mis_datos.json";
                       a.click();
                       URL.revokeObjectURL(url);
-                    } catch { alert("No se pudo exportar. Intentá de nuevo."); }
+                    } catch { toast.error("No se pudo exportar. Intentá de nuevo."); }
                   }}
                   className="w-full flex items-center gap-2.5 px-4 py-3 rounded-xl border border-border text-sm text-text-secondary hover:bg-bg-muted transition-colors text-left"
                 >

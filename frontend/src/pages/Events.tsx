@@ -5,6 +5,7 @@ import {
   Check, Star, X as XIcon, ShieldCheck, Clock, Trash2,
 } from "lucide-react";
 import { eventsApi } from "@/lib/api";
+import { toast } from "@/store/toastStore";
 import { useAuthStore } from "@/store/authStore";
 import { useScreenCapture } from "@/hooks/useScreenCapture";
 
@@ -89,7 +90,7 @@ export default function Events() {
       setForm({ title: "", description: "", event_date: "", location_name: "", province: "", city: "", is_private: false, max_participants: "" });
       load();
     } catch (e: any) {
-      alert(e.response?.data?.detail ?? "Error al crear el evento");
+      toast.error(e.response?.data?.detail ?? "Error al crear el evento");
     }
     setCreating(false);
   }
@@ -191,7 +192,7 @@ export default function Events() {
                           try {
                             await eventsApi.delete(event.id);
                             setEvents(prev => prev.filter(e => e.id !== event.id));
-                          } catch { alert("Error al eliminar"); }
+                          } catch { toast.error("Error al eliminar"); }
                         }}
                         className="p-1.5 text-text-muted hover:text-status-error transition-colors rounded-lg hover:bg-bg-muted"
                         title="Eliminar evento"

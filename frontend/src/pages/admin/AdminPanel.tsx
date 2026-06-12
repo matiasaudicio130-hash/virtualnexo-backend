@@ -14,6 +14,7 @@ import {
   UserPlus, ExternalLink, Flag, AlertTriangle, Trash2 as TrashIcon, UserX,
 } from "lucide-react";
 import type { MasterKey, Payment, RevenueStats, AuditLogEntry, SystemSetting, Plan } from "@/types";
+import { toast } from "@/store/toastStore";
 
 type Tab = "stats" | "keys" | "users" | "pending" | "payments" | "reports" | "payouts" | "ads" | "leaks" | "settings" | "audit" | "moderation";
 
@@ -1180,7 +1181,7 @@ function ReportsTab() {
         : "reporte_anual_" + year + ".pdf";
       a.click();
       URL.revokeObjectURL(url);
-    } catch { alert("Error al generar el PDF"); }
+    } catch { toast.error("Error al generar el PDF"); }
     setDlLoading(null);
   }
 

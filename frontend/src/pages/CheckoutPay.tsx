@@ -6,6 +6,7 @@
 import { useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { stripeApi } from "@/lib/api";
+import { toast } from "@/store/toastStore";
 import { APP_CONFIG } from "@/config/app";
 
 const PLAN_LABELS: Record<string, string> = {
@@ -32,7 +33,7 @@ export default function CheckoutPay() {
       setStep("done");
       setTimeout(() => navigate("/checkout/success"), 800);
     } catch (e: any) {
-      alert(e.response?.data?.detail ?? "Error al procesar pago");
+      toast.error(e.response?.data?.detail ?? "Error al procesar pago");
       setStep("idle");
       setLoading(false);
     }

@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { messagingApi, profilesApi, messagingV2Api, notificationsApi } from "@/lib/api";
 import { useAuthStore } from "@/store/authStore";
+import { toast } from "@/store/toastStore";
 import { useScreenCapture } from "@/hooks/useScreenCapture";
 import { ProtectedAvatar } from "@/components/ProtectedImage";
 import { PROFILE_TYPE_CONFIG } from "@/types";
@@ -50,7 +51,7 @@ function ChatWindow({
 
   useEffect(() => { load(); }, [load]);
 
-  // Poll typing indicator
+  // Poll typing indicator (3s) y read receipts (8s)
   useEffect(() => {
     pollTimer.current = setInterval(async () => {
       try {
@@ -58,8 +59,12 @@ function ChatWindow({
         setOtherTyping((data.typing || []).length > 0);
       } catch { /* ignore */ }
     }, 3000);
-    return () => clearInterval(pollTimer.current);
-  }, [conv.id]);
+
+    // Re-fetch de mensajes para actualizar read_at (✓✓) del lado del emisor
+    const readPoll = setInterval(() => load(), 8000);
+
+    return () => { clearInterval(pollTimer.current); clearInterval(readPoll); };
+  }, [conv.id, load]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -267,7 +272,7 @@ function ChatWindow({
               const msg = Array.isArray(detail)
                 ? detail.map((d: any) => d.msg ?? String(d)).join("; ")
                 : detail ?? "No se pudo enviar";
-              alert(msg);
+              toast.error(msg);
             }
             setSending(false);
           }}

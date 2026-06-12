@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { toast } from "@/store/toastStore";
 import { X, Search, Send, Check, RefreshCcw, ChevronRight } from "lucide-react";
 import { messagingApi, feedApi } from "@/lib/api";
 
@@ -59,7 +60,7 @@ export function ShareModal({ postId, authorId, currentUserId, caption, onClose }
       setTimeout(() => { setShowRepost(false); setRepostDone(false); setRepostComment(""); }, 2000);
     } catch (e: any) {
       const msg = e?.response?.data?.detail || "No se pudo repostear.";
-      alert(msg);
+      toast.error(msg);
     }
     setRepostLoading(false);
   }
