@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { MapPin, Trash2, MoreHorizontal, Flag, BarChart2 } from "lucide-react";
 import {
@@ -478,29 +479,32 @@ export function PostCard({ post, currentUserId, onDelete, initialSaved = false }
       )}
 
       {/* Stats modal */}
-      {showStats && (
-        <PostStatsModal postId={post.id} onClose={() => setShowStats(false)} />
+      {showStats && createPortal(
+        <PostStatsModal postId={post.id} onClose={() => setShowStats(false)} />,
+        document.body
       )}
 
       {/* Report modal */}
-      {showReport && (
+      {showReport && createPortal(
         <ReportModal
           targetType="post"
           targetId={post.id}
           targetName={post.caption?.slice(0, 80)}
           onClose={() => setShowReport(false)}
-        />
+        />,
+        document.body
       )}
 
-      {/* Share modal */}
-      {showShare && (
+      {/* Share modal — portal para evitar que position:fixed quede relativo al article */}
+      {showShare && createPortal(
         <ShareModal
           postId={post.id}
           authorId={post.author.id}
           currentUserId={currentUserId}
           caption={post.caption}
           onClose={() => setShowShare(false)}
-        />
+        />,
+        document.body
       )}
     </article>
   );
