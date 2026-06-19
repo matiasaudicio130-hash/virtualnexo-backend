@@ -117,7 +117,7 @@ export function AudioRecorder({ onSend, onCancel }: Props) {
   return (
     <div className="flex items-center gap-2 px-3 py-2 bg-bg-muted/60 rounded-2xl border border-border flex-1">
       {audioUrl && (
-        <audio src={audioUrl} controls className="h-8 flex-1 min-w-0"
+        <audio src={audioUrl} controls className="h-10 flex-1 min-w-0"
           style={{ colorScheme: "dark" }}/>
       )}
       <span className="text-xs text-text-muted font-mono tabular-nums flex-shrink-0">

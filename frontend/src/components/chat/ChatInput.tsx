@@ -109,6 +109,7 @@ export function ChatInput({
 
   async function handleAudioSend(blob: Blob, duration: number) {
     setPanel(null);
+    setShowAudio(false);
     setUploading(true);
     try {
       const mime = blob.type || "audio/webm";
