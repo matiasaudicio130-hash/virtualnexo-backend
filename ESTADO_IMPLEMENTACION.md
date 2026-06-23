@@ -87,7 +87,7 @@
 | Supabase Realtime para mensajes | Messages.tsx | ✅ | `postgres_changes` INSERT + UPDATE en `messages`; polling de typing (3s) se mantiene ya que usa endpoint REST |
 | BottomNav prefetch de rutas on hover | BottomNav.tsx | ✅ | `onMouseEnter` + `onTouchStart` disparan import dinámico por tab |
 | Health check endpoint FastAPI | backend/main.py | ✅ | `GET /health` en línea 79; configurado en `railway.toml` como healthcheckPath |
-| UptimeRobot ping cada 5 min | Servicio externo | ❌ | Sin confirmar si está activo |
+| Keepalive Railway | .github/workflows/keepalive.yml | ✅ | GitHub Actions cron cada 10 min → `GET /health`; Railway no duerme |
 | Índices Supabase (created_at, conversation_id, etc.) | SQL Editor Supabase | ✅ | 11/11 aplicados: posts, messages, notifications, user_follows, post_reactions, stories (partial), profile_views |
 | Title y og:title unificados | index.html | ✅ | Ambos: "AURA — La comunidad adulta verificada de Argentina" |
 | meta description y og:description unificados | index.html | ❌ | Textos todavía distintos (baja prioridad) |
@@ -145,16 +145,52 @@
 
 ---
 
-## PRÓXIMOS ITEMS (Batch C — Sprint 2)
+## SPRINT 2 — COMPLETADO ✅
 
-| # | Feature | Prioridad |
-|---|---------|-----------|
-| C1 | Pantalla "Guardados" (el botón existe, falta el destino) | P1 |
-| C2 | "Quién reaccionó" drawer al tocar contador de reacciones | P1 |
-| C3 | "Intereses en común" pill en perfiles ajenos | P1 |
-| C4 | Aura Poll (encuestas en el feed) | P1 |
-| C5 | UptimeRobot ping a `/health` cada 5 min | infra |
-| C6 | Bug #1 NavLogo PNG transparente | requiere asset |
+| Batch | Items |
+|-------|-------|
+| A (bugs críticos) | Login "Volviste.", checkbox términos con Link, Explore skeleton, Landing stats "#1" |
+| B (features) | ForgotPassword + ResetPassword, password toggle Eye/EyeSlash, ads autopublicidad Aura, contadores reacciones/comentarios |
+| C (features) | Guardados verificado, drawer "Quién reaccionó", pill "Intereses en común", Polls verificado, keepalive GH Actions |
+
+---
+
+## PENDIENTE REAL (Sprint 3)
+
+### Bugs sin verificar / sin resolver
+
+| Bug | Descripción | Prioridad |
+|-----|-------------|-----------|
+| #9A | Ver perfil propio puede crashear en ProfileView | 🔴 Alto |
+| #10 | Cards de navegación redundantes en Dashboard | 🟡 Medio |
+| #6 | Highlights: upload de portada en HighlightCreator | 🟡 Medio |
+| #8 | Albums: flujo completo upload de fotos | 🟡 Medio |
+| #1 | NavLogo cuadrado negro (requiere asset PNG transparente) | 🟠 Bajo/diseño |
+
+### Plan Estratégico — ítems incompletos o sin verificar
+
+| Encargo | Feature | Estado |
+|---------|---------|--------|
+| #1 | Quién vio tu perfil — UI completa en Dashboard | 🐛 Verificar |
+| #5 | Eventos con RSVP — Events.tsx completo | 🐛 Verificar |
+| #7 | Perfil de pareja — CoupleSection + badge "Pareja Verificada" | 🐛 Verificar |
+| #8 | Stories con audiencia seleccionable | ❌ No implementado |
+
+### Features sugeridas sin implementar
+
+| Feature | Prioridad |
+|---------|-----------|
+| Feed "Modo Anónimo" (navegar sin dejar rastro de visitas) | 🟡 Medio |
+| "Aura Check" badge de actividad reciente en avatares | 🟡 Medio |
+| Encuesta de compatibilidad al mutual follow | 🟠 Bajo |
+| Historial de solicitudes de álbum | 🟠 Bajo |
+
+### SEO / Head (baja prioridad)
+
+| Cambio | Pendiente |
+|--------|-----------|
+| meta description = og:description | textos distintos |
+| Keywords reducidas a 15-20 | ~100 términos actualmente |
 
 ---
 
