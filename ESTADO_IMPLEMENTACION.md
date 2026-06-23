@@ -88,7 +88,7 @@
 | BottomNav prefetch de rutas on hover | BottomNav.tsx | ✅ | `onMouseEnter` + `onTouchStart` disparan import dinámico por tab |
 | Health check endpoint FastAPI | backend/main.py | ✅ | `GET /health` en línea 79; configurado en `railway.toml` como healthcheckPath |
 | UptimeRobot ping cada 5 min | Servicio externo | ❌ | Sin confirmar si está activo |
-| Índices Supabase (created_at, conversation_id, etc.) | SQL Editor Supabase | ✅ | 7/11 aplicados: posts, messages, notifications, user_follows. 4 skipped: deleted_at/reactions/stories/profile_views no existen aún |
+| Índices Supabase (created_at, conversation_id, etc.) | SQL Editor Supabase | ✅ | 11/11 aplicados: posts, messages, notifications, user_follows, post_reactions, stories (partial), profile_views |
 | Title y og:title unificados | index.html | ✅ | Ambos: "AURA — La comunidad adulta verificada de Argentina" |
 | meta description y og:description unificados | index.html | ❌ | Textos todavía distintos (baja prioridad) |
 | Keywords meta reducidas a 15-20 | index.html | ❌ | ~100+ términos actualmente |
@@ -145,15 +145,16 @@
 
 ---
 
-## PRÓXIMOS ITEMS DE MAYOR ROI (menor esfuerzo, mayor impacto)
+## PRÓXIMOS ITEMS (Batch C — Sprint 2)
 
-En orden de prioridad:
-
-1. ~~**Ejecutar migration_performance_indexes.sql**~~ — ✅ completado (7/11 aplicados)
-2. **UptimeRobot** — configurar ping a `https://api-production-a7d3.up.railway.app/health` cada 5 min (~10 min)
-3. **Bug #1 NavLogo** — PNG con transparencia real (requiere asset de diseño)
-4. **imgUrl() en ProfileView** — foto principal del perfil ajeno (~20 min)
-5. **Feed.tsx → `useQuery` para el tab "Siguiendo"** — ya tiene `useInfiniteQuery` para "Para vos"
+| # | Feature | Prioridad |
+|---|---------|-----------|
+| C1 | Pantalla "Guardados" (el botón existe, falta el destino) | P1 |
+| C2 | "Quién reaccionó" drawer al tocar contador de reacciones | P1 |
+| C3 | "Intereses en común" pill en perfiles ajenos | P1 |
+| C4 | Aura Poll (encuestas en el feed) | P1 |
+| C5 | UptimeRobot ping a `/health` cada 5 min | infra |
+| C6 | Bug #1 NavLogo PNG transparente | requiere asset |
 
 ---
 
