@@ -392,6 +392,22 @@ async def record_view(user_id: str, request: Request):
     return {"recorded": True}
 
 
+@router.get("/my-requests")
+async def my_album_requests(request: Request):
+    """Solicitudes de acceso que hizo el usuario, con estado y datos del álbum."""
+    payload = _require_auth(request)
+    requester_id = payload["sub"]
+    db = get_supabase()
+
+    rows = db.table("album_access_requests").select(
+        "id,status,created_at,"
+        "album:albums!album_access_requests_album_id_fkey(id,title,is_private,"
+        "owner:users!albums_user_id_fkey(id,first_name,last_name,profile_photo_url,username))"
+    ).eq("requester_id", requester_id).order("created_at", desc=True).limit(50).execute()
+
+    return {"requests": rows.data or []}
+
+
 @router.get("/profile/my-stats")
 async def my_stats(request: Request):
     """Stats privados del usuario: visitas, solicitudes, likes recibidos."""

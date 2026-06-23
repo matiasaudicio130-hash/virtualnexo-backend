@@ -1,5 +1,6 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
+import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Plus, X } from "lucide-react";
 import { SlidersHorizontal, MagnifyingGlass, MapPin, PaperPlaneTilt } from "@phosphor-icons/react";
@@ -261,6 +262,12 @@ export default function Feed() {
     setRemovedIds(prev => new Set([...prev, id]));
   }
 
+  const handlePullRefresh = useCallback(async () => {
+    await queryClient.invalidateQueries({ queryKey: ["feed"] });
+  }, [queryClient]);
+
+  const { dist: pullDist, refreshing: pullRefreshing } = usePullToRefresh(handlePullRefresh);
+
   // Frecuencia de ads según membresía
   const adsEvery = user?.membership_type && user.membership_type !== "none"
     ? (user.membership_type === "lifetime" ? Infinity : ADS_EVERY_MEMBER)
@@ -289,6 +296,19 @@ export default function Feed() {
           </button>
         </div>
       </header>
+
+      {/* ── Pull-to-refresh indicator ──────────────────────────── */}
+      {(pullDist > 0 || pullRefreshing) && (
+        <div
+          className="flex items-center justify-center overflow-hidden transition-all duration-200"
+          style={{ height: pullDist > 0 ? pullDist : pullRefreshing ? 44 : 0 }}
+        >
+          <div
+            className={`w-8 h-8 rounded-full border-2 border-[var(--ash)] border-t-[var(--gold)] ${pullRefreshing ? "animate-spin" : ""}`}
+            style={{ transform: pullRefreshing ? undefined : `rotate(${(pullDist / 72) * 180}deg)` }}
+          />
+        </div>
+      )}
 
       {/* ── Tabs ───────────────────────────────────────────────── */}
       <div className="flex border-b border-border/60">

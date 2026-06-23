@@ -393,6 +393,7 @@ export const albumsApi = {
   // Access requests
   requestAccess:   (albumId: string)                  => api.post(`/albums/${albumId}/request`),
   listRequests:    (albumId: string)                  => api.get(`/albums/${albumId}/requests`),
+  myRequests:      ()                                 => api.get("/albums/my-requests"),
   approve:         (albumId: string, reqId: string)   => api.post(`/albums/${albumId}/requests/${reqId}/approve`),
   reject:          (albumId: string, reqId: string)   => api.post(`/albums/${albumId}/requests/${reqId}/reject`),
   // Profile stats

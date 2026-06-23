@@ -4,6 +4,7 @@ import { Sparkles } from "lucide-react";
 import { discoveryApi } from "@/lib/api";
 import { PROFILE_TYPE_CONFIG } from "@/types";
 import { imgUrl } from "@/utils/image";
+import { AuraCheckBadge } from "@/components/ui/AuraCheckBadge";
 import type { ProfileType } from "@/types";
 
 interface SuggestedUser {
@@ -80,7 +81,7 @@ export function ProfileSuggestions({ tag }: Props = {}) {
           const displayName = u.username ? `@${u.username}` : `${u.first_name} ${u.last_name}`;
           return (
             <div key={u.id} className="flex items-center gap-3 px-4 py-3">
-              <button onClick={() => navigate(`/profile/${u.id}`)} className="flex-shrink-0">
+              <button onClick={() => navigate(`/profile/${u.id}`)} className="flex-shrink-0 relative">
                 <div className="w-11 h-11 rounded-full overflow-hidden border border-border/50">
                   {u.profile_photo_url
                     ? <img src={imgUrl(u.profile_photo_url, "avatar-md")} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async"/>
@@ -89,6 +90,7 @@ export function ProfileSuggestions({ tag }: Props = {}) {
                       </div>
                   }
                 </div>
+                <AuraCheckBadge lastActiveAt={(u as any).last_active_at} size={10} offset={1} />
               </button>
 
               <div className="flex-1 min-w-0">

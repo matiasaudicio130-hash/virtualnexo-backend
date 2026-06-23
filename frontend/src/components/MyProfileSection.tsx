@@ -157,6 +157,91 @@ function SeekingEditor({ current, currentText, onSaved }: { current: string[]; c
   );
 }
 
+/* ── Historial de solicitudes que hice ─────────────────────── */
+function AlbumRequestHistory() {
+  const navigate = useNavigate();
+  const [requests, setRequests] = useState<any[]>([]);
+  const [loading, setLoading]   = useState(false);
+  const [open, setOpen]         = useState(false);
+
+  function load() {
+    if (requests.length > 0) return;
+    setLoading(true);
+    albumsApi.myRequests()
+      .then(r => setRequests(r.data.requests || []))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }
+
+  function toggle() {
+    if (!open) load();
+    setOpen(v => !v);
+  }
+
+  const STATUS_LABEL: Record<string, { label: string; color: string }> = {
+    pending:  { label: "Pendiente", color: "var(--mist)" },
+    approved: { label: "Aprobada",  color: "#22c55e" },
+    rejected: { label: "Rechazada", color: "var(--danger)" },
+  };
+
+  if (requests.length === 0 && !loading && !open) return null;
+
+  return (
+    <div style={{ borderTop: "1px solid var(--border-soft)", marginTop: 16, paddingTop: 16 }}>
+      <button
+        onClick={toggle}
+        style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", background: "none", border: "none", cursor: "pointer", padding: 0 }}
+      >
+        <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.16em", textTransform: "uppercase", color: "var(--mist)" }}>
+          Mis solicitudes de álbum
+        </span>
+        <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "var(--gold)" }}>{open ? "▲" : "▼"}</span>
+      </button>
+
+      {open && (
+        <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 8 }}>
+          {loading && <p style={{ fontFamily: "var(--font-sans)", fontSize: 13, color: "var(--mist)" }}>Cargando…</p>}
+          {!loading && requests.length === 0 && (
+            <p style={{ fontFamily: "var(--font-sans)", fontSize: 13, color: "var(--mist)" }}>No hiciste ninguna solicitud todavía.</p>
+          )}
+          {requests.map((req: any) => {
+            const album = req.album || {};
+            const owner = album.owner || {};
+            const st    = STATUS_LABEL[req.status] ?? STATUS_LABEL.pending;
+            return (
+              <div
+                key={req.id}
+                style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 10px", borderRadius: "var(--radius-md)", border: "1px solid var(--border-soft)", background: "var(--smoke)" }}
+              >
+                {owner.profile_photo_url
+                  ? <img src={owner.profile_photo_url} alt="" style={{ width: 36, height: 36, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
+                  : <div style={{ width: 36, height: 36, borderRadius: "50%", background: "var(--ash)", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "var(--font-sans)", fontSize: 13 }}>
+                      {owner.first_name?.[0] ?? "?"}
+                    </div>
+                }
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <button
+                    onClick={() => owner.id && navigate(`/profile/${owner.id}`)}
+                    style={{ background: "none", border: "none", cursor: "pointer", padding: 0, fontFamily: "var(--font-sans)", fontSize: 12, fontWeight: 500, color: "var(--paper)", display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "100%" }}
+                  >
+                    {owner.username ? `@${owner.username}` : `${owner.first_name} ${owner.last_name}`}
+                  </button>
+                  <p style={{ fontFamily: "var(--font-sans)", fontSize: 11, color: "var(--mist)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {album.title || "Álbum privado"}
+                  </p>
+                </div>
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.12em", color: st.color, flexShrink: 0 }}>
+                  {st.label}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ═════════════════════════════════════════════════════════════ */
 export function MyProfileSection() {
   const navigate = useNavigate();
@@ -410,6 +495,9 @@ export function MyProfileSection() {
           </div>
         </div>
       )}
+
+      {/* ── Historial de solicitudes de álbum ────────────────── */}
+      <AlbumRequestHistory />
     </div>
   );
 }

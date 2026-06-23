@@ -47,7 +47,7 @@ async def nearby_users(
     # Obtener usuarios con ubicación reciente (últimas 24h)
     cutoff = (datetime.now(timezone.utc) - timedelta(hours=24)).isoformat()
     users  = db.table("users").select(
-        "id,first_name,last_name,profile_photo_url,profile_type,province,city,lat,lng,location_at"
+        "id,first_name,last_name,profile_photo_url,profile_type,province,city,lat,lng,location_at,last_active_at"
     ).eq("status", "active").neq("id", payload["sub"]).gte(
         "location_at", cutoff
     ).not_.is_("lat", "null").limit(200).execute().data
@@ -93,7 +93,7 @@ async def profiles_by_tag(
 
     # Supabase supports @> (contains) operator for arrays via filter
     rows = db.table("users").select(
-        "id,first_name,last_name,profile_photo_url,profile_type,province,city,bio,seeking_tags,seeking_text,username"
+        "id,first_name,last_name,profile_photo_url,profile_type,province,city,bio,seeking_tags,seeking_text,username,last_active_at"
     ).eq("status", "active").neq("id", payload["sub"]).contains("seeking_tags", [tag]).limit(100).execute().data
 
     # Province first, then shuffle the rest
@@ -143,7 +143,7 @@ async def profile_suggestions(
 
     # Buscar candidatos — primero misma provincia, fallback global
     base_q = db.table("users").select(
-        "id,first_name,last_name,profile_photo_url,profile_type,province,city,bio"
+        "id,first_name,last_name,profile_photo_url,profile_type,province,city,bio,last_active_at"
     ).eq("status", "active").neq("is_shadow_banned", True)
 
     candidates = []

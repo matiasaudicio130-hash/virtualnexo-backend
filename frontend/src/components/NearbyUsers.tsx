@@ -4,6 +4,7 @@ import { MapPin, ChevronRight } from "lucide-react";
 import { discoveryApi } from "@/lib/api";
 import { PROFILE_TYPE_CONFIG } from "@/types";
 import { imgUrl } from "@/utils/image";
+import { AuraCheckBadge } from "@/components/ui/AuraCheckBadge";
 import type { ProfileType } from "@/types";
 
 interface NearbyUser {
@@ -75,11 +76,13 @@ export function NearbyUsers({ lat, lng }: Props) {
                 <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-accent-purple/30 group-hover:border-accent-purple/60 transition-colors">
                   {u.profile_photo_url
                     ? <img src={imgUrl(u.profile_photo_url, "avatar-md")} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async"/>
+
                     : <div className="w-full h-full bg-accent-purple/10 flex items-center justify-center text-accent-purple text-lg font-light">
                         {u.first_name.charAt(0)}
                       </div>
                   }
                 </div>
+                <AuraCheckBadge lastActiveAt={(u as any).last_active_at} size={10} offset={1} />
                 {/* Profile type dot */}
                 {cfg && (
                   <span className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-bg-base ${cfg.dot}`}/>
