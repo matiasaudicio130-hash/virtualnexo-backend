@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { MapPin, ChevronRight } from "lucide-react";
 import { discoveryApi } from "@/lib/api";
 import { PROFILE_TYPE_CONFIG } from "@/types";
+import { imgUrl } from "@/utils/image";
 import type { ProfileType } from "@/types";
 
 interface NearbyUser {
@@ -73,7 +74,7 @@ export function NearbyUsers({ lat, lng }: Props) {
               <div className="relative">
                 <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-accent-purple/30 group-hover:border-accent-purple/60 transition-colors">
                   {u.profile_photo_url
-                    ? <img src={u.profile_photo_url} alt="" className="w-full h-full object-cover"/>
+                    ? <img src={imgUrl(u.profile_photo_url, "avatar-md")} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async"/>
                     : <div className="w-full h-full bg-accent-purple/10 flex items-center justify-center text-accent-purple text-lg font-light">
                         {u.first_name.charAt(0)}
                       </div>

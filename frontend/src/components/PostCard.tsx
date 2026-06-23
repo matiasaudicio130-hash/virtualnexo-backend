@@ -6,6 +6,7 @@ import {
   Heart, Fire, BookmarkSimple, PaperPlaneTilt, ChatCircle,
 } from "@phosphor-icons/react";
 import { feedApi } from "@/lib/api";
+import { imgUrl } from "@/utils/image";
 import { ProtectedAvatar } from "@/components/ProtectedImage";
 import { CommentsSection } from "@/components/Comments";
 import { Carousel } from "@/components/Carousel";
@@ -288,7 +289,7 @@ export function PostCard({ post, currentUserId, onDelete, initialSaved = false }
           <div className="flex items-center gap-2 px-3 pt-2.5 pb-1.5">
             <div className="w-6 h-6 rounded-full overflow-hidden bg-bg-muted flex-shrink-0 border border-border/40">
               {repostData.repost_author_avatar
-                ? <img src={repostData.repost_author_avatar} alt="" className="w-full h-full object-cover"/>
+                ? <img src={imgUrl(repostData.repost_author_avatar, "avatar-sm")} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async"/>
                 : <div className="w-full h-full bg-accent-purple/20"/>
               }
             </div>

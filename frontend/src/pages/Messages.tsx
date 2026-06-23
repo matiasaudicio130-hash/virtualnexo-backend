@@ -5,6 +5,8 @@ import {
   Shield, Settings, X, Users, Search,
 } from "lucide-react";
 import { messagingApi, profilesApi, messagingV2Api, notificationsApi } from "@/lib/api";
+import { supabase } from "@/lib/supabase";
+import { imgUrl } from "@/utils/image";
 import { useAuthStore } from "@/store/authStore";
 import { toast } from "@/store/toastStore";
 import { useScreenCapture } from "@/hooks/useScreenCapture";
@@ -51,8 +53,30 @@ function ChatWindow({
 
   useEffect(() => { load(); }, [load]);
 
-  // Poll typing indicator (3s) y read receipts (8s)
+  // Supabase Realtime — nuevos mensajes y actualizaciones de read_at
   useEffect(() => {
+    const channel = supabase
+      .channel(`messages:conv:${conv.id}`)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "messages", filter: `conversation_id=eq.${conv.id}` },
+        (payload) => {
+          setMessages(prev => {
+            if (prev.some(m => m.id === payload.new.id)) return prev;
+            return [...prev, payload.new];
+          });
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "messages", filter: `conversation_id=eq.${conv.id}` },
+        (payload) => {
+          setMessages(prev => prev.map(m => m.id === payload.new.id ? { ...m, ...payload.new } : m));
+        }
+      )
+      .subscribe();
+
+    // Poll de typing indicator (sin tabla en DB, sigue siendo REST)
     pollTimer.current = setInterval(async () => {
       try {
         const { data } = await messagingV2Api.getTyping(conv.id);
@@ -60,11 +84,11 @@ function ChatWindow({
       } catch { /* ignore */ }
     }, 3000);
 
-    // Re-fetch de mensajes para actualizar read_at (✓✓) del lado del emisor
-    const readPoll = setInterval(() => load(), 8000);
-
-    return () => { clearInterval(pollTimer.current); clearInterval(readPoll); };
-  }, [conv.id, load]);
+    return () => {
+      supabase.removeChannel(channel);
+      clearInterval(pollTimer.current);
+    };
+  }, [conv.id]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -487,7 +511,7 @@ export default function Messages() {
                       >
                         <div className="w-9 h-9 rounded-full overflow-hidden bg-bg-muted flex-shrink-0 border border-border/40">
                           {r.other_user?.avatar
-                            ? <img src={r.other_user.avatar} alt="" className="w-full h-full object-cover"/>
+                            ? <img src={imgUrl(r.other_user.avatar, "avatar-sm")} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async"/>
                             : <div className="w-full h-full bg-accent-purple/15"/>
                           }
                         </div>
@@ -650,7 +674,7 @@ export default function Messages() {
                   <button onClick={() => navigate(`/profile/${req.from_id}`)} className="flex-shrink-0">
                     <div className="w-11 h-11 rounded-full overflow-hidden bg-bg-muted border border-border/40">
                       {req.from_avatar
-                        ? <img src={req.from_avatar} alt="" className="w-full h-full object-cover" />
+                        ? <img src={imgUrl(req.from_avatar, "avatar-md")} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async"/>
                         : <div className="w-full h-full bg-accent-purple/15 flex items-center justify-center">
                             <User size={18} className="text-accent-purple" />
                           </div>
@@ -730,7 +754,7 @@ export default function Messages() {
                 >
                   <div className="relative">
                     {m.profile_photo_url
-                      ? <img src={m.profile_photo_url} alt="" className="w-12 h-12 rounded-full object-cover border border-accent-purple/30" />
+                      ? <img src={imgUrl(m.profile_photo_url, "avatar-md")} alt="" className="w-12 h-12 rounded-full object-cover border border-accent-purple/30" loading="lazy" decoding="async"/>
                       : <div className="w-12 h-12 rounded-full bg-accent-purple/10 border border-accent-purple/30 flex items-center justify-center"><User size={20} className="text-accent-purple" /></div>
                     }
                     <span className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-status-error rounded-full flex items-center justify-center">

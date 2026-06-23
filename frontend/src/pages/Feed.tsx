@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
+import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Plus, X } from "lucide-react";
 import { SlidersHorizontal, MagnifyingGlass, MapPin, PaperPlaneTilt } from "@phosphor-icons/react";
@@ -119,6 +120,7 @@ function PostSkeleton() {
 // ── Componente principal ──────────────────────────────────────
 export default function Feed() {
   const { user } = useAuthStore();
+  const queryClient = useQueryClient();
   const [searchParams] = useSearchParams();
 
   // Scroll al post específico cuando se llega desde una notificación (?post=ID)
@@ -139,11 +141,7 @@ export default function Feed() {
   }, [searchParams]);
 
   // Feed state
-  const [posts, setPosts]             = useState<Post[]>([]);
-  const [loading, setLoading]         = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [hasMore, setHasMore]         = useState(true);
-  const [offset, setOffset]           = useState(0);
+  const [removedIds, setRemovedIds]         = useState(new Set<string>());
   const [showCreate, setShowCreate]         = useState(false);
   const [feedTab, setFeedTab]               = useState<"all" | "following">("all");
   const [feedAds, setFeedAds]               = useState<Ad[]>([]);
@@ -209,61 +207,52 @@ export default function Feed() {
     ? `${selectedCity.display} · ${mundial ? "Mundial" : `${radius}km`}`
     : userLat ? `Mi ubicación · ${mundial ? "Mundial" : `${radius}km`}` : null;
 
-  function buildParams(off: number) {
-    const p: Record<string, any> = { limit: LIMIT, offset: off };
-    if (!mundial) p.radius_km = radius;
-    if (effectiveLat && effectiveLng) {
-      p.lat = effectiveLat;
-      p.lng = effectiveLng;
-    }
-    return p;
-  }
-
-  const loadFeed = useCallback(async () => {
-    setLoading(true);
-    setOffset(0);
-    setHasMore(true);
-    try {
-      let newPosts: Post[] = [];
+  const {
+    data: feedData,
+    isLoading: loading,
+    isFetchingNextPage: loadingMore,
+    hasNextPage: hasMore,
+    fetchNextPage,
+  } = useInfiniteQuery({
+    queryKey: ["feed", feedTab, effectiveLat ?? 0, effectiveLng ?? 0, radius, mundial] as const,
+    queryFn: async ({ pageParam }: { pageParam: number }) => {
       if (feedTab === "following") {
-        const { data } = await followsApi.followingFeed({ limit: LIMIT, offset: 0 });
-        newPosts = data.posts || [];
-        setHasMore(false);
-      } else {
-        const { data } = await feedApi.getFeed(buildParams(0));
-        newPosts = data.posts || [];
-        setOffset(data.next_offset ?? newPosts.length);
-        setHasMore(data.has_more ?? (newPosts.length === LIMIT));
+        const { data } = await followsApi.followingFeed({ limit: LIMIT, offset: pageParam });
+        return { posts: (data.posts || []) as Post[], next_offset: 0, has_more: false };
+      }
+      const p: Record<string, any> = { limit: LIMIT, offset: pageParam };
+      if (!mundial) p.radius_km = radius;
+      if (effectiveLat && effectiveLng) { p.lat = effectiveLat; p.lng = effectiveLng; }
+      const { data } = await feedApi.getFeed(p);
+      if (pageParam === 0) {
         adsApi.feedAds("banner", 5).then(r => setFeedAds(r.data)).catch(() => {});
       }
-      setPosts(newPosts);
-    } catch { /* ignore */ }
-    setLoading(false);
-  }, [radius, mundial, effectiveLat, effectiveLng, feedTab]);
+      return {
+        posts: (data.posts || []) as Post[],
+        next_offset: data.next_offset ?? (pageParam + LIMIT),
+        has_more: data.has_more ?? ((data.posts?.length ?? 0) === LIMIT),
+      };
+    },
+    initialPageParam: 0,
+    getNextPageParam: (lastPage) => lastPage.has_more ? lastPage.next_offset : undefined,
+    staleTime: 2 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+  });
 
-  useEffect(() => { loadFeed(); }, [loadFeed]);
+  const posts = (feedData?.pages.flatMap(p => p.posts) ?? []).filter(p => !removedIds.has(p.id));
 
   // Infinite scroll
   useEffect(() => {
     if (!sentinelRef.current) return;
-    const obs = new IntersectionObserver(async ([entry]) => {
-      if (!entry.isIntersecting || loadingMore || !hasMore || loading) return;
-      setLoadingMore(true);
-      try {
-        const { data } = await feedApi.getFeed(buildParams(offset));
-        const newPosts = data.posts || [];
-        setPosts(prev => [...prev, ...newPosts]);
-        setOffset(data.next_offset ?? (offset + LIMIT));
-        setHasMore(data.has_more ?? (newPosts.length === LIMIT));
-      } catch { /* ignore */ }
-      setLoadingMore(false);
+    const obs = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting && hasMore && !loadingMore && !loading) fetchNextPage();
     }, { threshold: 0.1 });
     obs.observe(sentinelRef.current);
     return () => obs.disconnect();
-  }, [offset, loadingMore, hasMore, loading, radius, mundial, effectiveLat, effectiveLng]);
+  }, [hasMore, loadingMore, loading, fetchNextPage]);
 
   function removePost(id: string) {
-    setPosts(ps => ps.filter(p => p.id !== id));
+    setRemovedIds(prev => new Set([...prev, id]));
   }
 
   // Frecuencia de ads según membresía
@@ -521,7 +510,7 @@ export default function Feed() {
 
       {showCreate && (
         <CreatePost
-          onCreated={() => { setShowCreate(false); loadFeed(); }}
+          onCreated={() => { setShowCreate(false); queryClient.invalidateQueries({ queryKey: ["feed"] }); }}
           onClose={() => setShowCreate(false)}
         />
       )}

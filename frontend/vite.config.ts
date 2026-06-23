@@ -39,6 +39,33 @@ export default defineConfig({
       },
     }),
   ],
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          "vendor-react":  ["react", "react-dom", "react-router-dom"],
+          "vendor-icons":  ["@phosphor-icons/react"],
+          "vendor-query":  ["@tanstack/react-query"],
+          "vendor-forms":  ["react-hook-form", "@hookform/resolvers", "zod"],
+          "vendor-ui":     ["gsap", "@gsap/react"],
+          "page-feed":     ["./src/pages/Feed.tsx"],
+          "page-explore":  ["./src/pages/Explore.tsx"],
+          "page-messages": ["./src/pages/Messages.tsx"],
+          "page-profile":  ["./src/pages/ProfileView.tsx"],
+          "page-dashboard":["./src/pages/Dashboard.tsx"],
+        },
+      },
+    },
+    chunkSizeWarningLimit: 500,
+    minify: "terser",
+    terserOptions: {
+      compress: {
+        drop_console: true,
+        drop_debugger: true,
+        pure_funcs: ["console.log", "console.warn", "console.info"],
+      },
+    },
+  },
   server: {
     port: 5173,
     proxy: {

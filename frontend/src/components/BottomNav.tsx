@@ -133,11 +133,11 @@ export function BottomNav() {
   }
 
   const tabs = [
-    { id: "feed",    label: "Feed",     Icon: SquaresFour,    path: "/feed"      },
-    { id: "explore", label: "Explorar", Icon: MagnifyingGlass, path: "/explore"  },
-    { id: "msgs",    label: "Mensajes", Icon: ChatTeardrop,   path: "/messages"  },
-    { id: "alerts",  label: "Alertas",  Icon: Bell,           path: null         },
-    { id: "profile", label: "Mi perfil",Icon: UserCircle,     path: "/dashboard" },
+    { id: "feed",    label: "Feed",     Icon: SquaresFour,    path: "/feed",      prefetch: () => import("../pages/Feed")      },
+    { id: "explore", label: "Explorar", Icon: MagnifyingGlass, path: "/explore",  prefetch: () => import("../pages/Explore")  },
+    { id: "msgs",    label: "Mensajes", Icon: ChatTeardrop,   path: "/messages",  prefetch: () => import("../pages/Messages")  },
+    { id: "alerts",  label: "Alertas",  Icon: Bell,           path: null,         prefetch: undefined                          },
+    { id: "profile", label: "Mi perfil",Icon: UserCircle,     path: "/dashboard", prefetch: () => import("../pages/Dashboard") },
   ];
 
   function isActive(tab: typeof tabs[number]) {
@@ -251,11 +251,13 @@ export function BottomNav() {
         <div className="flex items-center justify-around h-[60px] max-w-lg mx-auto px-2">
           {tabs.map(tab => {
             const active = isActive(tab);
-            const { Icon, id, label, path: tabPath } = tab;
+            const { Icon, id, label, path: tabPath, prefetch } = tab;
 
             return (
               <button
                 key={id}
+                onMouseEnter={() => prefetch?.()}
+                onTouchStart={() => prefetch?.()}
                 onClick={() => {
                   if (id === "alerts") {
                     handleAlertas();

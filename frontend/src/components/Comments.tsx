@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Trash2, Flag, Reply, ChevronDown, ChevronUp } from "lucide-react";
 import { commentsApi, searchApi } from "@/lib/api";
 import { useAuthStore } from "@/store/authStore";
+import { imgUrl } from "@/utils/image";
 import { ProtectedAvatar } from "@/components/ProtectedImage";
 
 const MENTION_TOKEN_RE = /(@[A-Za-z0-9_]{2,30})/g;
@@ -334,7 +335,7 @@ export function CommentsSection({
                           >
                             <div className="w-7 h-7 rounded-full overflow-hidden bg-bg-muted flex-shrink-0">
                               {u.avatar
-                                ? <img src={u.avatar} alt="" className="w-full h-full object-cover"/>
+                                ? <img src={imgUrl(u.avatar, "avatar-sm")} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async"/>
                                 : <div className="w-full h-full bg-accent-purple/20"/>
                               }
                             </div>

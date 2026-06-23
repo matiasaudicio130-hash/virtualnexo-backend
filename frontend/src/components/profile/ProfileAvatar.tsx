@@ -2,6 +2,7 @@ import { useRef } from "react";
 import { User } from "lucide-react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
+import { imgUrl } from "@/utils/image";
 
 interface Props {
   photoUrl?: string | null;
@@ -60,9 +61,10 @@ export function ProfileAvatar({ photoUrl, hasActiveStory, storySeen, size = 110,
       >
         {photoUrl ? (
           <img
-            src={photoUrl}
+            src={imgUrl(photoUrl, "avatar-lg")}
             alt=""
             draggable={false}
+            decoding="async"
             onContextMenu={e => e.preventDefault()}
             style={{ width: "100%", height: "100%", objectFit: "cover" }}
           />

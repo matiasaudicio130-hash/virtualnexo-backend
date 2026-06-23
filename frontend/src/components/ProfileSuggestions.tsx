@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Sparkles } from "lucide-react";
 import { discoveryApi } from "@/lib/api";
 import { PROFILE_TYPE_CONFIG } from "@/types";
+import { imgUrl } from "@/utils/image";
 import type { ProfileType } from "@/types";
 
 interface SuggestedUser {
@@ -74,7 +75,7 @@ export function ProfileSuggestions({ tag }: Props = {}) {
               <button onClick={() => navigate(`/profile/${u.id}`)} className="flex-shrink-0">
                 <div className="w-11 h-11 rounded-full overflow-hidden border border-border/50">
                   {u.profile_photo_url
-                    ? <img src={u.profile_photo_url} alt="" className="w-full h-full object-cover"/>
+                    ? <img src={imgUrl(u.profile_photo_url, "avatar-md")} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async"/>
                     : <div className="w-full h-full bg-accent-purple/10 flex items-center justify-center text-accent-purple font-light">
                         {u.first_name.charAt(0)}
                       </div>

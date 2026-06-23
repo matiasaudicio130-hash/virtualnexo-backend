@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { X } from "lucide-react";
 import { MapPin, MagnifyingGlass, Clock, UserCircle, Hash } from "@phosphor-icons/react";
+import { imgUrl } from "@/utils/image";
 import { useGeolocation } from "@/hooks/useGeolocation";
 import { NearbyUsers } from "@/components/NearbyUsers";
 import { ProfileSuggestions } from "@/components/ProfileSuggestions";
@@ -317,7 +318,7 @@ export default function Explore() {
                         {/* Avatar */}
                         <div className="w-11 h-11 rounded-full overflow-hidden bg-bg-muted flex-shrink-0 border border-border">
                           {u.avatar
-                            ? <img src={u.avatar} alt={u.name} className="w-full h-full object-cover" />
+                            ? <img src={imgUrl(u.avatar, "avatar-md")} alt={u.name} className="w-full h-full object-cover" loading="lazy" decoding="async"/>
                             : <div className="w-full h-full flex items-center justify-center">
                                 <UserCircle size={28} weight="light" className="text-text-muted" />
                               </div>
@@ -537,7 +538,7 @@ function HashtagTab({
                   className="aspect-square rounded-lg overflow-hidden bg-bg-muted relative group"
                 >
                   {p.thumb ? (
-                    <img src={p.thumb} alt="" className="w-full h-full object-cover" />
+                    <img src={imgUrl(p.thumb, "thumb")} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async"/>
                   ) : (
                     <div className="w-full h-full flex items-center justify-center p-2">
                       <p className="text-[9px] text-text-muted text-center line-clamp-4 leading-tight">
