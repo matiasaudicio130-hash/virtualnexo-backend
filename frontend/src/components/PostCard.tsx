@@ -90,7 +90,10 @@ export function PostCard({ post, currentUserId, onDelete, initialSaved = false }
   const [saved, setSaved]         = useState(initialSaved);
   const [showShare,  setShowShare]  = useState(false);
   const [showReport, setShowReport] = useState(false);
-  const [showStats,  setShowStats]  = useState(false);
+  const [showStats,     setShowStats]     = useState(false);
+  const [showReactors,  setShowReactors]  = useState(false);
+  const [reactors,      setReactors]      = useState<Record<string, any[]> | null>(null);
+  const [loadingReactors, setLoadingReactors] = useState(false);
   const [pollVotes, setPollVotes] = useState<number[]>(
     (post as any).extra_data?.poll?.votes ?? []
   );
@@ -152,6 +155,17 @@ export function PostCard({ post, currentUserId, onDelete, initialSaved = false }
   async function handleDoubleTap() {
     if (myReaction === "heart") return;
     handleReact("heart");
+  }
+
+  async function openReactors() {
+    setShowReactors(true);
+    if (reactors) return;
+    setLoadingReactors(true);
+    try {
+      const { data } = await feedApi.postReactions(post.id);
+      setReactors(data.reactions ?? {});
+    } catch { setReactors({}); }
+    setLoadingReactors(false);
   }
 
   async function handleSave() {
@@ -413,7 +427,8 @@ export function PostCard({ post, currentUserId, onDelete, initialSaved = false }
                     style={{ color: active ? colorActive : "var(--color-text-muted, #6b7280)" }}
                   />
                     <span
-                      className="text-xs font-medium tabular-nums"
+                      onClick={count > 0 ? (e) => { e.stopPropagation(); openReactors(); } : undefined}
+                      className={`text-xs font-medium tabular-nums ${count > 0 ? "cursor-pointer hover:underline" : ""}`}
                       style={{ color: active ? colorActive : count > 0 ? "var(--color-text-secondary, #9ca3af)" : "var(--color-text-muted, #6b7280)", opacity: count === 0 ? 0.4 : 1 }}
                     >
                       {count}
@@ -492,6 +507,59 @@ export function PostCard({ post, currentUserId, onDelete, initialSaved = false }
       {/* Stats modal */}
       {showStats && createPortal(
         <PostStatsModal postId={post.id} onClose={() => setShowStats(false)} />,
+        document.body
+      )}
+
+      {/* Reactores drawer */}
+      {showReactors && createPortal(
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 backdrop-blur-sm" onClick={() => setShowReactors(false)}>
+          <div className="w-full max-w-md bg-bg-card border border-border rounded-t-3xl overflow-hidden animate-slide-up" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+              <p className="text-sm font-semibold">Reacciones</p>
+              <button onClick={() => setShowReactors(false)} className="p-1.5 text-text-muted hover:text-text-primary rounded-lg">
+                <span style={{ fontSize: 16 }}>✕</span>
+              </button>
+            </div>
+            <div className="max-h-[50vh] overflow-y-auto">
+              {loadingReactors && (
+                <div className="space-y-3 p-4">
+                  {[...Array(3)].map((_, i) => (
+                    <div key={i} className="flex items-center gap-3 animate-pulse">
+                      <div className="w-10 h-10 rounded-full bg-bg-muted flex-shrink-0" />
+                      <div className="h-3 w-32 rounded-full bg-bg-muted" />
+                    </div>
+                  ))}
+                </div>
+              )}
+              {!loadingReactors && reactors && Object.entries(reactors).map(([type, users]) => (
+                <div key={type}>
+                  <p className="px-4 py-2 text-[10px] text-text-muted uppercase tracking-widest border-b border-border/40">
+                    {type === "heart" ? "❤️ Me gusta" : "🔥 Me encanta"} · {users.length}
+                  </p>
+                  {users.map(u => (
+                    <button
+                      key={u.id}
+                      onClick={() => { setShowReactors(false); navigate(`/profile/${u.id}`); }}
+                      className="w-full flex items-center gap-3 px-4 py-3 hover:bg-bg-muted transition-colors text-left"
+                    >
+                      {u.avatar
+                        ? <img src={u.avatar} alt="" className="w-9 h-9 rounded-full object-cover flex-shrink-0" />
+                        : <div className="w-9 h-9 rounded-full bg-bg-muted flex-shrink-0 flex items-center justify-center text-xs text-text-muted">{u.name?.[0] ?? "?"}</div>
+                      }
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium truncate">{u.name}</p>
+                        {u.username && <p className="text-[11px] text-text-muted">@{u.username}</p>}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              ))}
+              {!loadingReactors && reactors && Object.keys(reactors).length === 0 && (
+                <p className="text-center text-sm text-text-muted py-10">Sin reacciones todavía</p>
+              )}
+            </div>
+          </div>
+        </div>,
         document.body
       )}
 

@@ -554,6 +554,34 @@ async def post_stats(post_id: str, request: Request):
     }
 
 
+@router.get("/posts/{post_id}/reactions")
+async def post_reactions(post_id: str, request: Request):
+    """Lista de usuarios que reaccionaron a un post, agrupados por tipo."""
+    from app.db.supabase import get_supabase
+    _require_auth(request)
+    db = get_supabase()
+
+    rows = db.table("post_reactions").select(
+        "type, user:users!post_reactions_user_id_fkey(id,first_name,last_name,profile_photo_url,profile_type,username)"
+    ).eq("post_id", post_id).order("created_at", desc=True).limit(100).execute()
+
+    grouped: dict[str, list] = {}
+    for r in rows.data:
+        t = r["type"]
+        u = r.get("user") or {}
+        if t not in grouped:
+            grouped[t] = []
+        grouped[t].append({
+            "id":          u.get("id"),
+            "name":        f"{u.get('first_name','')} {u.get('last_name','')}".strip(),
+            "username":    u.get("username"),
+            "avatar":      u.get("profile_photo_url"),
+            "profile_type": u.get("profile_type"),
+        })
+
+    return {"reactions": grouped, "total": len(rows.data)}
+
+
 # ── Sprint 2: saves, share, carousel ──────────────────────────
 
 @router.post("/posts/{post_id}/save")

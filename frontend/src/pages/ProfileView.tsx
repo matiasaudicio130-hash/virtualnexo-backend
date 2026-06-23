@@ -469,6 +469,31 @@ export default function ProfileView() {
           )}
         </div>
 
+        {/* ── Intereses en común (solo visible para el visitante, no para el dueño del perfil) ── */}
+        {me && me.id !== userId && (() => {
+          const myTags: string[] = (me as any).seeking_tags || [];
+          const theirTags: string[] = profile.seeking_tags || [];
+          const common = myTags.filter(t => theirTags.includes(t));
+          if (common.length === 0) return null;
+          return (
+            <div style={{ padding: "0 24px 16px", display: "flex", justifyContent: "center" }}>
+              <div style={{
+                display: "inline-flex", alignItems: "center", gap: 6,
+                padding: "5px 12px", borderRadius: 99,
+                background: "rgba(201,162,39,0.08)",
+                border: "1px solid rgba(201,162,39,0.22)",
+              }}>
+                <span style={{ fontSize: 12 }}>✦</span>
+                <span style={{ fontFamily: "var(--font-sans)", fontSize: 11, color: "var(--gold, #C9A227)", fontWeight: 500 }}>
+                  {common.length === 1
+                    ? `1 interés en común`
+                    : `${common.length} intereses en común`}
+                </span>
+              </div>
+            </div>
+          );
+        })()}
+
         {/* ── ZONA 2: Bio enriquecida (menciones, hashtags, links) ── */}
         <RichBio bio={profile.bio} links={profile.profile_extended?.links} />
 
