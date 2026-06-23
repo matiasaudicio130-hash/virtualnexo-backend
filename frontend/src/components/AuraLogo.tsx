@@ -1,12 +1,11 @@
 /**
  * AuraLogo — componente unificado de marca para toda la app.
  *
- * variant="full"    → logo completo con texto AURA (hero, login)
- * variant="mark"    → solo el mark circular (header, favicon)
- * variant="wordmark"→ solo texto AURA sin mark
+ * variant="full"     → logo completo (hero, login)
+ * variant="mark"     → mark circular (header)
+ * variant="wordmark" → solo texto AURA
  *
- * El truco mix-blend-mode:screen hace que el fondo negro
- * de las imágenes sea invisible sobre fondos oscuros.
+ * Usa logo-aura-soft.png — PNG con fondo transparente real.
  */
 
 interface Props {
@@ -35,10 +34,6 @@ export function AuraLogo({
       : "drop-shadow(0 0 8px rgba(201,162,39,0.55))",
   };
 
-  const blendStyle: React.CSSProperties = light
-    ? {}
-    : { mixBlendMode: "screen" as const };
-
   if (variant === "wordmark") {
     return (
       <span
@@ -51,10 +46,9 @@ export function AuraLogo({
   }
 
   if (variant === "full") {
-    const src = light ? "/brand/logo-light-digital.png" : "/brand/logo-full-dark.jpg";
     return (
       <img
-        src={src}
+        src="/brand/logo-aura-soft.png"
         alt="AURA"
         draggable={false}
         className={className}
@@ -63,19 +57,17 @@ export function AuraLogo({
           height: size,
           objectFit: "contain",
           ...glowStyle,
-          ...blendStyle,
           ...spinStyle,
         }}
       />
     );
   }
 
-  // variant="mark" — anillos sin texto
-  const src = light ? "/brand/logo-light-digital.png" : "/brand/logo-mark-dark.png";
+  // variant="mark" — usa el mismo PNG transparente
   return (
     <div style={{ position: "relative", width: size, height: size, flexShrink: 0 }} className={className}>
       <img
-        src={src}
+        src="/brand/logo-aura-soft.png"
         alt="AURA"
         draggable={false}
         style={{
@@ -83,7 +75,6 @@ export function AuraLogo({
           height: "100%",
           objectFit: "contain",
           ...glowStyle,
-          ...blendStyle,
           ...spinStyle,
         }}
       />
@@ -93,29 +84,21 @@ export function AuraLogo({
 
 /** Logo de nav — logo completo estático, sin animación */
 export function NavLogo({ light = false }: { light?: boolean }) {
-  const src = light ? "/brand/logo-light-digital.png" : "/brand/logo-aura.png";
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
       <img
-        src={src}
+        src="/brand/logo-aura-soft.png"
         alt="AURA"
         draggable={false}
         style={{
-          width: 36,
-          height: 36,
+          width: 38,
+          height: 38,
           objectFit: "contain",
-          filter: light ? "none" : "drop-shadow(0 0 6px rgba(201,162,39,0.5))",
+          filter: light
+            ? "brightness(0.6) sepia(1) saturate(3)"
+            : "drop-shadow(0 0 6px rgba(201,162,39,0.45))",
         }}
       />
-      <span style={{
-        fontSize: 11,
-        letterSpacing: "0.32em",
-        fontWeight: 300,
-        color: light ? "#7a5010" : "rgba(255,229,102,0.82)",
-        textTransform: "uppercase" as const,
-      }}>
-        AURA
-      </span>
     </div>
   );
 }
