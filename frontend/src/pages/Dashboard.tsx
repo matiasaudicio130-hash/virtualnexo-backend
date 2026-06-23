@@ -59,7 +59,7 @@ export default function Dashboard() {
   const [msgSetting, setMsgSetting] = useState<"everyone"|"followers"|"nobody">(
     ((user as any)?.profile_extended?.message_settings ?? "everyone") as "everyone"|"followers"|"nobody"
   );
-  const [anonMode, setAnonMode] = useState(false);
+  const [anonMode, setAnonMode] = useState((user as any)?.anonymous_mode ?? false);
   const [showQR, setShowQR] = useState(false);
   const [socialStats, setSocialStats] = useState({ followers: 0, following: 0 });
 
@@ -125,6 +125,16 @@ export default function Dashboard() {
       <header className="sticky top-0 z-20 bg-bg-base/85 backdrop-blur-md border-b border-border px-4 pt-safe-3 pb-3 flex items-center justify-between">
         <NavLogo />
         <div className="flex items-center gap-2">
+          {/* Indicador de Modo Anónimo activo */}
+          {anonMode && (
+            <span
+              title="Modo Anónimo activo — no dejás rastro al visitar perfiles"
+              className="flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-medium"
+              style={{ background: "rgba(139,92,246,0.15)", color: "var(--accent-purple,#8B5CF6)", border: "1px solid rgba(139,92,246,0.25)" }}
+            >
+              <EyeOff size={11} /> Anónimo
+            </span>
+          )}
           <button
             onClick={() => setShowQR(true)}
             className="p-2 rounded-xl hover:bg-bg-muted transition-colors"
