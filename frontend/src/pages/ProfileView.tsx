@@ -306,6 +306,15 @@ export default function ProfileView() {
     try { await profilesApi.deleteNote(); } catch { /* ignore */ }
   }
 
+  // Esperar a que auth cargue antes de determinar isOwnProfile.
+  // Sin este guard, el componente monta con me=null → isOwnProfile=false →
+  // renderiza ProfileActions sobre el propio perfil hasta que auth carga.
+  if (!me) return (
+    <div className="min-h-screen bg-bg-base flex items-center justify-center">
+      <div className="w-8 h-8 border-2 border-[var(--ash)] border-t-[var(--gold)] rounded-full animate-spin"/>
+    </div>
+  );
+
   if (loading) return (
     <div className="min-h-screen bg-bg-base flex items-center justify-center">
       <div className="w-8 h-8 border-2 border-[var(--ash)] border-t-[var(--gold)] rounded-full animate-spin"/>
@@ -569,7 +578,7 @@ export default function ProfileView() {
         <HighlightsCarousel userId={userId!} isOwn={isOwnProfile} />
 
         {/* ── ZONA 4: Grilla multi-tab (Publicaciones/Reels/Guardados/Etiquetados) ── */}
-        {profile.private_account ? (
+        {profile.is_private && !isOwnProfile ? (
           <div style={{ padding: "48px 24px", textAlign: "center", borderTop: "1px solid var(--border-soft)" }}>
             <Lock size={26} style={{ color: "var(--mist)", marginBottom: 12 }}/>
             <p style={{ fontFamily: "var(--font-display)", fontSize: "var(--fs-display-s)", color: "var(--paper)", marginBottom: 6 }}>
