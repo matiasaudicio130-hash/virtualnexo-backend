@@ -412,14 +412,12 @@ export function PostCard({ post, currentUserId, onDelete, initialSaved = false }
                     weight={active ? "fill" : "light"}
                     style={{ color: active ? colorActive : "var(--color-text-muted, #6b7280)" }}
                   />
-                  {count > 0 && (
                     <span
                       className="text-xs font-medium tabular-nums"
-                      style={{ color: active ? colorActive : "var(--color-text-muted, #6b7280)" }}
+                      style={{ color: active ? colorActive : count > 0 ? "var(--color-text-secondary, #9ca3af)" : "var(--color-text-muted, #6b7280)", opacity: count === 0 ? 0.4 : 1 }}
                     >
                       {count}
                     </span>
-                  )}
                 </div>
                 <span className="text-[9px] leading-none" style={{ color: active ? colorActive : "var(--color-text-muted, #6b7280)" }}>
                   {label}
@@ -429,8 +427,20 @@ export function PostCard({ post, currentUserId, onDelete, initialSaved = false }
           })}
         </div>
 
-        {/* Derecha: utilidades — sin contadores */}
+        {/* Derecha: utilidades */}
         <div className="flex items-center gap-3">
+          {/* Comentarios con contador */}
+          {post.type !== "story" && (
+            <div className="flex flex-col items-center gap-0.5">
+              <div className="flex items-center gap-1 px-2 py-1 rounded-xl">
+                <ChatCircle size={20} weight="light" style={{ color: "var(--color-text-muted, #6b7280)" }} />
+                <span className="text-xs font-medium tabular-nums" style={{ color: (post.comments_count ?? 0) > 0 ? "var(--color-text-secondary, #9ca3af)" : "var(--color-text-muted, #6b7280)", opacity: (post.comments_count ?? 0) === 0 ? 0.4 : 1 }}>
+                  {post.comments_count ?? 0}
+                </span>
+              </div>
+              <span className="text-[9px] leading-none" style={{ color: "var(--color-text-muted, #6b7280)" }}>Comentarios</span>
+            </div>
+          )}
           {/* Guardar */}
           <button
             onClick={handleSave}

@@ -10,7 +10,9 @@ import Login       from "@/pages/Login";
 import VerifyEmail from "@/pages/VerifyEmail";
 import AccessDenied from "@/pages/AccessDenied";
 import Privacidad  from "@/pages/Privacidad";
-import Terminos    from "@/pages/Terminos";
+import Terminos       from "@/pages/Terminos";
+import ForgotPassword from "@/pages/ForgotPassword";
+import ResetPassword  from "@/pages/ResetPassword";
 
 // Páginas de onboarding (autenticado, pero no activo aún)
 import KYCVerification  from "@/pages/KYCVerification";
@@ -58,8 +60,10 @@ export default function App() {
       <Route path="/login" element={<Login />} />
       <Route path="/verificar-email" element={<VerifyEmail />} />
       <Route path="/acceso-denegado" element={<AccessDenied />} />
-      <Route path="/privacidad"     element={<Privacidad />} />
-      <Route path="/terminos"       element={<Terminos />} />
+      <Route path="/privacidad"      element={<Privacidad />} />
+      <Route path="/terminos"        element={<Terminos />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password"  element={<ResetPassword />} />
 
       {/* KYC: autenticado con status pending_kyc */}
       <Route element={<ProtectedRoute allowedStatuses={["pending_kyc"]} redirectTo="/login" />}>

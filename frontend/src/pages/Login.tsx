@@ -4,12 +4,13 @@
  * Inputs underline-only. Botón pill dorado.
  * Tipografía: Cormorant para el saludo, Manrope para el cuerpo.
  */
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ShieldCheck } from "lucide-react";
+import { Eye, EyeSlash } from "@phosphor-icons/react";
 import { useAuth } from "@/hooks/useAuth";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
@@ -36,6 +37,8 @@ export default function Login() {
   const { login, verifyTotpLogin } = useAuth();
   const [error, setError]         = useState("");
   const [totpState, setTotpState] = useState<{ session: string } | null>(null);
+  const [showPwd, setShowPwd]     = useState(false);
+  const togglePwd = useCallback(() => setShowPwd(v => !v), []);
   const [totpCode, setTotpCode]   = useState("");
   const [totpLoading, setTotpLoading] = useState(false);
 
@@ -86,7 +89,7 @@ export default function Login() {
       {/* Heading */}
       {!totpState && (
         <h1 style={{ fontFamily: "var(--font-display)", fontSize: "var(--fs-display-m)", fontWeight: 400, fontStyle: "italic", color: "var(--paper)", marginBottom: 40, textAlign: "center", lineHeight: 1.1 }}>
-          Bienvenida<br/>de nuevo.
+          Volviste.
         </h1>
       )}
 
@@ -146,11 +149,21 @@ export default function Login() {
             <Input
               id="password"
               label="Contraseña"
-              type="password"
+              type={showPwd ? "text" : "password"}
               autoComplete="current-password"
               error={errors.password?.message}
+              icon={
+                <button type="button" onClick={togglePwd} tabIndex={-1} style={{ background: "none", border: "none", cursor: "pointer", padding: 0, color: "var(--mist)" }}>
+                  {showPwd ? <EyeSlash size={16} /> : <Eye size={16} />}
+                </button>
+              }
               {...register("password")}
             />
+            <div style={{ textAlign: "right", marginTop: -4 }}>
+              <Link to="/forgot-password" style={{ fontSize: 12, color: "rgba(201,162,39,0.65)" }}>
+                ¿Olvidaste tu contraseña?
+              </Link>
+            </div>
             <Button type="submit" loading={isSubmitting} fullWidth style={{ marginTop: 8 }}>
               Entrar
             </Button>

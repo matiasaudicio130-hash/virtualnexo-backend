@@ -225,7 +225,13 @@ export default function Feed() {
       if (effectiveLat && effectiveLng) { p.lat = effectiveLat; p.lng = effectiveLng; }
       const { data } = await feedApi.getFeed(p);
       if (pageParam === 0) {
-        adsApi.feedAds("banner", 5).then(r => setFeedAds(r.data)).catch(() => {});
+        adsApi.feedAds("banner", 5).then(r => {
+          // Filtrar placeholders hasta tener anunciantes reales
+          const real = (r.data as Ad[]).filter(a =>
+            !/(ejemplo|placeholder|test|demo)/i.test(a.advertiser?.name ?? "")
+          );
+          setFeedAds(real);
+        }).catch(() => {});
       }
       return {
         posts: (data.posts || []) as Post[],

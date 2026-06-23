@@ -1,9 +1,10 @@
-﻿import { useState } from "react";
+﻿import { useState, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { APP_CONFIG } from "@/config/app";
+import { Eye, EyeSlash } from "@phosphor-icons/react";
 import { authApi } from "@/lib/api";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -35,6 +36,8 @@ export default function Register() {
   const navigate = useNavigate();
   const [error, setError] = useState("");
   const [showMasterKey, setShowMasterKey] = useState(false);
+  const [showPwd, setShowPwd] = useState(false);
+  const togglePwd = useCallback(() => setShowPwd(v => !v), []);
 
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -94,10 +97,15 @@ export default function Register() {
 
           <Input
             label="Contraseña"
-            type="password"
+            type={showPwd ? "text" : "password"}
             placeholder="Mín. 8 caracteres, 1 mayúscula, 1 número"
             autoComplete="new-password"
             error={errors.password?.message}
+            icon={
+              <button type="button" onClick={togglePwd} tabIndex={-1} style={{ background: "none", border: "none", cursor: "pointer", padding: 0, color: "var(--mist)" }}>
+                {showPwd ? <EyeSlash size={16} /> : <Eye size={16} />}
+              </button>
+            }
             {...register("password")}
           />
 
@@ -142,9 +150,9 @@ export default function Register() {
             />
             <label htmlFor="terms" className="text-sm text-text-secondary leading-snug">
               Soy mayor de 18 años y acepto los{" "}
-              <span className="text-accent-purple cursor-pointer hover:underline">términos y condiciones</span>{" "}
-              y la{" "}
-              <span className="text-accent-purple cursor-pointer hover:underline">política de privacidad</span>.
+              <Link to="/terminos" className="text-accent-purple hover:underline">términos y condiciones</Link>
+              {" "}y la{" "}
+              <Link to="/privacidad" className="text-accent-purple hover:underline">política de privacidad</Link>.
             </label>
           </div>
           {errors.terms && <p className="text-xs text-status-error -mt-2">{errors.terms.message}</p>}

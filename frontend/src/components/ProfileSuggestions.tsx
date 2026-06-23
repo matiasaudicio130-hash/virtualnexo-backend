@@ -44,8 +44,16 @@ export function ProfileSuggestions({ tag }: Props = {}) {
   const visible = users.filter(u => !dismissed.has(u.id));
 
   if (loading) return (
-    <div className="mx-4 my-3 py-6 text-center">
-      <p className="text-xs text-text-muted">Buscando...</p>
+    <div className="px-4 pt-3 pb-1 space-y-2">
+      {[...Array(3)].map((_, i) => (
+        <div key={i} className="flex items-center gap-3 py-2 animate-pulse">
+          <div className="w-11 h-11 rounded-full bg-bg-muted flex-shrink-0" />
+          <div className="flex-1 space-y-1.5">
+            <div className="h-3 w-28 rounded-full bg-bg-muted" />
+            <div className="h-2 w-16 rounded-full bg-bg-muted/60" />
+          </div>
+        </div>
+      ))}
     </div>
   );
 

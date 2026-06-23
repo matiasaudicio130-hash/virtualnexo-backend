@@ -52,9 +52,9 @@ const COPY = {
       { n: "06", title: "El nivel que buscabas", body: "Una comunidad donde entrar ya dice algo de quién sos." },
     ],
     stats: [
-      { value: 0,   suffix: "",  label: "filtraciones registradas en la historia de la plataforma" },
-      { value: 100, suffix: "%", label: "de los perfiles, verificados con biometría y DNI real" },
-      { value: 1,   suffix: "°", label: "comunidad lifestyle adulta verificada de Argentina" },
+      { value: 0,   prefix: "",  suffix: "",  label: "filtraciones registradas en la historia de la plataforma" },
+      { value: 100, prefix: "",  suffix: "%", label: "de los perfiles, verificados con biometría y DNI real" },
+      { value: 1,   prefix: "#", suffix: "",  label: "comunidad lifestyle adulta verificada de Argentina" },
     ],
     cta: {
       eyebrow: "Acceso",
@@ -110,9 +110,9 @@ const COPY = {
       { n: "06", title: "The level you were looking for", body: "A community where getting in already says something about who you are." },
     ],
     stats: [
-      { value: 0,   suffix: "",  label: "leaks recorded in the platform's history" },
-      { value: 100, suffix: "%", label: "of profiles verified with biometrics and real ID" },
-      { value: 1,   suffix: "°", label: "verified adult lifestyle community in Argentina" },
+      { value: 0,   prefix: "",  suffix: "",  label: "leaks recorded in the platform's history" },
+      { value: 100, prefix: "",  suffix: "%", label: "of profiles verified with biometrics and real ID" },
+      { value: 1,   prefix: "#", suffix: "",  label: "verified adult lifestyle community in Argentina" },
     ],
     cta: {
       eyebrow: "Access",
@@ -147,7 +147,7 @@ function useMagnet(strength = 0.4) {
 }
 
 /* ── Counter ────────────────────────────────────────────────── */
-function Counter({ target, suffix }: { target: number; suffix: string }) {
+function Counter({ target, prefix = "", suffix }: { target: number; prefix?: string; suffix: string }) {
   const ref = useRef<HTMLSpanElement>(null);
   const fired = useRef(false);
   useEffect(() => {
@@ -160,14 +160,14 @@ function Counter({ target, suffix }: { target: number; suffix: string }) {
         const obj = { v: 0 };
         gsap.to(obj, {
           v: target, duration: 2, ease: "power2.out",
-          onUpdate: () => { if (ref.current) ref.current.textContent = Math.round(obj.v) + suffix; },
-          onComplete: () => { if (ref.current) ref.current.textContent = target + suffix; },
+          onUpdate: () => { if (ref.current) ref.current.textContent = prefix + Math.round(obj.v) + suffix; },
+          onComplete: () => { if (ref.current) ref.current.textContent = prefix + target + suffix; },
         });
       },
     });
     return () => st.kill();
-  }, [target, suffix]);
-  return <span ref={ref}>0{suffix}</span>;
+  }, [target, prefix, suffix]);
+  return <span ref={ref}>{prefix}0{suffix}</span>;
 }
 
 /* ═══════════════════════════════════════════════════════════ */
@@ -458,7 +458,7 @@ export default function Landing() {
           {c.stats.map((s, i) => (
             <div key={i} className="stat-item">
               <div style={{ fontSize: "clamp(52px,9vw,96px)", fontWeight: 100, letterSpacing: "-0.03em", background: GOLD, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", lineHeight: 1 }}>
-                <Counter target={s.value} suffix={s.suffix}/>
+                <Counter target={s.value} prefix={s.prefix} suffix={s.suffix}/>
               </div>
               <div style={{ width: 24, height: 1, background: "rgba(201,162,39,0.35)", margin: "14px auto" }}/>
               <p style={{ fontSize: 10, letterSpacing: "0.22em", color: "rgba(201,162,39,0.6)", textTransform: "uppercase", fontWeight: 300 }}>{s.label}</p>
