@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Star, ArrowLeft, Shield, Award, Trash2 } from "lucide-react";
+import { Star, ArrowLeft, Shield, Trophy, Trash } from "@phosphor-icons/react";
 import { reviewsApi } from "@/lib/api";
 import { useAuthStore } from "@/store/authStore";
 import type { Review, ReviewStats } from "@/types";
@@ -157,7 +157,7 @@ export default function Reviews() {
                   className="flex flex-col items-center gap-1.5 px-4 py-3 rounded-2xl"
                   style={{ background: medalCfg.bg }}
                 >
-                  <Award size={26} style={{ color: medalCfg.color }}/>
+                  <Trophy size={26} style={{ color: medalCfg.color }}/>
                   <span className="text-xs font-semibold" style={{ color: medalCfg.color }}>
                     {medalCfg.label}
                   </span>
@@ -208,7 +208,7 @@ export default function Reviews() {
                     border: isActive ? `1px solid ${cfg.color}40` : "1px solid transparent",
                   }}
                 >
-                  <Award size={18} className="mx-auto mb-1" style={{ color: cfg.color }}/>
+                  <Trophy size={18} className="mx-auto mb-1" style={{ color: cfg.color }}/>
                   <p className="text-xs font-bold" style={{ color: cfg.color }}>{min}</p>
                   <p className="text-[10px] text-text-muted mt-0.5">{label}</p>
                 </div>
@@ -245,7 +245,7 @@ export default function Reviews() {
                     onClick={handleDelete}
                     className="text-xs px-3 py-1.5 rounded-lg text-status-error hover:bg-status-error/10 transition-colors flex items-center gap-1"
                   >
-                    <Trash2 size={11}/> Eliminar
+                    <Trash size={11}/> Eliminar
                   </button>
                 </div>
               </div>

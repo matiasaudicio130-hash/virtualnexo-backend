@@ -1,5 +1,5 @@
 import { useRef, useState, useCallback } from "react";
-import { Image as ImageIcon, X, MapPin, Clock, BarChart2, Plus, Trash2, Pencil, Play, Scissors, LayoutGrid } from "lucide-react";
+import { Image as ImageIcon, X, MapPin, Clock, ChartBar, Plus, Trash, Pencil, Play, Scissors, SquaresFour } from "@phosphor-icons/react";
 import { feedApi, mediaApi } from "@/lib/api";
 import { Button } from "@/components/ui/Button";
 import { useAuthStore } from "@/store/authStore";
@@ -443,8 +443,8 @@ export function CreatePost({ onCreated, onClose }: Props) {
             {([
               { id: "post",    label: "Post",     icon: ImageIcon  },
               { id: "story",   label: "Story",    icon: Clock      },
-              { id: "poll",    label: "Encuesta", icon: BarChart2  },
-              { id: "collage", label: "Collage",  icon: LayoutGrid },
+              { id: "poll",    label: "Encuesta", icon: ChartBar  },
+              { id: "collage", label: "Collage",  icon: SquaresFour },
             ] as const).map(({ id, label, icon: Icon }) => (
               <button key={id} onClick={() => setMode(id)}
                 className={`flex-1 flex items-center justify-center gap-1 py-2.5 text-[11px] font-medium border-b-2 transition-colors ${
@@ -465,7 +465,7 @@ export function CreatePost({ onCreated, onClose }: Props) {
                 onClick={() => setMode("collage")}
                 className="w-full border-2 border-dashed border-accent-purple/40 rounded-xl p-8 flex flex-col items-center gap-3 text-text-muted hover:border-accent-purple transition-colors bg-accent-purple/5"
               >
-                <LayoutGrid size={32} className="text-accent-purple/60" />
+                <SquaresFour size={32} className="text-accent-purple/60" />
                 <span className="text-sm font-medium text-accent-purple/80">Crear collage</span>
                 <span className="text-xs text-text-muted/70 text-center">Combiná 2, 3 o 4 fotos en un solo post</span>
               </button>
@@ -670,7 +670,7 @@ export function CreatePost({ onCreated, onClose }: Props) {
                       {pollOptions.length > 2 && (
                         <button onClick={() => removeOption(i)}
                           className="p-1.5 text-text-muted hover:text-status-error flex-shrink-0">
-                          <Trash2 size={14} />
+                          <Trash size={14} />
                         </button>
                       )}
                     </div>

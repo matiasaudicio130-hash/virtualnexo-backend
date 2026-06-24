@@ -1,6 +1,6 @@
 import { useRef, useState, type CSSProperties } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { X, ImagePlus, Check, Trash2 } from "lucide-react";
+import { X, ImageSquare, Check, Trash } from "@phosphor-icons/react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import { highlightsApi, mediaApi } from "@/lib/api";
@@ -152,7 +152,7 @@ export function HighlightCreator({ existing, onClose, onSaved }: Props) {
               }}>
                 {coverPreview
                   ? <img src={coverPreview} alt="" draggable={false} onContextMenu={e => e.preventDefault()} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                  : <ImagePlus size={17} style={{ color: "var(--mist)" }} />}
+                  : <ImageSquare size={17} style={{ color: "var(--mist)" }} />}
               </span>
               <input type="file" accept="image/*" onChange={handleCover} style={{ display: "none" }} />
             </label>
@@ -216,7 +216,7 @@ export function HighlightCreator({ existing, onClose, onSaved }: Props) {
               title="Eliminar highlight"
               style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 42, borderRadius: "var(--radius-md)", border: "1px solid rgba(194,90,90,0.35)", background: "rgba(194,90,90,0.08)", color: "var(--danger)", cursor: busy ? "default" : "pointer" }}
             >
-              <Trash2 size={15} />
+              <Trash size={15} />
             </button>
           )}
           <button onClick={onClose} style={{ flex: 1, padding: "11px 0", borderRadius: "var(--radius-md)", border: "1px solid var(--border)", background: "none", color: "var(--mist)", fontFamily: "var(--font-sans)", fontSize: 13, cursor: "pointer" }}>

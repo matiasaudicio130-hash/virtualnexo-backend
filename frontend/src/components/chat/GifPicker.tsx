@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Search, X } from "lucide-react";
+import { MagnifyingGlass, X } from "@phosphor-icons/react";
 
 interface Gif {
   id: string;
@@ -64,7 +64,7 @@ export function GifPicker({ onSelect, onClose }: Props) {
 
       {/* Header */}
       <div className="flex items-center gap-2 p-3 border-b border-border">
-        <Search size={14} className="text-text-muted flex-shrink-0"/>
+        <MagnifyingGlass size={14} className="text-text-muted flex-shrink-0"/>
         <input
           value={query}
           onChange={e => setQuery(e.target.value)}

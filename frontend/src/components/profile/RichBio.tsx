@@ -1,6 +1,6 @@
 import { type CSSProperties } from "react";
 import { useNavigate } from "react-router-dom";
-import { Link2 } from "lucide-react";
+import { Link } from "@phosphor-icons/react";
 import { parseRichText } from "@/lib/richText";
 import type { ProfileLink } from "@/types";
 
@@ -62,7 +62,7 @@ export function RichBio({ bio, links }: Props) {
               onMouseEnter={e => (e.currentTarget.style.borderColor = "var(--gold-deep)")}
               onMouseLeave={e => (e.currentTarget.style.borderColor = "var(--border)")}
             >
-              <Link2 size={12} style={{ color: "var(--gold)" }} />
+              <Link size={12} style={{ color: "var(--gold)" }} />
               {l.label || cleanHost(l.url)}
             </a>
           ))}

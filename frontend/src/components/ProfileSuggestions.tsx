@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Sparkles } from "lucide-react";
+import { Sparkle } from "@phosphor-icons/react";
 import { discoveryApi } from "@/lib/api";
 import { PROFILE_TYPE_CONFIG } from "@/types";
 import { imgUrl } from "@/utils/image";
@@ -69,7 +69,7 @@ export function ProfileSuggestions({ tag }: Props = {}) {
   return (
     <div className="mx-4 my-3 bg-bg-card border border-border/50 rounded-2xl overflow-hidden">
       <div className="flex items-center gap-2 px-4 py-3 border-b border-border/40">
-        <Sparkles size={14} className="text-accent-purple"/>
+        <Sparkle size={14} className="text-accent-purple"/>
         <span className="text-xs font-semibold text-text-primary">
           {tag ? `${visible.length} persona${visible.length !== 1 ? "s" : ""} con este interés` : "Quizás te interese"}
         </span>

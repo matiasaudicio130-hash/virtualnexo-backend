@@ -1,19 +1,19 @@
 import { useRef } from "react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
-import { Grid3x3, Clapperboard, Bookmark, Tag } from "lucide-react";
+import { GridNine, FilmSlate, BookmarkSimple, Tag } from "@phosphor-icons/react";
 import type { ProfileFeedTab } from "@/hooks/useInfiniteUserPosts";
 
 interface TabDef {
   id: ProfileFeedTab;
   label: string;
-  icon: typeof Grid3x3;
+  icon: typeof GridNine;
 }
 
 const TABS: TabDef[] = [
-  { id: "posts",  label: "Publicaciones", icon: Grid3x3 },
-  { id: "reels",  label: "Reels",         icon: Clapperboard },
-  { id: "saved",  label: "Guardados",     icon: Bookmark },
+  { id: "posts",  label: "Publicaciones", icon: GridNine },
+  { id: "reels",  label: "Reels",         icon: FilmSlate },
+  { id: "saved",  label: "Guardados",     icon: BookmarkSimple },
   { id: "tagged", label: "Etiquetados",   icon: Tag },
 ];
 

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { X } from "lucide-react";
-import { MapPin, MagnifyingGlass, Clock, UserCircle, Hash } from "@phosphor-icons/react";
+
+
 import { imgUrl } from "@/utils/image";
 import { useGeolocation } from "@/hooks/useGeolocation";
 import { NearbyUsers } from "@/components/NearbyUsers";
@@ -9,7 +9,8 @@ import { ProfileSuggestions } from "@/components/ProfileSuggestions";
 import { BottomNav } from "@/components/BottomNav";
 import { useAuthStore } from "@/store/authStore";
 import { searchApi, followsApi, hashtagsApi } from "@/lib/api";
-import { Compass, CalendarBlank, Airplane, Tag } from "@phosphor-icons/react";
+import { Airplane, CalendarBlank, Clock, Compass, Hash, MagnifyingGlass, MapPin, Tag, UserCircle, X } from "@phosphor-icons/react";
+
 
 type Tab = "personas" | "interes" | "eventos" | "viaje" | "hashtag";
 

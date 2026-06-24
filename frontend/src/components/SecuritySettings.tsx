@@ -3,7 +3,7 @@
  * Includes: activar/desactivar 2FA + ver/revocar sesiones activas.
  */
 import { useState, useEffect } from "react";
-import { Shield, ShieldCheck, ShieldOff, Smartphone, Trash2, LogOut, Eye, EyeOff, Copy, Check } from "lucide-react";
+import { Shield, ShieldCheck, ShieldSlash, DeviceMobile, Trash, SignOut, Eye, EyeSlash, Copy, Check } from "@phosphor-icons/react";
 import { twoFactorApi, sessionsApi } from "@/lib/api";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -98,7 +98,7 @@ function TwoFactorSection() {
         <div className="flex items-center gap-2">
           {status?.enabled
             ? <ShieldCheck size={16} className="text-status-success" />
-            : <ShieldOff size={16} className="text-text-muted" />}
+            : <ShieldSlash size={16} className="text-text-muted" />}
           <h3 className="font-semibold text-sm">Verificación en dos pasos (2FA)</h3>
         </div>
         {status && (
@@ -168,7 +168,7 @@ function TwoFactorSection() {
                 {showSecret ? secret : "••••••••••••••••••••••••••••••"}
               </code>
               <button onClick={() => setShowSecret(v => !v)} className="p-1.5 text-text-muted">
-                {showSecret ? <EyeOff size={14}/> : <Eye size={14}/>}
+                {showSecret ? <EyeSlash size={14}/> : <Eye size={14}/>}
               </button>
             </div>
             <p className="text-xs text-text-muted">Luego ingresá el código de 6 dígitos para confirmar:</p>
@@ -254,13 +254,13 @@ function SessionsSection() {
     <Card className="overflow-hidden">
       <div className="p-4 border-b border-border flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Smartphone size={15} className="text-text-muted" />
+          <DeviceMobile size={15} className="text-text-muted" />
           <h3 className="font-semibold text-sm">Sesiones activas</h3>
         </div>
         {sessions.length > 1 && (
           <button onClick={revokeAll} disabled={loading}
             className="text-xs text-status-error hover:underline flex items-center gap-1">
-            <LogOut size={11}/> Cerrar otras
+            <SignOut size={11}/> Cerrar otras
           </button>
         )}
       </div>
@@ -276,7 +276,7 @@ function SessionsSection() {
           <p className="text-text-muted text-xs text-center py-6">Sin sesiones activas</p>
         ) : sessions.map((s, i) => (
           <div key={s.id} className="flex items-center gap-3 px-4 py-3">
-            <Smartphone size={16} className={`flex-shrink-0 ${i === 0 ? "text-accent-purple" : "text-text-muted"}`} />
+            <DeviceMobile size={16} className={`flex-shrink-0 ${i === 0 ? "text-accent-purple" : "text-text-muted"}`} />
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium truncate">
                 {s.device_name}
@@ -288,7 +288,7 @@ function SessionsSection() {
             </div>
             {i > 0 && (
               <button onClick={() => revoke(s.id)} className="p-1.5 text-text-muted hover:text-status-error transition-colors flex-shrink-0">
-                <Trash2 size={14}/>
+                <Trash size={14}/>
               </button>
             )}
           </div>

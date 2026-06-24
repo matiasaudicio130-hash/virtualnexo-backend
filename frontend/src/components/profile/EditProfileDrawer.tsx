@@ -3,7 +3,7 @@ import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import Cropper from "react-easy-crop";
 import type { Area, Point } from "react-easy-crop";
-import { X, Check, MapPin, FileText, Link2, Camera, Plus, Trash2, Lock } from "lucide-react";
+import { X, Check, MapPin, FileText, Link, Camera, Plus, Trash, Lock } from "@phosphor-icons/react";
 import { profileApi, extendedProfileApi, authApi, mediaApi } from "@/lib/api";
 import { useAuthStore } from "@/store/authStore";
 import { Button } from "@/components/ui/Button";
@@ -276,7 +276,7 @@ export function EditProfileDrawer({ onClose, onSaved }: Props) {
 
           {/* Website */}
           <div>
-            <label style={labelStyle}><Link2 size={12} strokeWidth={1.5}/> Sitio web principal</label>
+            <label style={labelStyle}><Link size={12} strokeWidth={1.5}/> Sitio web principal</label>
             <input
               value={website}
               onChange={e => setWebsite(e.target.value)}
@@ -291,7 +291,7 @@ export function EditProfileDrawer({ onClose, onSaved }: Props) {
           {/* Links adicionales */}
           <div>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-              <label style={{ ...labelStyle, marginBottom: 0 }}><Link2 size={12} strokeWidth={1.5}/> Links ({links.length}/5)</label>
+              <label style={{ ...labelStyle, marginBottom: 0 }}><Link size={12} strokeWidth={1.5}/> Links ({links.length}/5)</label>
               {links.length < 5 && (
                 <button onClick={addLink} style={{ display: "flex", alignItems: "center", gap: 4, background: "none", border: "none", color: "var(--gold)", fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.1em", textTransform: "uppercase", cursor: "pointer" }}>
                   <Plus size={12} strokeWidth={1.5}/> Agregar
@@ -316,7 +316,7 @@ export function EditProfileDrawer({ onClose, onSaved }: Props) {
                     style={{ ...inputStyle, flex: 1, padding: "10px 12px", fontSize: 13 }}
                   />
                   <button onClick={() => removeLink(i)} style={{ flexShrink: 0, padding: "0 8px", background: "none", border: "none", color: "var(--mist)", cursor: "pointer" }}>
-                    <Trash2 size={15} strokeWidth={1.5}/>
+                    <Trash size={15} strokeWidth={1.5}/>
                   </button>
                 </div>
               ))}

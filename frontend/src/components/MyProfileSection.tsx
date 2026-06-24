@@ -4,7 +4,7 @@
  */
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Eye, Images, Lock, Plus, Flame, AlertCircle, X } from "lucide-react";
+import { Eye, Images, Lock, Plus, Fire, Warning, X } from "@phosphor-icons/react";
 import { albumsApi } from "@/lib/api";
 import { toast } from "@/store/toastStore";
 import { useAuthStore } from "@/store/authStore";
@@ -311,7 +311,7 @@ export function MyProfileSection() {
           {[
             { icon: <Eye size={14} strokeWidth={1.5}/>, value: stats.profile_views_7d, label: "Vistas (7d)", hint: "" },
             { icon: <Lock size={14} strokeWidth={1.5}/>, value: stats.pending_album_requests, label: "Solicitudes", hint: "" },
-            { icon: <Flame size={14} strokeWidth={1.5}/>, value: stats.current_streak, label: "Días seguidos", hint: "Días consecutivos activo en Aura" },
+            { icon: <Fire size={14} strokeWidth={1.5}/>, value: stats.current_streak, label: "Días seguidos", hint: "Días consecutivos activo en Aura" },
           ].map((s, i) => (
             <div key={i} style={{ background: "var(--onyx)", padding: "14px 8px", textAlign: "center" }} title={s.hint || undefined}>
               <div style={{ color: "var(--gold)", display: "flex", justifyContent: "center", marginBottom: 4 }}>{s.icon}</div>
@@ -341,7 +341,7 @@ export function MyProfileSection() {
           </div>
           {missing.slice(0, 3).map(m => (
             <div key={m} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
-              <AlertCircle size={11} style={{ color: "var(--mist)", flexShrink: 0 }} strokeWidth={1.5}/>
+              <Warning size={11} style={{ color: "var(--mist)", flexShrink: 0 }} strokeWidth={1.5}/>
               <p style={{ fontFamily: "var(--font-sans)", fontSize: 12, color: "var(--mist)" }}>Falta: {m}</p>
             </div>
           ))}

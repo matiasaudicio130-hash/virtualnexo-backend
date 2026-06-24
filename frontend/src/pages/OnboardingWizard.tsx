@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Camera, MapPin, Heart, FileText, ChevronRight, Check, Sparkles, UserPlus } from "lucide-react";
+import { Camera, MapPin, Heart, FileText, CaretRight, Check, Sparkle, UserPlus } from "@phosphor-icons/react";
 import { mediaApi, albumsApi, profileApi, followsApi } from "@/lib/api";
 import { useAuthStore } from "@/store/authStore";
 import { Logo } from "@/components/brand/Logo";
@@ -374,7 +374,7 @@ export default function OnboardingWizard() {
         {step === TOTAL && (
           <>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-              <Sparkles size={20} color="#C9A227" />
+              <Sparkle size={20} color="#C9A227" />
               <h2 style={{ ...h2, margin: 0 }}>¡Listo! Conocé a alguien</h2>
             </div>
             <p style={sub}>Seguí a personas que podrían interesarte para empezar a conectar.</p>
@@ -425,9 +425,9 @@ export default function OnboardingWizard() {
         <div style={{ marginTop: 28, display: "flex", flexDirection: "column", gap: 10 }}>
           <button onClick={submitStep} disabled={!canContinue || loading} style={goldBtn(canContinue && !loading)}>
             {loading ? "…" :
-             step === 0         ? <><span>Empezar</span><ChevronRight size={18}/></> :
-             step < TOTAL       ? <><span>Continuar</span><ChevronRight size={18}/></> :
-                                  <><span>¡Entrar a Aura!</span><ChevronRight size={18}/></>
+             step === 0         ? <><span>Empezar</span><CaretRight size={18}/></> :
+             step < TOTAL       ? <><span>Continuar</span><CaretRight size={18}/></> :
+                                  <><span>¡Entrar a Aura!</span><CaretRight size={18}/></>
             }
           </button>
           {step > 0 && step < TOTAL && (

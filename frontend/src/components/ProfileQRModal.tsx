@@ -1,6 +1,6 @@
 import { useRef } from "react";
 import { toast } from "@/store/toastStore";
-import { X, Download, Share2 } from "lucide-react";
+import { X, DownloadSimple, ShareNetwork } from "@phosphor-icons/react";
 import { QRCodeSVG } from "qrcode.react";
 
 interface Props {
@@ -134,7 +134,7 @@ export function ProfileQRModal({ userId, userName, onClose }: Props) {
               onClick={handleDownload}
               className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border border-border text-sm text-text-secondary hover:bg-bg-muted transition-colors"
             >
-              <Download size={15} />
+              <DownloadSimple size={15} />
               Guardar
             </button>
             <button
@@ -142,7 +142,7 @@ export function ProfileQRModal({ userId, userName, onClose }: Props) {
               className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold transition-all"
               style={{ background: "var(--gold,#C9A227)", color: "#0a0a0f" }}
             >
-              <Share2 size={15} />
+              <ShareNetwork size={15} />
               Compartir
             </button>
           </div>

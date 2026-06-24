@@ -5,10 +5,7 @@
 import { useState, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useParams, useNavigate } from "react-router-dom";
-import {
-  ArrowLeft, MapPin, Star, Share2, Pencil,
-  Lock, User, Images, ChevronLeft, ChevronRight, X, QrCode,
-} from "lucide-react";
+import { ArrowLeft, MapPin, Star, ShareNetwork, Pencil, Lock, User, Images, CaretLeft, CaretRight, X, QrCode } from "@phosphor-icons/react";
 import { ProfileQRModal } from "@/components/ProfileQRModal";
 import { profilesApi, followsApi, albumsApi, feedApi, reviewsApi, extendedProfileApi } from "@/lib/api";
 import { ProfileAvatar } from "@/components/profile/ProfileAvatar";
@@ -381,7 +378,7 @@ export default function ProfileView() {
             </Tooltip>
             <Tooltip label="Compartir" position="bottom">
               <button onClick={() => setShowShareSheet(true)} style={{ padding: 8, background: "none", border: "none", color: "var(--mist)", cursor: "pointer" }}>
-                <Share2 size={16} strokeWidth={1.5}/>
+                <ShareNetwork size={16} strokeWidth={1.5}/>
               </button>
             </Tooltip>
             <Tooltip label="Editar perfil" position="bottom">
@@ -824,7 +821,7 @@ export default function ProfileView() {
                   onClick={() => setAlbumPhotoIdx(i => Math.max(0, i - 1))}
                   style={{ position: "absolute", left: 16, top: "50%", transform: "translateY(-50%)", padding: 10, background: "rgba(255,255,255,0.1)", border: "none", borderRadius: "50%", color: "white", cursor: "pointer" }}
                 >
-                  <ChevronLeft size={20}/>
+                  <CaretLeft size={20}/>
                 </button>
               )}
               {albumPhotoIdx < albumPhotos.length - 1 && (
@@ -832,7 +829,7 @@ export default function ProfileView() {
                   onClick={() => setAlbumPhotoIdx(i => Math.min(albumPhotos.length - 1, i + 1))}
                   style={{ position: "absolute", right: 16, top: "50%", transform: "translateY(-50%)", padding: 10, background: "rgba(255,255,255,0.1)", border: "none", borderRadius: "50%", color: "white", cursor: "pointer" }}
                 >
-                  <ChevronRight size={20}/>
+                  <CaretRight size={20}/>
                 </button>
               )}
               <div style={{ position: "absolute", bottom: 20, left: "50%", transform: "translateX(-50%)", padding: "4px 12px", background: "rgba(2,2,7,0.7)", borderRadius: "var(--radius-pill)", fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--paper)", letterSpacing: "0.12em" }}>

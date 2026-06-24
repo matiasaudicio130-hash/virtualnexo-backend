@@ -1,6 +1,6 @@
 import { useRef } from "react";
 import gsap from "gsap";
-import { Heart, MessageCircle } from "lucide-react";
+import { Heart, Chat } from "@phosphor-icons/react";
 import type { Post } from "@/types";
 
 interface Props {
@@ -111,7 +111,7 @@ export function GridItem({ post, isPinned, pinBadgeEnabled, pinButtonEnabled, pi
           <Heart size={15} fill="var(--paper)" /> {post.reactions_count ?? 0}
         </span>
         <span style={{ display: "flex", alignItems: "center", gap: 5, color: "var(--paper)", fontFamily: "var(--font-mono)", fontSize: 12 }}>
-          <MessageCircle size={15} fill="var(--paper)" /> {post.comments_count ?? 0}
+          <Chat size={15} fill="var(--paper)" /> {post.comments_count ?? 0}
         </span>
       </div>
 

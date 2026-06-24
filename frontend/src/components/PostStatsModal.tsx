@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { X, Eye, Heart, MessageCircle, Bookmark, Share2, RefreshCcw, BarChart2, TrendingUp } from "lucide-react";
+import { X, Eye, Heart, Chat, BookmarkSimple, ShareNetwork, ArrowCounterClockwise, ChartBar, TrendUp } from "@phosphor-icons/react";
 import { feedApi } from "@/lib/api";
 
 interface Stats {
@@ -52,7 +52,7 @@ export function PostStatsModal({ postId, onClose }: Props) {
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-border">
           <div className="flex items-center gap-2">
-            <BarChart2 size={17} style={{ color: GOLD }} />
+            <ChartBar size={17} style={{ color: GOLD }} />
             <span className="font-semibold text-sm">Estadísticas del post</span>
           </div>
           <button onClick={onClose} className="text-text-muted hover:text-text-primary transition-colors">
@@ -89,10 +89,10 @@ export function PostStatsModal({ postId, onClose }: Props) {
               {[
                 { label: "Vistas",      value: stats.views,           Icon: Eye,         color: GOLD              },
                 { label: "Reacciones",  value: stats.total_reactions, Icon: Heart,        color: "#F87171"         },
-                { label: "Comentarios", value: stats.comments,        Icon: MessageCircle,color: "#60A5FA"         },
-                { label: "Guardados",   value: stats.saves,           Icon: Bookmark,     color: "#34D399"         },
-                { label: "Compartidos", value: stats.shares,          Icon: Share2,       color: "#A78BFA"         },
-                { label: "Reposts",     value: stats.reposts,         Icon: RefreshCcw,   color: "#FB923C"         },
+                { label: "Comentarios", value: stats.comments,        Icon: Chat,color: "#60A5FA"         },
+                { label: "Guardados",   value: stats.saves,           Icon: BookmarkSimple,     color: "#34D399"         },
+                { label: "Compartidos", value: stats.shares,          Icon: ShareNetwork,       color: "#A78BFA"         },
+                { label: "Reposts",     value: stats.reposts,         Icon: ArrowCounterClockwise,   color: "#FB923C"         },
               ].map(({ label, value, Icon, color }) => (
                 <div
                   key={label}
@@ -146,7 +146,7 @@ export function PostStatsModal({ postId, onClose }: Props) {
             {/* Engagement total + días */}
             <div className="flex items-center gap-3 rounded-2xl p-4"
               style={{ background: "rgba(201,162,39,0.07)", border: "1px solid rgba(201,162,39,0.18)" }}>
-              <TrendingUp size={20} style={{ color: GOLD }} className="flex-shrink-0" />
+              <TrendUp size={20} style={{ color: GOLD }} className="flex-shrink-0" />
               <div className="flex-1">
                 <p className="text-[10px] text-text-muted uppercase tracking-widest">Engagement total</p>
                 <p className="text-2xl font-bold tabular-nums" style={{ color: GOLD }}>

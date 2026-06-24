@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { APP_CONFIG } from "@/config/app";
 import { Card } from "@/components/ui/Card";
-import { Ban } from "lucide-react";
+import { Prohibit } from "@phosphor-icons/react";
 
 export default function AccessDenied() {
   return (
@@ -10,7 +10,7 @@ export default function AccessDenied() {
         {APP_CONFIG.name}
       </Link>
       <Card className="w-full max-w-sm p-8 text-center">
-        <Ban size={48} className="text-status-error mx-auto mb-4" />
+        <Prohibit size={48} className="text-status-error mx-auto mb-4" />
         <h1 className="brand-title" style={{ fontSize: "var(--fs-display-m)" }}>Acceso denegado</h1>
         <p className="text-text-secondary text-sm mb-6">
           Tu cuenta fue suspendida o rechazada. Si creés que es un error, contactá a soporte.

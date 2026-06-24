@@ -1,11 +1,11 @@
-import { CheckCircle2, XCircle, Info, AlertTriangle, X } from "lucide-react";
+import { CheckCircle, XCircle, Info, Warning, X } from "@phosphor-icons/react";
 import { useToastStore, type ToastType } from "@/store/toastStore";
 
-const CONFIG: Record<ToastType, { icon: typeof CheckCircle2; color: string; bg: string }> = {
-  success: { icon: CheckCircle2,  color: "text-emerald-400", bg: "border-emerald-500/30 bg-emerald-500/8"  },
+const CONFIG: Record<ToastType, { icon: typeof CheckCircle; color: string; bg: string }> = {
+  success: { icon: CheckCircle,  color: "text-emerald-400", bg: "border-emerald-500/30 bg-emerald-500/8"  },
   error:   { icon: XCircle,       color: "text-red-400",     bg: "border-red-500/30 bg-red-500/8"         },
   info:    { icon: Info,          color: "text-sky-400",     bg: "border-sky-500/30 bg-sky-500/8"         },
-  warning: { icon: AlertTriangle, color: "text-amber-400",   bg: "border-amber-500/30 bg-amber-500/8"     },
+  warning: { icon: Warning, color: "text-amber-400",   bg: "border-amber-500/30 bg-amber-500/8"     },
 };
 
 export function Toaster() {

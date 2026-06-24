@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { CaretLeft, CaretRight } from "@phosphor-icons/react";
 import { ProtectedImage } from "@/components/ProtectedImage";
 
 interface MediaItem { url: string; type?: string; }
@@ -61,7 +61,7 @@ export function Carousel({ items, aspectRatio = "square" }: Props) {
           onClick={e => { e.stopPropagation(); prev(); }}
           className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-black/50 rounded-full flex items-center justify-center text-white hover:bg-black/70 transition-colors z-10"
         >
-          <ChevronLeft size={18}/>
+          <CaretLeft size={18}/>
         </button>
       )}
       {idx < items.length - 1 && (
@@ -69,7 +69,7 @@ export function Carousel({ items, aspectRatio = "square" }: Props) {
           onClick={e => { e.stopPropagation(); next(); }}
           className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-black/50 rounded-full flex items-center justify-center text-white hover:bg-black/70 transition-colors z-10"
         >
-          <ChevronRight size={18}/>
+          <CaretRight size={18}/>
         </button>
       )}
 

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronLeft, Bookmark, Play, LayoutGrid, Plus, X, FolderOpen, Check, Pencil, Trash2 } from "lucide-react";
+import { CaretLeft, BookmarkSimple, Play, SquaresFour, Plus, X, FolderOpen, Check, Pencil, Trash } from "@phosphor-icons/react";
 import { feedApi, collectionsApi } from "@/lib/api";
 import { useAuthStore } from "@/store/authStore";
 import { PostCard } from "@/components/PostCard";
@@ -49,7 +49,7 @@ function PostThumb({
       )}
 
       {isVideo  && <div className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-black/60 flex items-center justify-center"><Play size={9} className="text-white" fill="white"/></div>}
-      {isMulti  && <div className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-black/60 flex items-center justify-center"><LayoutGrid size={9} className="text-white"/></div>}
+      {isMulti  && <div className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-black/60 flex items-center justify-center"><SquaresFour size={9} className="text-white"/></div>}
       {!isVideo && !isMulti && thumb && <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity"/>}
 
       {/* Add to collection button */}
@@ -251,13 +251,13 @@ export default function Saved() {
       {/* Header */}
       <header className="sticky top-0 z-20 bg-bg-base/90 backdrop-blur-md border-b border-border px-4 pt-safe-3 pb-3 flex items-center gap-3">
         <button onClick={() => navigate(-1)} className="p-2 -ml-2 rounded-xl hover:bg-bg-muted transition-colors text-text-muted hover:text-text-primary">
-          <ChevronLeft size={20} />
+          <CaretLeft size={20} />
         </button>
         <div className="flex-1">
           <h1 className="font-semibold text-sm">Guardados</h1>
           <p className="text-[10px] text-text-muted">{posts.length} publicaciones</p>
         </div>
-        <Bookmark size={18} style={{ color: "var(--gold,#C9A227)" }} />
+        <BookmarkSimple size={18} style={{ color: "var(--gold,#C9A227)" }} />
       </header>
 
       {/* Collections strip */}
@@ -270,7 +270,7 @@ export default function Saved() {
           }`}
           style={!activeColId ? { background: "var(--gold,#C9A227)" } : {}}
         >
-          <Bookmark size={11} /> Todos ({posts.length})
+          <BookmarkSimple size={11} /> Todos ({posts.length})
         </button>
 
         {/* Collection chips */}
@@ -308,7 +308,7 @@ export default function Saved() {
                   <Pencil size={11}/>
                 </button>
                 <button onClick={() => handleDeleteCollection(col.id)} className="p-1 text-text-muted hover:text-status-error">
-                  <Trash2 size={11}/>
+                  <Trash size={11}/>
                 </button>
               </div>
             )}
@@ -349,7 +349,7 @@ export default function Saved() {
       {!loading && !activeColId && posts.length === 0 && (
         <div className="flex flex-col items-center justify-center gap-4 py-24 px-8 text-center">
           <div className="w-16 h-16 rounded-full flex items-center justify-center" style={{ background: "rgba(201,162,39,0.1)", border: "1px solid rgba(201,162,39,0.25)" }}>
-            <Bookmark size={28} style={{ color: "var(--gold,#C9A227)" }} />
+            <BookmarkSimple size={28} style={{ color: "var(--gold,#C9A227)" }} />
           </div>
           <div>
             <p className="font-semibold mb-1">Sin publicaciones guardadas</p>
@@ -397,7 +397,7 @@ export default function Saved() {
           <div className="w-full sm:max-w-md max-h-[92vh] overflow-y-auto rounded-t-3xl sm:rounded-2xl bg-bg-card overscroll-contain" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between px-4 py-3 border-b border-border sticky top-0 bg-bg-card z-10">
               <span className="text-sm font-medium">Publicación guardada</span>
-              <button onClick={() => setSelected(null)} className="p-1.5 rounded-lg hover:bg-bg-muted text-text-muted"><ChevronLeft size={18} className="rotate-90"/></button>
+              <button onClick={() => setSelected(null)} className="p-1.5 rounded-lg hover:bg-bg-muted text-text-muted"><CaretLeft size={18} className="rotate-90"/></button>
             </div>
             <PostCard post={selected as any} currentUserId={user.id} initialSaved={true} onDelete={id => handleUnsave(id)} />
           </div>

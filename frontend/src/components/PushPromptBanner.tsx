@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Bell, X } from "lucide-react";
+import { Bell, X } from "@phosphor-icons/react";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 
 const DISMISSED_KEY = "aura_push_dismissed";

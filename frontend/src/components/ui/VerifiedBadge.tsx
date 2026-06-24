@@ -2,7 +2,7 @@
  * VerifiedBadge — pill que indica un usuario verificado.
  * Border gold-deep, ícono shield-check, texto en eyebrow style.
  */
-import { ShieldCheck } from "lucide-react";
+import { ShieldCheck } from "@phosphor-icons/react";
 
 interface VerifiedBadgeProps {
   label?: string;

@@ -4,13 +4,13 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { APP_CONFIG } from "@/config/app";
-import { Eye, EyeSlash } from "@phosphor-icons/react";
+import { Eye, EyeSlash, CaretDown, Key } from "@phosphor-icons/react";
 import { authApi } from "@/lib/api";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Card } from "@/components/ui/Card";
 import { Logo } from "@/components/brand/Logo";
-import { ChevronDown, Key } from "lucide-react";
+
 
 const schema = z.object({
   email: z.string().email("Email inválido"),
@@ -126,7 +126,7 @@ export default function Register() {
             >
               <Key size={14} />
               ¿Tenés un código de acceso especial?
-              <ChevronDown size={14} className={`transition-transform ${showMasterKey ? "rotate-180" : ""}`} />
+              <CaretDown size={14} className={`transition-transform ${showMasterKey ? "rotate-180" : ""}`} />
             </button>
             {showMasterKey && (
               <div className="mt-3">

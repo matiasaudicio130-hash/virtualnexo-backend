@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
-import { Link, Share2, QrCode, type LucideIcon } from "lucide-react";
+import { Link, ShareNetwork, QrCode } from "@phosphor-icons/react";
+import type { Icon } from "@phosphor-icons/react";
 import { ProfileQRModal } from "@/components/ProfileQRModal";
 
 interface Props {
@@ -81,14 +82,14 @@ export function ShareProfileSheet({ userId, userName, onClose }: Props) {
         </p>
 
         <ShareOption icon={Link} label={copied ? "¡Copiado!" : "Copiar link"} onClick={handleCopy} highlight={copied} />
-        <ShareOption icon={Share2} label="Compartir…" onClick={handleNativeShare} />
+        <ShareOption icon={ShareNetwork} label="Compartir…" onClick={handleNativeShare} />
         <ShareOption icon={QrCode} label="Ver código QR" onClick={() => setShowQR(true)} />
       </div>
     </div>
   );
 }
 
-function ShareOption({ icon: Icon, label, onClick, highlight }: { icon: LucideIcon; label: string; onClick: () => void; highlight?: boolean }) {
+function ShareOption({ icon: Icon, label, onClick, highlight }: { icon: Icon; label: string; onClick: () => void; highlight?: boolean }) {
   return (
     <button
       onClick={onClick}

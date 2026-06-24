@@ -1,11 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import Cropper from "react-easy-crop";
 import type { Area, Point } from "react-easy-crop";
-import {
-  X, ZoomIn, Crop, SlidersHorizontal, Sparkles, Type,
-  RotateCcw, Pencil, Undo2, Trash2, AlignLeft, AlignCenter, AlignRight,
-  Check, Minus, Plus as PlusIcon, Shapes, Eye, EyeOff,
-} from "lucide-react";
+import { X, MagnifyingGlassPlus, Crop, SlidersHorizontal, Sparkle, TextT, ArrowCounterClockwise, Pencil, Trash, AlignLeft, TextAlignCenter, AlignRight, Check, Minus, Plus as PlusIcon, Shapes, Eye, EyeSlash } from "@phosphor-icons/react";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const PREVIEW  = 340;   // preview container size (px)
@@ -895,7 +891,7 @@ export function ImageCropFilter({ file, onDone, onCancel }: Props) {
                 onClick={() => setRotation(r => r - 90)}
                 className="text-white/50 hover:text-white transition-colors"
               >
-                <RotateCcw size={16} />
+                <ArrowCounterClockwise size={16} />
               </button>
               <div className="flex-1 relative">
                 <input
@@ -912,7 +908,7 @@ export function ImageCropFilter({ file, onDone, onCancel }: Props) {
 
             {/* Zoom */}
             <div className="flex items-center gap-3">
-              <ZoomIn size={14} className="text-white/40 flex-shrink-0" />
+              <MagnifyingGlassPlus size={14} className="text-white/40 flex-shrink-0" />
               <input
                 type="range" min={1} max={4} step={0.01}
                 value={zoom}
@@ -1023,7 +1019,7 @@ export function ImageCropFilter({ file, onDone, onCancel }: Props) {
                     {selTextId && (
                       <button onClick={() => deleteText(selTextId)}
                         className="w-9 h-9 rounded-xl bg-red-500/20 border border-red-500/30 flex items-center justify-center">
-                        <Trash2 size={14} className="text-red-400" />
+                        <Trash size={14} className="text-red-400" />
                       </button>
                     )}
                   </div>
@@ -1056,7 +1052,7 @@ export function ImageCropFilter({ file, onDone, onCancel }: Props) {
                   </div>
                   <div className="flex border border-white/15 rounded-lg overflow-hidden flex-shrink-0">
                     {(["left","center","right"] as Align[]).map((a, i) => {
-                      const Icon = i === 0 ? AlignLeft : i === 1 ? AlignCenter : AlignRight;
+                      const Icon = i === 0 ? AlignLeft : i === 1 ? TextAlignCenter : AlignRight;
                       return (
                         <button key={a} onClick={() => setTAlign(a)}
                           className={`px-2 py-1.5 transition-colors ${tAlign === a ? "bg-amber-400/20 text-amber-400" : "text-white/40 hover:text-white"}`}>
@@ -1107,7 +1103,7 @@ export function ImageCropFilter({ file, onDone, onCancel }: Props) {
                   onClick={() => { setSelTextId(null); setTInput(""); setAddingText(true); }}
                   className="w-full py-2.5 rounded-xl border border-dashed border-white/25 text-white/60 text-sm hover:border-amber-400/50 hover:text-amber-400 transition-all flex items-center justify-center gap-2"
                 >
-                  <Type size={16} /> Agregar texto
+                  <TextT size={16} /> Agregar texto
                 </button>
                 {texts.length > 0 && (
                   <div className="space-y-1.5">
@@ -1177,13 +1173,13 @@ export function ImageCropFilter({ file, onDone, onCancel }: Props) {
                 disabled={undoCount === 0}
                 className="p-1.5 text-white/40 hover:text-white disabled:opacity-30 transition-colors"
               >
-                <Undo2 size={16} />
+                <ArrowCounterClockwise size={16} />
               </button>
               <button
                 onClick={clearDrawing}
                 className="p-1.5 text-white/40 hover:text-red-400 transition-colors"
               >
-                <Trash2 size={16} />
+                <Trash size={16} />
               </button>
             </div>
 
@@ -1309,8 +1305,8 @@ export function ImageCropFilter({ file, onDone, onCancel }: Props) {
           {([
             { id: "crop",   label: "Recortar", Icon: Crop              },
             { id: "adjust", label: "Ajustar",  Icon: SlidersHorizontal },
-            { id: "filter", label: "Filtros",  Icon: Sparkles          },
-            { id: "text",   label: "Texto",    Icon: Type              },
+            { id: "filter", label: "Filtros",  Icon: Sparkle          },
+            { id: "text",   label: "Texto",    Icon: TextT              },
             { id: "shapes", label: "Formas",   Icon: Shapes            },
             { id: "draw",   label: "Dibujar",  Icon: Pencil            },
           ] as const).map(({ id, label, Icon }) => (

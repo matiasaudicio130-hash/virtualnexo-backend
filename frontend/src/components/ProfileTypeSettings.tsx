@@ -1,8 +1,5 @@
 import { useState } from "react";
-import {
-  EyeOff, MessageSquare, CheckCircle2, Info,
-  Users, User, ChevronDown, ChevronUp, Plus, Minus,
-} from "lucide-react";
+import { EyeSlash, Chat, CheckCircle, Info, Users, User, CaretDown, CaretUp, Plus, Minus } from "@phosphor-icons/react";
 import { profileApi } from "@/lib/api";
 import { useAuthStore } from "@/store/authStore";
 import { useLangStore } from "@/store/langStore";
@@ -203,7 +200,7 @@ export function ProfileTypeSettings({ onSaved }: Props) {
                       <p className={`text-xs font-medium leading-tight truncate ${active ? "text-accent-purple" : "text-text-secondary"}`}>
                         {ext.profileTypes[type]}
                       </p>
-                      {active && <CheckCircle2 size={12} className="text-accent-purple ml-auto flex-shrink-0" />}
+                      {active && <CheckCircle size={12} className="text-accent-purple ml-auto flex-shrink-0" />}
                     </button>
                   );
                 })}
@@ -339,7 +336,7 @@ export function ProfileTypeSettings({ onSaved }: Props) {
       {/* ── 7. QUIÉN PUEDE VERTE ─────────────────────────── */}
       <Accordion
         title={ext.profile.whoSeesYou}
-        icon={<EyeOff size={13} className="text-accent-purple flex-shrink-0" />}
+        icon={<EyeSlash size={13} className="text-accent-purple flex-shrink-0" />}
         open={openSections.visibility}
         onToggle={() => toggleSection("visibility")}
       >
@@ -351,7 +348,7 @@ export function ProfileTypeSettings({ onSaved }: Props) {
       {/* ── 8. MENSAJES ENTRANTES ────────────────────────── */}
       <Accordion
         title={ext.profile.whoMessages}
-        icon={<MessageSquare size={13} className="text-accent-purple flex-shrink-0" />}
+        icon={<Chat size={13} className="text-accent-purple flex-shrink-0" />}
         open={openSections.messages}
         onToggle={() => toggleSection("messages")}
       >
@@ -401,7 +398,7 @@ function Accordion({
           {icon}
           <span className="text-sm font-medium text-text-primary">{title}</span>
         </span>
-        {open ? <ChevronUp size={15} className="text-text-muted flex-shrink-0" /> : <ChevronDown size={15} className="text-text-muted flex-shrink-0" />}
+        {open ? <CaretUp size={15} className="text-text-muted flex-shrink-0" /> : <CaretDown size={15} className="text-text-muted flex-shrink-0" />}
       </button>
       {open && <div className="px-4 py-4">{children}</div>}
     </div>
@@ -427,7 +424,7 @@ function OrientationGrid({ value, onChange, t }: {
           >
             <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${active ? "bg-accent-purple" : "bg-text-muted"}`} />
             <span className="text-xs font-medium">{t.orientations[key]}</span>
-            {active && <CheckCircle2 size={11} className="ml-auto flex-shrink-0" />}
+            {active && <CheckCircle size={11} className="ml-auto flex-shrink-0" />}
           </button>
         );
       })}
@@ -490,7 +487,7 @@ function MemberCard({ index, member, onChange, t }: {
             )}
           </span>
         </span>
-        {open ? <ChevronUp size={13} className="text-text-muted" /> : <ChevronDown size={13} className="text-text-muted" />}
+        {open ? <CaretUp size={13} className="text-text-muted" /> : <CaretDown size={13} className="text-text-muted" />}
       </button>
       {open && (
         <div className="px-3 py-3 space-y-3">
@@ -575,7 +572,7 @@ function AttractionList({ selected, onToggle, t }: {
             <div className={`w-4 h-4 rounded-md border-[1.5px] flex items-center justify-center flex-shrink-0 transition-all duration-150 ${
               active ? "bg-accent-purple border-accent-purple" : "border-border"
             }`}>
-              {active && <CheckCircle2 size={9} className="text-bg-base" />}
+              {active && <CheckCircle size={9} className="text-bg-base" />}
             </div>
           </button>
         );

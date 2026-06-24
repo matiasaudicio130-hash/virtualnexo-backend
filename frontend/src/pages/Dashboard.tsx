@@ -9,10 +9,7 @@ import type { Lang } from "@/i18n";
 import { APP_CONFIG } from "@/config/app";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import {
-  Shield, LogOut, User,
-  Settings, Check, Eye, Heart, BarChart2, Bookmark, QrCode,
-} from "lucide-react";
+import { Bell, BookmarkSimple, ChartBar, Check, Eye, EyeSlash, Gear, Heart, QrCode, Shield, SignOut, User } from "@phosphor-icons/react";
 import { ProfileQRModal } from "@/components/ProfileQRModal";
 import { BottomNav } from "@/components/BottomNav";
 import { usePricingPlans, formatARS, formatUSD } from "@/hooks/useExchangeRate";
@@ -30,7 +27,7 @@ import { CoupleSection } from "@/components/CoupleSection";
 import { NavLogo } from "@/components/AuraLogo";
 import { HighlightsCarousel } from "@/components/profile/HighlightsCarousel";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
-import { Bell, EyeOff } from "lucide-react";
+
 import { discoveryApi } from "@/lib/api";
 import { PROFILE_TYPE_CONFIG, ORIENTATION_CONFIG } from "@/types";
 import type { ProfileType, SexualOrientation } from "@/types";
@@ -132,7 +129,7 @@ export default function Dashboard() {
               className="flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-medium"
               style={{ background: "rgba(139,92,246,0.15)", color: "var(--accent-purple,#8B5CF6)", border: "1px solid rgba(139,92,246,0.25)" }}
             >
-              <EyeOff size={11} /> Anónimo
+              <EyeSlash size={11} /> Anónimo
             </span>
           )}
           <button
@@ -147,28 +144,28 @@ export default function Dashboard() {
             className="p-2 rounded-xl hover:bg-bg-muted transition-colors"
             title="Guardados"
           >
-            <Bookmark size={17} className="text-text-muted" />
+            <BookmarkSimple size={17} className="text-text-muted" />
           </button>
           <button
             onClick={() => navigate("/analytics")}
             className="p-2 rounded-xl hover:bg-bg-muted transition-colors"
             title="Mis estadísticas"
           >
-            <BarChart2 size={17} className="text-text-muted" />
+            <ChartBar size={17} className="text-text-muted" />
           </button>
           <button
             onClick={() => setSettingsOpen(v => !v)}
             className="p-2 rounded-xl hover:bg-bg-muted transition-colors"
             title={t.nav.settings}
           >
-            <Settings size={17} className={`transition-colors ${settingsOpen ? "text-accent-purple" : "text-text-muted"}`} />
+            <Gear size={17} className={`transition-colors ${settingsOpen ? "text-accent-purple" : "text-text-muted"}`} />
           </button>
           <button
             onClick={handleLogout}
             className="p-2 rounded-xl hover:bg-bg-muted transition-colors"
             title={t.common.logout}
           >
-            <LogOut size={17} className="text-text-muted" />
+            <SignOut size={17} className="text-text-muted" />
           </button>
         </div>
       </header>
@@ -184,7 +181,7 @@ export default function Dashboard() {
               {/* Modo anónimo */}
               <div>
                 <p className="text-xs text-text-muted uppercase tracking-widest mb-2 font-medium flex items-center gap-1.5">
-                  <EyeOff size={11}/> Modo anónimo
+                  <EyeSlash size={11}/> Modo anónimo
                 </p>
                 {user.membership_type === "none" ? (
                   <p className="text-xs text-text-muted">Requiere membresía activa</p>
@@ -413,7 +410,7 @@ export default function Dashboard() {
               onClick={() => setShowEditProfile(true)}
               className="text-xs text-accent-purple hover:opacity-80 transition-opacity flex items-center gap-1"
             >
-              <Settings size={12} /> Editar datos
+              <Gear size={12} /> Editar datos
             </button>
           </div>
           <MyProfileSection />

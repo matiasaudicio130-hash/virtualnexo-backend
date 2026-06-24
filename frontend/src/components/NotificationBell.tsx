@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Bell, MessageSquare, Flame, Star, Award, Info, Heart, UserPlus, X } from "lucide-react";
+import { Bell, Chat, Fire, Star, Trophy, Info, Heart, UserPlus, X } from "@phosphor-icons/react";
 import { notificationsApi } from "@/lib/api";
 import { getNotifUrl } from "@/lib/notifUtils";
 
@@ -15,12 +15,12 @@ interface Notification {
 }
 
 const TYPE_ICONS: Record<string, typeof Bell> = {
-  new_message:          MessageSquare,
-  new_reaction:         Flame,
-  story_reaction:       Flame,
+  new_message:          Chat,
+  new_reaction:         Fire,
+  story_reaction:       Fire,
   new_review:           Star,
-  kyc_approved:         Award,
-  membership_activated: Award,
+  kyc_approved:         Trophy,
+  membership_activated: Trophy,
   new_like:             Heart,
   new_follower:         UserPlus,
   group_invite:         UserPlus,

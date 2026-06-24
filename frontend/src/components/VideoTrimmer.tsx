@@ -7,7 +7,7 @@
  * solo cancelar.
  */
 import { useEffect, useMemo, useRef, useState } from "react";
-import { X, Scissors, Play, Pause } from "lucide-react";
+import { X, Scissors, Play, Pause } from "@phosphor-icons/react";
 
 interface Props {
   file:        File;

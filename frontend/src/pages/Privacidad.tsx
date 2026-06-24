@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft } from "@phosphor-icons/react";
 import { Logo } from "@/components/brand/Logo";
 import { SEOHead } from "@/components/SEOHead";
 

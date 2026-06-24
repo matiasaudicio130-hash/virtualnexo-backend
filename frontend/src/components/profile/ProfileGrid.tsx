@@ -1,7 +1,7 @@
 import { useRef } from "react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
-import { Images } from "lucide-react";
+import { Images } from "@phosphor-icons/react";
 import { useInfiniteUserPosts, type ProfileFeedTab } from "@/hooks/useInfiniteUserPosts";
 import { useInView } from "@/hooks/useInView";
 import { GridItem } from "./GridItem";

@@ -8,7 +8,7 @@
  * - Registra evento overlay_open/overlay_close al backend
  */
 import { useEffect, useRef, useState } from "react";
-import { X, ExternalLink, Loader2, Shield } from "lucide-react";
+import { X, ArrowSquareOut, CircleNotch, Shield } from "@phosphor-icons/react";
 import { adsApi } from "@/lib/api";
 
 interface Props {
@@ -70,7 +70,7 @@ export function InAppBrowser({ adId, url, title, onClose }: Props) {
           className="p-2 rounded-xl hover:bg-bg-muted text-text-muted flex-shrink-0"
           aria-label="Abrir en navegador"
         >
-          <ExternalLink size={16} />
+          <ArrowSquareOut size={16} />
         </a>
       </div>
 
@@ -78,7 +78,7 @@ export function InAppBrowser({ adId, url, title, onClose }: Props) {
       <div className="flex-1 relative overflow-hidden">
         {loading && (
           <div className="absolute inset-0 flex items-center justify-center bg-white z-10">
-            <Loader2 size={32} className="animate-spin text-accent-purple" />
+            <CircleNotch size={32} className="animate-spin text-accent-purple" />
           </div>
         )}
 
@@ -95,7 +95,7 @@ export function InAppBrowser({ adId, url, title, onClose }: Props) {
               rel="noopener noreferrer"
               className="flex items-center gap-2 px-5 py-3 bg-accent-purple text-white rounded-2xl text-sm font-semibold"
             >
-              <ExternalLink size={16} /> Abrir en el navegador
+              <ArrowSquareOut size={16} /> Abrir en el navegador
             </a>
           </div>
         )}

@@ -1,5 +1,5 @@
 import { useRef } from "react";
-import { User } from "lucide-react";
+import { User } from "@phosphor-icons/react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import { imgUrl } from "@/utils/image";

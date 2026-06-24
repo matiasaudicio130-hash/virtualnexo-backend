@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { Heart } from "lucide-react";
+import { Heart } from "@phosphor-icons/react";
 
 interface Props {
   onDoubleTap: () => void;

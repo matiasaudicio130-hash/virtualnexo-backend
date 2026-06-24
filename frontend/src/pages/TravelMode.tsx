@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Plus, MapPin, Calendar, X, Plane, MessageCircle, CheckCircle } from "lucide-react";
+import { ArrowLeft, Plus, MapPin, Calendar, X, Airplane, Chat, CheckCircle } from "@phosphor-icons/react";
 import { travelApi, messagingApi } from "@/lib/api";
 import { useAuthStore } from "@/store/authStore";
 import { ProtectedAvatar } from "@/components/ProtectedImage";
@@ -105,7 +105,7 @@ export default function TravelMode() {
             <ArrowLeft size={17} className="text-text-muted"/>
           </button>
           <div className="flex items-center gap-2">
-            <Plane size={16} className="text-accent-purple"/>
+            <Airplane size={16} className="text-accent-purple"/>
             <h1
               className="text-sm tracking-[0.2em] uppercase"
               style={{ color: "var(--gold,#C9A227)", fontFamily: "var(--font-display,'Cormorant Garamond',serif)" }}
@@ -164,7 +164,7 @@ export default function TravelMode() {
 
             {plans.length === 0 ? (
               <div className="text-center py-16 text-text-muted">
-                <Plane size={36} className="mx-auto mb-3 opacity-30"/>
+                <Airplane size={36} className="mx-auto mb-3 opacity-30"/>
                 <p className="font-medium text-sm">
                   No hay viajeros{filterProvince ? ` hacia ${filterProvince}` : ""}
                 </p>
@@ -196,7 +196,7 @@ export default function TravelMode() {
           <>
             {mine.length === 0 ? (
               <div className="text-center py-16 text-text-muted">
-                <Plane size={36} className="mx-auto mb-3 opacity-30"/>
+                <Airplane size={36} className="mx-auto mb-3 opacity-30"/>
                 <p className="font-medium text-sm">No tenés viajes activos</p>
                 <button
                   onClick={() => setTab("create")}
@@ -460,7 +460,7 @@ function TravelCard({
           >
             {contacting
               ? <><CheckCircle size={12}/> Conectando…</>
-              : <><MessageCircle size={12}/> Contactar</>
+              : <><Chat size={12}/> Contactar</>
             }
           </button>
         )}

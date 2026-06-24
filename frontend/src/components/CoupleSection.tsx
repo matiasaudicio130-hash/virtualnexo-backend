@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Heart, UserMinus, Check, X } from "lucide-react";
+import { Heart, UserMinus, Check, X } from "@phosphor-icons/react";
 import { couplesApi } from "@/lib/api";
 
 interface Partner {

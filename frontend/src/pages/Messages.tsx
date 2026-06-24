@@ -1,9 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import {
-  ArrowLeft, MessageSquare, Lock, Heart, User,
-  Shield, Settings, X, Users, Search,
-} from "lucide-react";
+import { ArrowLeft, Chat, Lock, Heart, User, Shield, Gear, X, Users, MagnifyingGlass } from "@phosphor-icons/react";
 import { messagingApi, profilesApi, messagingV2Api, notificationsApi } from "@/lib/api";
 import { supabase } from "@/lib/supabase";
 import { imgUrl } from "@/utils/image";
@@ -156,7 +153,7 @@ function ChatWindow({
           <Tooltip label="Configuración" position="bottom">
             <button onClick={() => setShowSettings(v => !v)}
               className="p-1.5 text-text-muted hover:text-text-primary rounded-xl transition-colors">
-              <Settings size={16}/>
+              <Gear size={16}/>
             </button>
           </Tooltip>
           {!blocked && (
@@ -440,7 +437,7 @@ export default function Messages() {
           {/* Pestañas */}
           <div className="flex border-b border-border -mx-4 px-4 overflow-x-auto scrollbar-none">
             {[
-              { id: "messages"  as const, label: "Mensajes",    icon: <MessageSquare size={14} /> },
+              { id: "messages"  as const, label: "Mensajes",    icon: <Chat size={14} /> },
               { id: "groups"    as const, label: "Grupos",      icon: <Users size={14} /> },
               { id: "matches"   as const, label: "Matches",     icon: <Heart size={14} /> },
               { id: "requests"  as const, label: "Solicitudes", icon: <User size={14} />, badge: requests.length },
@@ -487,7 +484,7 @@ export default function Messages() {
             <div className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border bg-bg-muted transition-colors ${
               searchQuery ? "border-[rgba(201,162,39,0.4)]" : "border-border"
             }`}>
-              <Search size={14} className="text-text-muted flex-shrink-0" style={{ color: searchQuery ? "var(--gold,#C9A227)" : undefined }} />
+              <MagnifyingGlass size={14} className="text-text-muted flex-shrink-0" style={{ color: searchQuery ? "var(--gold,#C9A227)" : undefined }} />
               <input
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
@@ -556,7 +553,7 @@ export default function Messages() {
                 if (filtered.length === 0 && msgResults.length === 0 && !searching) {
                   return (
                     <div className="text-center py-12 text-text-muted px-6">
-                      <Search size={28} className="mx-auto mb-2 opacity-30"/>
+                      <MagnifyingGlass size={28} className="mx-auto mb-2 opacity-30"/>
                       <p className="text-sm">Sin resultados para "{searchQuery}"</p>
                     </div>
                   );
@@ -598,7 +595,7 @@ export default function Messages() {
               )}
               {!loading && conversations.length === 0 && (
                 <div className="text-center py-16 text-text-muted px-6">
-                  <MessageSquare size={36} className="mx-auto mb-3 opacity-30" />
+                  <Chat size={36} className="mx-auto mb-3 opacity-30" />
                   <p className="font-medium">Sin conversaciones</p>
                   <p className="text-sm mt-1">
                     Encontrá a alguien en el{" "}
@@ -795,7 +792,7 @@ export default function Messages() {
                     className="flex-shrink-0 p-2 rounded-xl bg-accent-purple/10 hover:bg-accent-purple/20 transition-colors"
                     title="Enviar mensaje"
                   >
-                    <MessageSquare size={15} className="text-accent-purple" />
+                    <Chat size={15} className="text-accent-purple" />
                   </button>
                 </button>
               );

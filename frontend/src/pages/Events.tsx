@@ -1,9 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  ArrowLeft, Plus, Calendar, MapPin, Users,
-  Check, Star, X as XIcon, ShieldCheck, Clock, Trash2,
-} from "lucide-react";
+import { ArrowLeft, Plus, Calendar, MapPin, Users, Check, Star, X as XIcon, ShieldCheck, Clock, Trash } from "@phosphor-icons/react";
 import { eventsApi } from "@/lib/api";
 import { toast } from "@/store/toastStore";
 import { useAuthStore } from "@/store/authStore";
@@ -197,7 +194,7 @@ export default function Events() {
                         className="p-1.5 text-text-muted hover:text-status-error transition-colors rounded-lg hover:bg-bg-muted"
                         title="Eliminar evento"
                       >
-                        <Trash2 size={13}/>
+                        <Trash size={13}/>
                       </button>
                     )}
                   </div>

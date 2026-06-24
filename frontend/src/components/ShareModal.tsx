@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { toast } from "@/store/toastStore";
-import { X, Search, Send, Check, RefreshCcw, ChevronRight } from "lucide-react";
+import { X, MagnifyingGlass, PaperPlaneTilt, Check, ArrowCounterClockwise, CaretRight } from "@phosphor-icons/react";
 import { messagingApi, feedApi } from "@/lib/api";
 
 interface Props {
@@ -92,14 +92,14 @@ export function ShareModal({ postId, authorId, currentUserId, caption, onClose }
                     className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
                     style={{ background: "rgba(201,162,39,0.12)", border: "1px solid rgba(201,162,39,0.25)" }}
                   >
-                    <RefreshCcw size={16} style={{ color: "var(--gold,#C9A227)" }} />
+                    <ArrowCounterClockwise size={16} style={{ color: "var(--gold,#C9A227)" }} />
                   </div>
                   <div className="text-left">
                     <p className="text-sm font-medium">Compartir en mi perfil</p>
                     <p className="text-xs text-text-muted">El post aparecerá en tu feed</p>
                   </div>
                 </div>
-                <ChevronRight size={16} className="text-text-muted" />
+                <CaretRight size={16} className="text-text-muted" />
               </button>
             ) : repostDone ? (
               <div className="flex items-center gap-3 px-4 py-3">
@@ -142,7 +142,7 @@ export function ShareModal({ postId, authorId, currentUserId, caption, onClose }
         <div>
           <p className="text-[10px] text-text-muted uppercase tracking-widest mb-2">Enviar por mensaje</p>
           <div className="relative mb-3">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted"/>
+            <MagnifyingGlass size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted"/>
             <input
               value={query}
               onChange={e => setQuery(e.target.value)}
@@ -189,7 +189,7 @@ export function ShareModal({ postId, authorId, currentUserId, caption, onClose }
                     ) : isSent ? (
                       <Check size={14}/>
                     ) : (
-                      <Send size={13}/>
+                      <PaperPlaneTilt size={13}/>
                     )}
                   </div>
                 </button>

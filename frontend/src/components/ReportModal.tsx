@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { X, Flag, Check } from "lucide-react";
+import { X, Flag, Check } from "@phosphor-icons/react";
 import { moderationApi } from "@/lib/api";
 
 const REASONS = [

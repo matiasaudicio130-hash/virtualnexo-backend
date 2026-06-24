@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { X, AlertTriangle } from "lucide-react";
+import { X, Warning } from "@phosphor-icons/react";
 
 interface Props {
   onConfirm: () => Promise<void>;
@@ -31,7 +31,7 @@ export function DeleteAccountModal({ onConfirm, onCancel }: Props) {
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-status-error/15 flex items-center justify-center flex-shrink-0">
-              <AlertTriangle size={20} className="text-status-error" />
+              <Warning size={20} className="text-status-error" />
             </div>
             <div>
               <p className="font-semibold text-sm text-status-error">Eliminar cuenta permanentemente</p>

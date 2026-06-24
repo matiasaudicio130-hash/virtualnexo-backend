@@ -9,7 +9,7 @@
  * Registra impresión al montar y click al interactuar.
  */
 import { useEffect, useState } from "react";
-import { ExternalLink, X } from "lucide-react";
+import { ArrowSquareOut, X } from "@phosphor-icons/react";
 import { adsApi } from "@/lib/api";
 import { InAppBrowser } from "@/components/InAppBrowser";
 
@@ -121,7 +121,7 @@ export function AdBanner({ ad, onDismiss }: Props) {
 
           <div className="flex items-center justify-between mt-3">
             <span className="inline-flex items-center gap-1.5 px-4 py-2 bg-accent-purple text-white text-sm font-semibold rounded-xl group-hover:bg-accent-purple/90 transition-colors">
-              {ad.type === "overlay" ? <ExternalLink size={14} /> : null}
+              {ad.type === "overlay" ? <ArrowSquareOut size={14} /> : null}
               {ad.cta_text}
             </span>
             <button

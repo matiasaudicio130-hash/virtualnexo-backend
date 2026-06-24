@@ -3,7 +3,7 @@
  * Si el usuario ya votó, muestra los porcentajes con la opción elegida destacada.
  */
 import { useState } from "react";
-import { BarChart2, Users, Clock } from "lucide-react";
+import { ChartBar, Users, Clock } from "@phosphor-icons/react";
 import { feedApi } from "@/lib/api";
 
 interface PollData {
@@ -67,7 +67,7 @@ export function PollCard({ postId, poll, userVote: initialVote, expiresAt, onVot
     <div className="px-4 py-3 space-y-3">
       {/* Pregunta */}
       <div className="flex items-start gap-2">
-        <BarChart2 size={15} className="text-accent-purple mt-0.5 flex-shrink-0" />
+        <ChartBar size={15} className="text-accent-purple mt-0.5 flex-shrink-0" />
         <p className="font-semibold text-sm leading-snug">{poll.question}</p>
       </div>
 

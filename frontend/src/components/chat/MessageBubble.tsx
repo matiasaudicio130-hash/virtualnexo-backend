@@ -3,10 +3,7 @@
  * imagen · video · audio · gif · vista única · reply · reacciones · edición
  */
 import { useState, useRef, useEffect } from "react";
-import {
-  Eye, EyeOff, MoreVertical,
-  Reply, Trash2, Pencil,
-} from "lucide-react";
+import { Eye, EyeSlash, DotsThreeVertical, ArrowBendUpLeft, Trash, Pencil } from "@phosphor-icons/react";
 import { AudioPlayer } from "./AudioRecorder";
 import { messagingV2Api } from "@/lib/api";
 
@@ -41,7 +38,7 @@ function ViewOnceContent({ msg, isMe }: { msg: any; isMe: boolean }) {
   if (isMe) {
     return (
       <div className="flex items-center gap-2 py-1.5 text-xs text-white/60 italic">
-        <EyeOff size={13}/>
+        <EyeSlash size={13}/>
         <span>{msg.viewed_at ? "Vista por el destinatario" : "Vista única — enviada"}</span>
       </div>
     );
@@ -92,7 +89,7 @@ function ViewOnceContent({ msg, isMe }: { msg: any; isMe: boolean }) {
 
   return (
     <div className="flex items-center gap-2 py-1.5 text-xs text-text-muted italic">
-      <EyeOff size={13}/>
+      <EyeSlash size={13}/>
       <span>Vista única — expirada</span>
     </div>
   );
@@ -249,7 +246,7 @@ export function MessageBubble({ msg, isMe, currentUserId, onDelete, onReply, onR
     >
       <div className={`relative max-w-[78%] ${isMe ? "items-end" : "items-start"} flex flex-col`}>
 
-        {/* Reply context */}
+        {/* ArrowBendUpLeft context */}
         {msg.reply_to_id && (
           <div className={`text-[10px] mb-1 px-3 py-1 rounded-lg bg-bg-muted/40 border-l-2 border-accent-purple/50 ${isMe ? "self-end" : "self-start"}`}>
             Respondiendo a un mensaje
@@ -258,12 +255,12 @@ export function MessageBubble({ msg, isMe, currentUserId, onDelete, onReply, onR
 
         <div className={`flex items-end gap-1.5 ${isMe ? "flex-row-reverse" : "flex-row"}`}>
 
-          {/* MoreVertical — solo visible en desktop por hover */}
+          {/* DotsThreeVertical — solo visible en desktop por hover */}
           <button
             onClick={() => setShowActions(v => !v)}
             className="p-1 text-text-muted opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 mb-1 hidden sm:flex"
           >
-            <MoreVertical size={13}/>
+            <DotsThreeVertical size={13}/>
           </button>
 
           {/* Burbuja — long press en mobile para mostrar acciones */}
@@ -390,7 +387,7 @@ export function MessageBubble({ msg, isMe, currentUserId, onDelete, onReply, onR
               className="p-1.5 text-text-muted hover:text-accent-purple active:text-accent-purple transition-colors touch-manipulation"
               title="Responder"
             >
-              <Reply size={14}/>
+              <ArrowBendUpLeft size={14}/>
             </button>
 
             {isMe && isText && !msg.view_once && (
@@ -410,7 +407,7 @@ export function MessageBubble({ msg, isMe, currentUserId, onDelete, onReply, onR
                   className="p-1.5 text-text-muted hover:text-status-error active:text-status-error transition-colors touch-manipulation"
                   title="Borrar para mí"
                 >
-                  <Trash2 size={14}/>
+                  <Trash size={14}/>
                 </button>
                 <button
                   onClick={() => { onDelete(msg.id, true); setShowActions(false); }}

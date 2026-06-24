@@ -3,10 +3,7 @@
  * Incluye: lista de grupos, ventana de chat, crear grupo, gestionar miembros.
  */
 import { useState, useEffect, useRef, useCallback } from "react";
-import {
-  ArrowLeft, Plus, Users, Send, Settings, X,
-  UserPlus, Trash2, Crown, LogOut, MoreVertical,
-} from "lucide-react";
+import { ArrowLeft, Plus, Users, PaperPlaneTilt, Gear, X, UserPlus, Trash, Crown, SignOut, DotsThreeVertical } from "@phosphor-icons/react";
 import { groupsApi } from "@/lib/api";
 import { useAuthStore } from "@/store/authStore";
 import { ChatInput } from "./ChatInput";
@@ -79,7 +76,7 @@ function CreateGroupModal({ onClose, onCreated }: { onClose: () => void; onCreat
   );
 }
 
-// ── Group Settings Panel ───────────────────────────────────────
+// ── Group Gear Panel ───────────────────────────────────────
 function GroupSettingsPanel({
   group, onClose, onUpdated, onLeft,
 }: { group: any; onClose: () => void; onUpdated: (g: any) => void; onLeft: () => void }) {
@@ -215,7 +212,7 @@ function GroupSettingsPanel({
           onClick={leaveGroup}
           className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-status-error/30 text-status-error text-sm hover:bg-status-error/8 transition-colors"
         >
-          <LogOut size={14}/> Salir del grupo
+          <SignOut size={14}/> Salir del grupo
         </button>
       </div>
     </div>
@@ -283,7 +280,7 @@ function GroupChatWindow({
           <p className="text-[10px] text-text-muted">{group.member_count} miembro{group.member_count !== 1 ? "s" : ""}</p>
         </div>
         <button onClick={() => setShowSettings(true)} className="p-1.5 hover:bg-bg-muted rounded-xl text-text-muted">
-          <Settings size={16}/>
+          <Gear size={16}/>
         </button>
       </div>
 

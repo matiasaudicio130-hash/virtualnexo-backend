@@ -9,8 +9,8 @@ import { Link, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ShieldCheck } from "lucide-react";
-import { Eye, EyeSlash } from "@phosphor-icons/react";
+
+import { Eye, EyeSlash, ShieldCheck } from "@phosphor-icons/react";
 import { useAuth } from "@/hooks/useAuth";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";

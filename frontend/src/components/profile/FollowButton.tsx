@@ -1,7 +1,7 @@
 import { useRef, useLayoutEffect } from "react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
-import { UserPlus, Check, Clock, Users } from "lucide-react";
+import { UserPlus, Check, Clock, Users } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/Button";
 import { useFollow, type FollowStatus } from "@/hooks/useFollow";
 

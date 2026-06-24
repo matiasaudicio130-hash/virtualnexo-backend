@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { VerifiedBadge } from "@/components/ui/VerifiedBadge";
 import { Logo } from "@/components/brand/Logo";
-import { Shield, Loader2, CheckCircle, RefreshCw } from "lucide-react";
+import { Shield, CircleNotch, CheckCircle, ArrowClockwise } from "@phosphor-icons/react";
 
 type KYCState = "loading" | "ready" | "pending" | "verified" | "rejected" | "error";
 
@@ -78,7 +78,7 @@ export default function KYCVerification() {
       <Card glow className="w-full max-w-md p-8">
         {state === "loading" && (
           <div className="text-center">
-            <Loader2 size={40} className="text-accent-purple mx-auto mb-4 animate-spin" />
+            <CircleNotch size={40} className="text-accent-purple mx-auto mb-4 animate-spin" />
             <h1 className="text-xl font-bold">Iniciando verificación...</h1>
           </div>
         )}
@@ -158,7 +158,7 @@ export default function KYCVerification() {
               No pudimos verificar tu identidad. Contactá soporte si creés que es un error.
             </p>
             <Button variant="secondary" fullWidth onClick={startKYC}>
-              <RefreshCw size={16} />
+              <ArrowClockwise size={16} />
               Intentar de nuevo
             </Button>
           </div>

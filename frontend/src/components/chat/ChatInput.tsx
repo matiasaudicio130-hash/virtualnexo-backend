@@ -4,10 +4,7 @@
  *           GIFs · vista única · reply context · envío por Enter.
  */
 import { useState, useRef, useCallback } from "react";
-import {
-  Smile, Paperclip, Mic, Send, X, Image as ImageIcon,
-  Video, Film, Eye, EyeOff,
-} from "lucide-react";
+import { Smiley, Paperclip, Microphone, PaperPlaneTilt, X, Image as ImageIcon, Video, FilmStrip, Eye, EyeSlash } from "@phosphor-icons/react";
 import { EmojiPicker } from "./EmojiPicker";
 import { GifPicker }   from "./GifPicker";
 import { AudioRecorder } from "./AudioRecorder";
@@ -185,7 +182,7 @@ export function ChatInput({
   return (
     <div className="flex-shrink-0 border-t border-border/60">
 
-      {/* Reply context */}
+      {/* ArrowBendUpLeft context */}
       {replyTo && (
         <div className="flex items-center gap-2 px-4 py-2 bg-bg-muted/40 border-b border-border/40">
           <div className="w-0.5 h-8 bg-accent-purple rounded-full flex-shrink-0"/>
@@ -216,7 +213,7 @@ export function ChatInput({
             <div className="flex-1 space-y-2">
               <div className="flex items-center gap-1.5">
                 {mediaPreview.type === "video" ? <Video size={13} className="text-accent-purple"/> :
-                 mediaPreview.type === "gif"   ? <Film size={13} className="text-accent-purple"/> :
+                 mediaPreview.type === "gif"   ? <FilmStrip size={13} className="text-accent-purple"/> :
                  <ImageIcon size={13} className="text-accent-purple"/>}
                 <span className="text-xs text-text-muted capitalize">
                   {mediaPreview.type === "gif" ? "GIF" : mediaPreview.type}
@@ -233,7 +230,7 @@ export function ChatInput({
                       : "border-border text-text-muted hover:border-accent-purple/40"
                   }`}
                 >
-                  {viewOnce ? <EyeOff size={11}/> : <Eye size={11}/>}
+                  {viewOnce ? <EyeSlash size={11}/> : <Eye size={11}/>}
                   {viewOnce ? "Vista única" : "Permanente"}
                 </button>
               )}
@@ -259,7 +256,7 @@ export function ChatInput({
               {[
                 { icon: ImageIcon, label: "Foto",         accept: "image/*" },
                 { icon: Video,     label: "Video",        accept: "video/*" },
-                { icon: Film,      label: "GIF",          accept: "image/gif" },
+                { icon: FilmStrip,      label: "GIF",          accept: "image/gif" },
               ].map(({ icon: Icon, label, accept }) => (
                 <button
                   key={label}
@@ -298,7 +295,7 @@ export function ChatInput({
               onClick={() => togglePanel("emoji")}
               className={`flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-xl transition-all ${panel === "emoji" ? "text-accent-purple bg-accent-purple/10" : "text-text-muted hover:text-text-primary hover:bg-bg-muted"}`}
             >
-              <Smile size={18}/>
+              <Smiley size={18}/>
               <span className="text-[9px] leading-none">Emoji</span>
             </button>
             <button
@@ -339,14 +336,14 @@ export function ChatInput({
                 className="p-2.5 rounded-xl text-white active:scale-95 transition-all shadow-glow-sm hover:opacity-90"
                 style={{ background: "var(--gradient-brand, linear-gradient(135deg,#C9A227,#FFE566))" }}
               >
-                <Send size={18} style={{ color: "var(--obsidian,#020207)" }}/>
+                <PaperPlaneTilt size={18} style={{ color: "var(--obsidian,#020207)" }}/>
               </button>
             ) : (
               <button
                 onClick={() => setShowAudio(true)}
                 className="flex flex-col items-center gap-0.5 px-2 py-1 rounded-xl transition-colors text-text-muted hover:text-text-primary"
               >
-                <Mic size={18}/>
+                <Microphone size={18}/>
                 <span className="text-[9px] leading-none">Audio</span>
               </button>
             )}

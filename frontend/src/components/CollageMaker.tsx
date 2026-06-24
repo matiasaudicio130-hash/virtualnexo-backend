@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { X, ImagePlus, ChevronLeft, ChevronRight, RotateCcw } from "lucide-react";
+import { X, ImageSquare, CaretLeft, CaretRight, ArrowCounterClockwise } from "@phosphor-icons/react";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 interface SlotDef { x: number; y: number; w: number; h: number; }
@@ -289,7 +289,7 @@ export function CollageMaker({ onDone, onCancel }: Props) {
       <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 flex-shrink-0 pt-safe">
         {step === "edit" ? (
           <button onClick={() => setStep("layout")} className="p-2 text-white/60 hover:text-white transition-colors flex items-center gap-1">
-            <ChevronLeft size={18} /> <span className="text-sm">Layout</span>
+            <CaretLeft size={18} /> <span className="text-sm">Layout</span>
           </button>
         ) : (
           <button onClick={onCancel} className="p-2 text-white/60 hover:text-white transition-colors">
@@ -302,7 +302,7 @@ export function CollageMaker({ onDone, onCancel }: Props) {
             onClick={() => setStep("edit")}
             className="text-amber-400 font-semibold text-sm px-3 py-1.5 rounded-lg hover:bg-white/10 transition-colors"
           >
-            Siguiente <ChevronRight size={14} className="inline" />
+            Siguiente <CaretRight size={14} className="inline" />
           </button>
         ) : (
           <button
@@ -442,7 +442,7 @@ export function CollageMaker({ onDone, onCancel }: Props) {
                             onClick={e => { e.stopPropagation(); openPicker(i); }}
                             className="w-6 h-6 rounded-full bg-black/70 flex items-center justify-center"
                           >
-                            <RotateCcw size={11} className="text-white" />
+                            <ArrowCounterClockwise size={11} className="text-white" />
                           </button>
                         </div>
                         {/* Drag handle */}
@@ -455,7 +455,7 @@ export function CollageMaker({ onDone, onCancel }: Props) {
                       </>
                     ) : (
                       <div className="w-full h-full flex flex-col items-center justify-center gap-1 text-white/30">
-                        <ImagePlus size={20} />
+                        <ImageSquare size={20} />
                         <span className="text-[10px]">Foto {i + 1}</span>
                       </div>
                     )}

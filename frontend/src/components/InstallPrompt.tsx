@@ -6,7 +6,7 @@
  * En iOS muestra instrucciones manuales (Safari no tiene beforeinstallprompt).
  */
 import { useState, useEffect } from "react";
-import { X, Download, Share } from "lucide-react";
+import { X, DownloadSimple, ShareNetwork } from "@phosphor-icons/react";
 import { APP_CONFIG } from "@/config/app";
 
 const DISMISSED_KEY = "pwa_install_dismissed";
@@ -72,7 +72,7 @@ export function InstallPrompt() {
               onClick={install}
               className="flex items-center gap-1.5 px-3 py-2 bg-accent-purple text-white text-xs font-semibold rounded-xl hover:bg-accent-purple/90 transition-colors"
             >
-              <Download size={13} /> Instalar
+              <DownloadSimple size={13} /> Instalar
             </button>
             <button onClick={dismiss} className="p-1.5 text-text-muted hover:text-text-primary">
               <X size={16} />
@@ -96,7 +96,7 @@ export function InstallPrompt() {
           </div>
           <div className="flex items-center gap-2 text-sm text-text-secondary">
             <span>1. Tocá</span>
-            <Share size={14} className="text-accent-purple" />
+            <ShareNetwork size={14} className="text-accent-purple" />
             <span>en Safari</span>
           </div>
           <p className="text-sm text-text-secondary mt-1">

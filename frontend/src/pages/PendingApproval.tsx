@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { APP_CONFIG } from "@/config/app";
 import { Card } from "@/components/ui/Card";
-import { Clock } from "lucide-react";
+import { Clock } from "@phosphor-icons/react";
 
 export default function PendingApproval() {
   return (

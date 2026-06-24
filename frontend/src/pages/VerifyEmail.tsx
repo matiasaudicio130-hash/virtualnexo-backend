@@ -4,7 +4,7 @@ import { APP_CONFIG } from "@/config/app";
 import { authApi } from "@/lib/api";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
-import { Mail, CheckCircle, XCircle, Loader2 } from "lucide-react";
+import { Envelope, CheckCircle, XCircle, CircleNotch } from "@phosphor-icons/react";
 
 type State = "idle" | "verifying" | "success" | "error" | "sent";
 
@@ -45,7 +45,7 @@ export default function VerifyEmail() {
         {state === "sent" && (
           <>
             <div className="w-16 h-16 rounded-2xl bg-accent-purple/10 flex items-center justify-center mx-auto mb-6">
-              <Mail size={32} className="text-accent-purple" />
+              <Envelope size={32} className="text-accent-purple" />
             </div>
             <h1 className="brand-title" style={{ fontSize: "var(--fs-display-m)" }}>Revisá tu email</h1>
             <p className="text-text-secondary text-sm leading-relaxed mb-6">
@@ -57,7 +57,7 @@ export default function VerifyEmail() {
 
         {state === "verifying" && (
           <>
-            <Loader2 size={40} className="text-accent-purple mx-auto mb-6 animate-spin" />
+            <CircleNotch size={40} className="text-accent-purple mx-auto mb-6 animate-spin" />
             <h1 className="brand-title" style={{ fontSize: "var(--fs-display-m)" }}>Verificando...</h1>
           </>
         )}

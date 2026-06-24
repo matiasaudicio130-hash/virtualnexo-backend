@@ -7,12 +7,7 @@ import { APP_CONFIG } from "@/config/app";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import {
-  Shield, Key, Users, BarChart3, LogOut, Plus, CheckCircle, XCircle,
-  Wallet, History, Settings as SettingsIcon, TrendingUp, AlertCircle,
-  FileText, Download, Share2, Megaphone, Search, Ban, Eye, EyeOff, Crown,
-  UserPlus, ExternalLink, Flag, AlertTriangle, Trash2 as TrashIcon, UserX,
-} from "lucide-react";
+import { Shield, Key, Users, ChartBar, SignOut, Plus, CheckCircle, XCircle, Wallet, ClockCounterClockwise, Gear as SettingsIcon, TrendUp, Warning, FileText, DownloadSimple, ShareNetwork, Megaphone, MagnifyingGlass, Prohibit, Eye, EyeSlash, Crown, UserPlus, ArrowSquareOut, Flag, Trash as TrashIcon, UserMinus } from "@phosphor-icons/react";
 import type { MasterKey, Payment, RevenueStats, AuditLogEntry, SystemSetting, Plan } from "@/types";
 import { toast } from "@/store/toastStore";
 
@@ -29,18 +24,18 @@ export default function AdminPanel() {
   }, [user]);
 
   const tabs: { id: Tab; label: string; icon: typeof Shield }[] = [
-    { id: "stats",    label: "Resumen",     icon: BarChart3 },
+    { id: "stats",    label: "Resumen",     icon: ChartBar },
     { id: "users",    label: "Usuarios",    icon: Users },
     { id: "keys",     label: "Master Keys", icon: Key },
     { id: "payments", label: "Pagos",       icon: Wallet },
     { id: "reports",  label: "Reportes",    icon: FileText },
-    { id: "payouts",  label: "Payouts",     icon: Share2 },
+    { id: "payouts",  label: "Payouts",     icon: ShareNetwork },
     { id: "ads",      label: "Anuncios",    icon: Megaphone },
     { id: "leaks",    label: "Filtraciones",icon: Shield },
     { id: "moderation", label: "Moderación", icon: Flag },
     { id: "pending",    label: "Pendientes", icon: Users },
     { id: "settings",   label: "Ajustes",    icon: SettingsIcon },
-    { id: "audit",      label: "Auditoría",  icon: History },
+    { id: "audit",      label: "Auditoría",  icon: ClockCounterClockwise },
   ];
 
   return (
@@ -54,14 +49,14 @@ export default function AdminPanel() {
           {/* Cotización dólar en header */}
           {dolar.data && (
             <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-accent-purple/5 border border-accent-purple/20 rounded-lg text-xs">
-              <TrendingUp size={12} className="text-accent-purple" />
+              <TrendUp size={12} className="text-accent-purple" />
               <span className="text-text-muted">Blue:</span>
               <span className="font-semibold text-accent-purple">{formatARS(dolar.data.sell)}</span>
-              {dolar.data.stale && <AlertCircle size={12} className="text-status-warning" />}
+              {dolar.data.stale && <Warning size={12} className="text-status-warning" />}
             </div>
           )}
           <button onClick={() => { logout(); navigate("/login"); }} className="p-2 hover:bg-bg-muted rounded-xl">
-            <LogOut size={18} className="text-text-muted" />
+            <SignOut size={18} className="text-text-muted" />
           </button>
         </div>
       </header>
@@ -178,7 +173,7 @@ function NewUsersSection() {
                 className="p-1.5 rounded-lg border border-border text-text-muted hover:border-accent-purple/40 hover:text-accent-purple transition-colors"
                 title="Ver perfil"
               >
-                <ExternalLink size={13}/>
+                <ArrowSquareOut size={13}/>
               </button>
             </div>
           </div>
@@ -279,14 +274,14 @@ function StatsTab() {
         <div className="flex flex-wrap gap-3">
           {stats.pending_manual > 0 && (
             <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-status-warning/40 bg-status-warning/10 text-status-warning text-sm">
-              <AlertCircle size={15} />
+              <Warning size={15} />
               <span className="font-semibold">{stats.pending_manual}</span>
               <span>aprobaciones pendientes</span>
             </div>
           )}
           {stats.reports_pending > 0 && (
             <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-status-error/40 bg-status-error/10 text-status-error text-sm">
-              <AlertCircle size={15} />
+              <Warning size={15} />
               <span className="font-semibold">{stats.reports_pending}</span>
               <span>reportes sin revisar</span>
             </div>
@@ -527,7 +522,7 @@ function UsersTab() {
       <Card className="p-4">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div className="relative">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
+            <MagnifyingGlass size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -595,7 +590,7 @@ function UsersTab() {
                       {u.role}
                     </span>
                     {u.is_shadow_banned && (
-                      <EyeOff size={13} className="text-status-error" />
+                      <EyeSlash size={13} className="text-status-error" />
                     )}
                   </div>
                 </div>
@@ -666,7 +661,7 @@ function UsersTab() {
                             : "border-border text-text-muted hover:border-status-warning/40 hover:text-status-warning"
                         )}
                       >
-                        {u.is_shadow_banned ? <><Eye size={12}/> Quitar shadow ban</> : <><EyeOff size={12}/> Shadow ban</>}
+                        {u.is_shadow_banned ? <><Eye size={12}/> Quitar shadow ban</> : <><EyeSlash size={12}/> Shadow ban</>}
                       </button>
 
                       {/* Suspender */}
@@ -675,7 +670,7 @@ function UsersTab() {
                           onClick={(e) => { e.stopPropagation(); suspend(u.id); }}
                           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs border border-border text-text-muted hover:border-status-error/40 hover:text-status-error transition-colors"
                         >
-                          <Ban size={12}/> Suspender
+                          <Prohibit size={12}/> Suspender
                         </button>
                       )}
                     </div>
@@ -1235,7 +1230,7 @@ function ReportsTab() {
             loading={dlLoading === "monthly"}
             className="flex-1"
           >
-            <Download size={15}/>
+            <DownloadSimple size={15}/>
             Descargar {MONTH_NAMES[month-1]} {year} (PDF)
           </Button>
           <Button
@@ -1243,7 +1238,7 @@ function ReportsTab() {
             loading={dlLoading === "annual"}
             className="flex-1 bg-bg-card border border-border text-text-primary hover:bg-bg-muted"
           >
-            <Download size={15}/>
+            <DownloadSimple size={15}/>
             Reporte anual {year} (PDF)
           </Button>
         </div>
@@ -2085,7 +2080,7 @@ function ModerationTab() {
                 <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
                   isPost ? "bg-accent-purple/15 text-accent-purple" : "bg-status-error/15 text-status-error"
                 }`}>
-                  {isPost ? <FileText size={14}/> : <UserX size={14}/>}
+                  {isPost ? <FileText size={14}/> : <UserMinus size={14}/>}
                 </div>
                 <div className="min-w-0">
                   <p className="text-sm font-semibold truncate">

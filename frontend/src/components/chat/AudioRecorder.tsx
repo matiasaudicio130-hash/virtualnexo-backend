@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Mic, Square, Send, Trash2 } from "lucide-react";
+import { Microphone, StopCircle, PaperPlaneTilt, Trash } from "@phosphor-icons/react";
 
 interface Props {
   onSend: (blob: Blob, duration: number) => void;
@@ -104,11 +104,11 @@ export function AudioRecorder({ onSend, onCancel }: Props) {
         </div>
         <button onClick={stopRecording}
           className="p-2 bg-status-error rounded-xl text-white hover:bg-status-error/80 transition-colors flex-shrink-0">
-          <Square size={14}/>
+          <StopCircle size={14}/>
         </button>
         <button onClick={onCancel}
           className="p-2 text-text-muted hover:text-text-primary transition-colors flex-shrink-0">
-          <Trash2 size={14}/>
+          <Trash size={14}/>
         </button>
       </div>
     );
@@ -125,11 +125,11 @@ export function AudioRecorder({ onSend, onCancel }: Props) {
       </span>
       <button onClick={onCancel}
         className="p-1.5 text-text-muted hover:text-status-error transition-colors flex-shrink-0">
-        <Trash2 size={14}/>
+        <Trash size={14}/>
       </button>
       <button onClick={handleSend}
         className="p-1.5 bg-accent-purple rounded-xl text-white hover:opacity-90 transition-all flex-shrink-0">
-        <Send size={14}/>
+        <PaperPlaneTilt size={14}/>
       </button>
     </div>
   );
@@ -139,7 +139,7 @@ export function AudioRecorder({ onSend, onCancel }: Props) {
 export function AudioPlayer({ url, duration }: { url: string; duration?: number }) {
   return (
     <div className="flex items-center gap-2 min-w-[180px]">
-      <Mic size={14} className="text-current opacity-70 flex-shrink-0"/>
+      <Microphone size={14} className="text-current opacity-70 flex-shrink-0"/>
       <audio src={url} controls className="h-7 flex-1"
         style={{ colorScheme: "dark", minWidth: 140 }}/>
       {duration && (

@@ -3,7 +3,7 @@
  * El backend aplica watermarks antes de subir a Supabase Storage.
  */
 import { useRef, useState } from "react";
-import { Camera, Loader2, CheckCircle, AlertCircle } from "lucide-react";
+import { Camera, CircleNotch, CheckCircle, Warning } from "@phosphor-icons/react";
 import { mediaApi } from "@/lib/api";
 import { useAuthStore } from "@/store/authStore";
 
@@ -98,7 +98,7 @@ export function AvatarUpload({ currentUrl, size = 96, onSuccess }: Props) {
         {/* Spinner durante upload */}
         {status === "uploading" && (
           <div className="absolute inset-0 rounded-full bg-black/60 flex items-center justify-center">
-            <Loader2 size={size * 0.3} className="text-white animate-spin" />
+            <CircleNotch size={size * 0.3} className="text-white animate-spin" />
           </div>
         )}
 
@@ -112,7 +112,7 @@ export function AvatarUpload({ currentUrl, size = 96, onSuccess }: Props) {
         {/* Error */}
         {status === "error" && (
           <div className="absolute inset-0 rounded-full bg-status-error/30 flex items-center justify-center">
-            <AlertCircle size={size * 0.35} className="text-status-error" />
+            <Warning size={size * 0.35} className="text-status-error" />
           </div>
         )}
       </button>

@@ -1,7 +1,9 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import type { LucideIcon } from "lucide-react";
-import { ChevronLeft, TrendingUp, Users, Heart, MessageCircle, Bookmark, Eye, BarChart2, Zap } from "lucide-react";
+
+import type { Icon } from "@phosphor-icons/react";
+import { CaretLeft, TrendUp, Users, Heart, Chat, BookmarkSimple, Eye, ChartBar, Lightning } from "@phosphor-icons/react";
+
 import { analyticsApi } from "@/lib/api";
 import { useAuthStore } from "@/store/authStore";
 import { BottomNav }    from "@/components/BottomNav";
@@ -154,13 +156,13 @@ export default function Analytics() {
           onClick={() => navigate(-1)}
           className="p-2 -ml-2 rounded-xl hover:bg-bg-muted transition-colors text-text-muted hover:text-text-primary"
         >
-          <ChevronLeft size={20} />
+          <CaretLeft size={20} />
         </button>
         <div className="flex-1">
           <h1 className="font-semibold text-sm">Mis estadísticas</h1>
           <p className="text-[10px] text-text-muted">Rendimiento de tu perfil y publicaciones</p>
         </div>
-        <BarChart2 size={18} className="text-text-muted" style={{ color: "var(--gold,#C9A227)" } as React.CSSProperties} />
+        <ChartBar size={18} className="text-text-muted" style={{ color: "var(--gold,#C9A227)" } as React.CSSProperties} />
       </header>
 
       {/* Error */}
@@ -210,7 +212,7 @@ export default function Analytics() {
                 color="pink"
               />
               <StatCard
-                Icon={Bookmark}
+                Icon={BookmarkSimple}
                 label="Guardados"
                 value={data.saves.total}
                 sub={`En ${data.posts.total} publicaciones`}
@@ -228,7 +230,7 @@ export default function Analytics() {
               className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
               style={{ background: "rgba(201,162,39,0.15)" }}
             >
-              <Zap size={22} style={{ color: "var(--gold,#C9A227)" } as React.CSSProperties} />
+              <Lightning size={22} style={{ color: "var(--gold,#C9A227)" } as React.CSSProperties} />
             </div>
             <div className="flex-1">
               <p className="text-[10px] text-text-muted uppercase tracking-widest">Tasa de engagement</p>
@@ -252,7 +254,7 @@ export default function Analytics() {
             >
               <div className="flex items-center justify-between mb-3">
                 <p className="text-[10px] text-text-muted uppercase tracking-widest">Seguidores nuevos por semana</p>
-                <TrendingUp size={14} style={{ color: "var(--gold,#C9A227)" } as React.CSSProperties} />
+                <TrendUp size={14} style={{ color: "var(--gold,#C9A227)" } as React.CSSProperties} />
               </div>
               <WeeklyChart data={data.followers.weekly} />
               <p className="text-[9px] text-text-muted text-center mt-2">Últimas 7 semanas</p>
@@ -264,7 +266,7 @@ export default function Analytics() {
             className="rounded-2xl p-4 flex items-center gap-4"
             style={{ background: "#0e0c09", border: "1px solid rgba(255,255,255,0.07)" }}
           >
-            <MessageCircle size={20} className="text-text-muted flex-shrink-0" />
+            <Chat size={20} className="text-text-muted flex-shrink-0" />
             <div className="flex-1">
               <p className="text-[10px] text-text-muted uppercase tracking-widest">Comentarios recibidos</p>
               <p className="text-xl font-bold tabular-nums">{data.comments.total.toLocaleString("es-AR")}</p>
@@ -331,10 +333,10 @@ export default function Analytics() {
                         <Heart size={9} /> {post.reactions}
                       </span>
                       <span className="text-[10px] text-text-muted flex items-center gap-1">
-                        <MessageCircle size={9} /> {post.comments}
+                        <Chat size={9} /> {post.comments}
                       </span>
                       <span className="text-[10px] text-text-muted flex items-center gap-1">
-                        <Bookmark size={9} /> {post.saves}
+                        <BookmarkSimple size={9} /> {post.saves}
                       </span>
                     </div>
                   </div>
@@ -346,7 +348,7 @@ export default function Analytics() {
           {/* ── Sin publicaciones ────────────────────────────────────── */}
           {data.posts.total === 0 && (
             <div className="py-12 text-center">
-              <BarChart2 size={36} className="mx-auto mb-3 opacity-20" />
+              <ChartBar size={36} className="mx-auto mb-3 opacity-20" />
               <p className="text-sm text-text-muted">Publicá contenido para ver tus estadísticas</p>
             </div>
           )}

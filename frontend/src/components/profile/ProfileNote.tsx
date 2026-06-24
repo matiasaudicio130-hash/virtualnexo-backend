@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect, type CSSProperties } from "react";
-import { X } from "lucide-react";
+import { X } from "@phosphor-icons/react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import type { ProfileNote as TNote } from "@/types";

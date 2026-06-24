@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { MapPin, ChevronRight } from "lucide-react";
+import { MapPin, CaretRight } from "@phosphor-icons/react";
 import { discoveryApi } from "@/lib/api";
 import { PROFILE_TYPE_CONFIG } from "@/types";
 import { imgUrl } from "@/utils/image";
@@ -58,7 +58,7 @@ export function NearbyUsers({ lat, lng }: Props) {
           onClick={() => navigate("/explore?tab=personas")}
           className="text-[10px] text-accent-purple flex items-center gap-0.5 hover:underline"
         >
-          Ver más <ChevronRight size={11}/>
+          Ver más <CaretRight size={11}/>
         </button>
       </div>
 

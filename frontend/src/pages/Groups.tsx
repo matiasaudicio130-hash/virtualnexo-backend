@@ -1,9 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  Users, Plus, Send, ArrowLeft, Crown, Settings, X, Pencil,
-  UserMinus, ShieldCheck, ShieldOff, Trash2, UserPlus, Check, Search,
-} from "lucide-react";
+import { Users, Plus, PaperPlaneTilt, ArrowLeft, Crown, Gear, X, Pencil, UserMinus, ShieldCheck, ShieldSlash, Trash, UserPlus, Check, MagnifyingGlass } from "@phosphor-icons/react";
 import { groupsApi, searchApi } from "@/lib/api";
 import { useAuthStore } from "@/store/authStore";
 import { toast } from "@/store/toastStore";
@@ -298,7 +295,7 @@ function GroupChat({
           onClick={() => setShowSettings(true)}
           className="p-2 rounded-xl text-text-muted hover:text-text-primary hover:bg-bg-muted transition-colors"
         >
-          <Settings size={18} />
+          <Gear size={18} />
         </button>
       </header>
 
@@ -361,7 +358,7 @@ function GroupChat({
             onClick={sendMsg} disabled={!text.trim() || sending}
             style={{ width: 40, height: 40, borderRadius: "50%", border: "none", background: text.trim() ? "var(--gold, #C9A227)" : "rgba(255,255,255,0.08)", color: text.trim() ? "#020207" : "#555", display: "flex", alignItems: "center", justifyContent: "center", cursor: text.trim() ? "pointer" : "not-allowed", transition: "all 0.15s" }}
           >
-            <Send size={16} />
+            <PaperPlaneTilt size={16} />
           </button>
         </div>
       </div>
@@ -584,7 +581,7 @@ function GroupSettings({
             {showAddMember && (
               <div className="mb-3">
                 <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-bg-muted border border-border mb-1">
-                  <Search size={13} className="text-text-muted flex-shrink-0" />
+                  <MagnifyingGlass size={13} className="text-text-muted flex-shrink-0" />
                   <input
                     value={addQuery}
                     onChange={e => setAddQuery(e.target.value)}
@@ -660,7 +657,7 @@ function GroupSettings({
                           className="w-7 h-7 rounded-lg flex items-center justify-center text-text-muted hover:text-text-primary hover:bg-bg-muted transition-colors"
                           title={m.role === "admin" ? "Quitar admin" : "Hacer admin"}
                         >
-                          {m.role === "admin" ? <ShieldOff size={13} /> : <ShieldCheck size={13} />}
+                          {m.role === "admin" ? <ShieldSlash size={13} /> : <ShieldCheck size={13} />}
                         </button>
                         <button
                           onClick={() => kickMember(m)}
@@ -691,7 +688,7 @@ function GroupSettings({
                 onClick={deleteGroup}
                 className="w-full flex items-center gap-3 py-3 text-sm text-status-error hover:opacity-80 transition-opacity"
               >
-                <Trash2 size={15} />
+                <Trash size={15} />
                 Eliminar grupo
               </button>
             )}
