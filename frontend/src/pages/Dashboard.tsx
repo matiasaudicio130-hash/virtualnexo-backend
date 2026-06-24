@@ -491,7 +491,10 @@ export default function Dashboard() {
             </button>
             {showViewers && (
               <div className="mt-3 space-y-2">
-                {viewers.map((v: any) => (
+                {viewers.map((v: any) => {
+                  const isNew = v.viewed_at
+                    && Date.now() - new Date(v.viewed_at).getTime() < 24 * 60 * 60 * 1000;
+                  return (
                   <button
                     key={v.id}
                     onClick={() => navigate(`/profile/${v.id}`)}
@@ -502,12 +505,21 @@ export default function Dashboard() {
                       : <div className="w-9 h-9 rounded-full bg-bg-muted border border-border/40 flex items-center justify-center flex-shrink-0"><User size={14} className="text-text-muted" /></div>
                     }
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{v.first_name} {v.last_name}</p>
+                      <div className="flex items-center gap-1.5">
+                        <p className="text-sm font-medium truncate">{v.first_name} {v.last_name}</p>
+                        {isNew && (
+                          <span className="flex-shrink-0 text-[9px] font-bold px-1.5 py-0.5 rounded-full"
+                            style={{ background: "rgba(201,162,39,0.15)", color: "var(--gold,#C9A227)", border: "1px solid rgba(201,162,39,0.3)" }}>
+                            NUEVO
+                          </span>
+                        )}
+                      </div>
                       <p className="text-xs text-text-muted">{v.province ?? ""}</p>
                     </div>
                     <Heart size={13} className="text-text-muted flex-shrink-0" />
                   </button>
-                ))}
+                  );
+                })}
               </div>
             )}
           </Card>

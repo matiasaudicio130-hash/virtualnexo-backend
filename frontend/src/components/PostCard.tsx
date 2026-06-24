@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
-import { MapPin, Trash2, MoreHorizontal, Flag, BarChart2 } from "lucide-react";
 import {
   Heart, Fire, BookmarkSimple, PaperPlaneTilt, ChatCircle,
+  MapPin, Trash, DotsThree, Flag, ChartBar,
 } from "@phosphor-icons/react";
 import { feedApi } from "@/lib/api";
 import { imgUrl } from "@/utils/image";
@@ -225,7 +225,7 @@ export function PostCard({ post, currentUserId, onDelete, initialSaved = false }
             <div className="flex items-center gap-2 text-xs text-text-muted">
               {post.distance_km != null && (
                 <span className="flex items-center gap-0.5">
-                  <MapPin size={10}/> {post.distance_km}km
+                  <MapPin size={10} weight="light"/> {post.distance_km}km
                 </span>
               )}
               {post.city && <span>{post.city}</span>}
@@ -250,7 +250,7 @@ export function PostCard({ post, currentUserId, onDelete, initialSaved = false }
             onClick={() => setShowMenu(v => !v)}
             className="p-1.5 rounded-lg hover:bg-bg-muted text-text-muted"
           >
-            <MoreHorizontal size={16}/>
+            <DotsThree size={20} weight="light"/>
           </button>
           {showMenu && (
             <div
@@ -263,13 +263,13 @@ export function PostCard({ post, currentUserId, onDelete, initialSaved = false }
                     onClick={() => { setShowMenu(false); setShowStats(true); }}
                     className="flex items-center gap-2 w-full px-4 py-2 text-sm text-text-secondary hover:bg-bg-muted"
                   >
-                    <BarChart2 size={13}/> Ver estadísticas
+                    <ChartBar size={14} weight="light"/> Ver estadísticas
                   </button>
                   <button
                     onClick={handleDelete}
                     className="flex items-center gap-2 w-full px-4 py-2 text-sm text-status-error hover:bg-bg-muted"
                   >
-                    <Trash2 size={13}/> Eliminar
+                    <Trash size={14} weight="light"/> Eliminar
                   </button>
                 </>
               )}
@@ -284,7 +284,7 @@ export function PostCard({ post, currentUserId, onDelete, initialSaved = false }
                   onClick={() => { setShowMenu(false); setShowReport(true); }}
                   className="flex items-center gap-2 w-full px-4 py-2 text-sm text-status-error hover:bg-bg-muted"
                 >
-                  <Flag size={13}/> Reportar
+                  <Flag size={14} weight="light"/> Reportar
                 </button>
               )}
             </div>

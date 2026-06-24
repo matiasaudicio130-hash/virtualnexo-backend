@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Trash2, Flag, Reply, ChevronDown, ChevronUp } from "lucide-react";
+import { Trash, Flag, ArrowBendUpLeft, CaretDown, CaretUp } from "@phosphor-icons/react";
 import { commentsApi, searchApi } from "@/lib/api";
 import { useAuthStore } from "@/store/authStore";
 import { imgUrl } from "@/utils/image";
@@ -125,14 +125,14 @@ function CommentItem({
               onClick={() => onReply(comment)}
               className="text-[10px] text-text-muted hover:text-accent-purple transition-colors flex items-center gap-0.5"
             >
-              <Reply size={10}/> Responder
+              <ArrowBendUpLeft size={10} weight="light"/> Responder
             </button>
             {canDelete && (
               <button
                 onClick={() => onDelete(comment.id)}
                 className="text-[10px] text-text-muted hover:text-status-error transition-colors opacity-0 group-hover:opacity-100"
               >
-                <Trash2 size={10}/>
+                <Trash size={10} weight="light"/>
               </button>
             )}
             {!canDelete && (
@@ -140,7 +140,7 @@ function CommentItem({
                 onClick={() => setShowReport(!showReport)}
                 className="text-[10px] text-text-muted hover:text-status-warning transition-colors opacity-0 group-hover:opacity-100"
               >
-                <Flag size={10}/>
+                <Flag size={10} weight="light"/>
               </button>
             )}
           </div>
@@ -160,7 +160,7 @@ function CommentItem({
                 onClick={() => setShowReplies(v => !v)}
                 className="text-[10px] text-accent-purple flex items-center gap-0.5 mb-2"
               >
-                {showReplies ? <ChevronUp size={10}/> : <ChevronDown size={10}/>}
+                {showReplies ? <CaretUp size={10}/> : <CaretDown size={10}/>}
                 {comment.replies.length} {comment.replies.length === 1 ? "respuesta" : "respuestas"}
               </button>
               {showReplies && (
@@ -291,7 +291,7 @@ export function CommentsSection({
         className="w-full flex items-center justify-between px-4 py-2.5 text-xs text-text-muted hover:text-text-secondary transition-colors"
       >
         <span className="flex items-center gap-1.5">
-          {open ? <ChevronUp size={13}/> : <ChevronDown size={13}/>}
+          {open ? <CaretUp size={13}/> : <CaretDown size={13}/>}
           {totalCount > 0 ? `${totalCount} comentario${totalCount !== 1 ? "s" : ""}` : "Comentar"}
         </span>
       </button>
@@ -305,7 +305,7 @@ export function CommentsSection({
               <div className="flex-1 min-w-0">
                 {replyTo && (
                   <div className="text-[10px] text-accent-purple mb-1 flex items-center gap-1">
-                    <Reply size={10}/> Respondiendo a {replyTo.author.name}
+                    <ArrowBendUpLeft size={10} weight="light"/> Respondiendo a {replyTo.author.name}
                     <button type="button" onClick={() => setReplyTo(null)} className="ml-1 text-text-muted hover:text-text-primary">×</button>
                   </div>
                 )}

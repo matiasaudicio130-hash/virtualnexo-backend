@@ -244,6 +244,20 @@ function ChatWindow({
                   <div className="flex-1 h-px bg-border/30"/>
                 </div>
               )}
+              {msg.type === "system" ? (
+                <div className="flex justify-center my-4 px-2">
+                  <div
+                    className="w-full max-w-xs rounded-2xl px-4 py-3 text-center text-xs leading-relaxed whitespace-pre-line"
+                    style={{
+                      background: "rgba(201,162,39,0.07)",
+                      border: "1px solid rgba(201,162,39,0.2)",
+                      color: "var(--mist,#9b9590)",
+                    }}
+                  >
+                    {msg.content}
+                  </div>
+                </div>
+              ) : (
               <MessageBubble
                 msg={msg}
                 isMe={msg.sender_id === currentUserId}
@@ -252,6 +266,7 @@ function ChatWindow({
                 onReply={setReplyTo}
                 onReload={load}
               />
+              )}
             </div>
           );
         })}

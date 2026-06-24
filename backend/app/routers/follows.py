@@ -98,6 +98,58 @@ async def follow_user(user_id: str, request: Request):
     except Exception:
         pass
 
+    # ── Detección de mutual follow → mensaje de compatibilidad ──
+    try:
+        other_follows_me = db.table("user_follows").select("id").eq(
+            "follower_id", user_id
+        ).eq("following_id", me).execute()
+
+        if other_follows_me.data:
+            # Mutual follow detectado — crear conversación y enviar icebreaker
+            from app.services.messaging_service import messaging_service
+            conv = messaging_service.get_or_create_conversation(me, user_id)
+            conv_id = conv["id"]
+
+            # Verificar que no se haya enviado ya el icebreaker
+            existing_ice = db.table("messages").select("id").eq(
+                "conversation_id", conv_id
+            ).eq("type", "system").eq("sender_id", "system").execute()
+
+            if not existing_ice.data:
+                me_data    = db.table("users").select("first_name").eq("id", me).execute().data
+                other_data = db.table("users").select("first_name").eq(
+                    "id", user_id
+                ).execute().data
+
+                name_a = me_data[0]["first_name"] if me_data else "Alguien"
+                name_b = other_data[0]["first_name"] if other_data else "Alguien"
+
+                icebreaker = (
+                    f"✦ {name_a} y {name_b} se siguen mutuamente ✦\n\n"
+                    "Para romper el hielo, 3 preguntas rápidas:\n\n"
+                    "1. ¿Qué te llamó la atención del perfil de la otra persona?\n"
+                    "2. ¿Qué estás buscando en este momento?\n"
+                    "3. ¿Preferís un chat primero o ir directo al grano?"
+                )
+                db.table("messages").insert({
+                    "conversation_id": conv_id,
+                    "sender_id":       "system",
+                    "content":         icebreaker,
+                    "type":            "system",
+                }).execute()
+
+                # Notificar a ambos del mutual follow
+                from app.services.notifications_service import create_notification
+                create_notification(
+                    user_id=user_id,
+                    notif_type="match",
+                    title="¡Conexión mutua!",
+                    body=f"Vos y {name_a} se siguen mutuamente",
+                    data={"follower_id": me, "actor_name": name_a},
+                )
+    except Exception:
+        pass  # El follow ya se insertó — el icebreaker es best-effort
+
     return {"following": True, "following_id": user_id}
 
 
