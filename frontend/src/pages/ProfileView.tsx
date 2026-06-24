@@ -415,6 +415,20 @@ export default function ProfileView() {
             <VerifiedBadge size="sm"/>
           </div>
 
+          {/* Badge "Miembro desde [año]" — señaliza experiencia en la comunidad */}
+          {profile.created_at && (
+            <div style={{ display: "flex", justifyContent: "center", marginBottom: 8 }}>
+              <span style={{
+                fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.14em",
+                textTransform: "uppercase", color: "rgba(201,162,39,0.55)",
+                padding: "2px 8px", border: "1px solid rgba(201,162,39,0.18)",
+                borderRadius: 99, background: "rgba(201,162,39,0.05)",
+              }}>
+                Miembro desde {new Date(profile.created_at).getFullYear()}
+              </span>
+            </div>
+          )}
+
           {/* Estado de conexión */}
           {!isOwnProfile && onlineStatus.minutes_ago !== null && (
             <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 5, marginBottom: 10 }}>

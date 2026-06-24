@@ -2,10 +2,11 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { SlidersHorizontal, MagnifyingGlass, MapPin, PaperPlaneTilt, Plus, X } from "@phosphor-icons/react";
+import { SlidersHorizontal, MagnifyingGlass, MapPin, PaperPlaneTilt, Plus, X, Airplane } from "@phosphor-icons/react";
 import { NavLogo }    from "@/components/AuraLogo";
 import { feedApi, adsApi, followsApi, messagingApi } from "@/lib/api";
 import { useAuthStore } from "@/store/authStore";
+import { useTravelStore } from "@/store/travelStore";
 import { useScreenCapture } from "@/hooks/useScreenCapture";
 import { PostCard }   from "@/components/PostCard";
 import { StoryBar }   from "@/components/StoryBar";
@@ -119,8 +120,9 @@ function PostSkeleton() {
 
 // ── Componente principal ──────────────────────────────────────
 export default function Feed() {
-  const { user } = useAuthStore();
-  const queryClient = useQueryClient();
+  const { user }        = useAuthStore();
+  const { travelCity }  = useTravelStore();
+  const queryClient     = useQueryClient();
   const [searchParams] = useSearchParams();
 
   // Scroll al post específico cuando se llega desde una notificación (?post=ID)
@@ -200,12 +202,14 @@ export default function Feed() {
     setCitySuggestions([]);
   }
 
-  // Coordenadas efectivas: ciudad manual > GPS
-  const effectiveLat = selectedCity?.lat ?? userLat;
-  const effectiveLng = selectedCity?.lng ?? userLng;
-  const geoLabel = selectedCity
-    ? `${selectedCity.display} · ${mundial ? "Mundial" : `${radius}km`}`
-    : userLat ? `Mi ubicación · ${mundial ? "Mundial" : `${radius}km`}` : null;
+  // Coordenadas efectivas: Modo Viaje > ciudad manual > GPS
+  const effectiveLat = travelCity?.lat ?? selectedCity?.lat ?? userLat;
+  const effectiveLng = travelCity?.lng ?? selectedCity?.lng ?? userLng;
+  const geoLabel = travelCity
+    ? `✈ ${travelCity.name} · ${mundial ? "Mundial" : `${radius}km`}`
+    : selectedCity
+      ? `${selectedCity.display} · ${mundial ? "Mundial" : `${radius}km`}`
+      : userLat ? `Mi ubicación · ${mundial ? "Mundial" : `${radius}km`}` : null;
 
   const {
     data: feedData,
@@ -295,6 +299,24 @@ export default function Feed() {
           </button>
         </div>
       </header>
+
+      {/* ── Banner Modo Viaje activo ───────────────────────────── */}
+      {travelCity && (
+        <div className="flex items-center justify-between gap-3 px-4 py-2 border-b border-border/60 bg-bg-card/60">
+          <div className="flex items-center gap-2 min-w-0">
+            <Airplane size={14} weight="fill" style={{ color: "var(--gold,#C9A227)", flexShrink: 0 }} />
+            <span className="text-xs text-text-secondary truncate">
+              Modo Viaje activo — <span style={{ color: "var(--gold,#C9A227)" }}>{travelCity.name}</span>
+            </span>
+          </div>
+          <button
+            onClick={() => { const { clearTravel } = useTravelStore.getState(); clearTravel(); queryClient.invalidateQueries({ queryKey: ["feed"] }); }}
+            className="text-[10px] text-text-muted hover:text-text-primary flex-shrink-0"
+          >
+            Desactivar
+          </button>
+        </div>
+      )}
 
       {/* ── Pull-to-refresh indicator ──────────────────────────── */}
       {(pullDist > 0 || pullRefreshing) && (

@@ -112,7 +112,7 @@ class ProfileService:
         r = db.table("users").select(
             "id,first_name,last_name,profile_photo_url,bio,province,city,"
             "profile_type,sexual_orientation,interested_in,visible_to,is_private,"
-            "identity_description,profile_extended,membership_type,last_active_at,seeking_tags"
+            "identity_description,profile_extended,membership_type,last_active_at,seeking_tags,created_at"
         ).eq("id", target_id).eq("status", "active").execute()
         if not r.data:
             return None

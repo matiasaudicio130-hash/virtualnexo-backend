@@ -5,6 +5,7 @@ import { discoveryApi } from "@/lib/api";
 import { PROFILE_TYPE_CONFIG } from "@/types";
 import { imgUrl } from "@/utils/image";
 import { AuraCheckBadge } from "@/components/ui/AuraCheckBadge";
+import { useTravelStore } from "@/store/travelStore";
 import type { ProfileType } from "@/types";
 
 interface NearbyUser {
@@ -21,11 +22,16 @@ interface Props { lat: number; lng: number; }
 
 export function NearbyUsers({ lat, lng }: Props) {
   const navigate            = useNavigate();
+  const { travelCity }      = useTravelStore();
   const [users, setUsers]   = useState<NearbyUser[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Si Modo Viaje está activo, usar sus coordenadas en lugar de las GPS
+  const effectiveLat = travelCity?.lat ?? lat;
+  const effectiveLng = travelCity?.lng ?? lng;
+
   useEffect(() => {
-    discoveryApi.nearby(lat, lng, 50)
+    discoveryApi.nearby(effectiveLat, effectiveLng, 50)
       .then(r => setUsers(r.data.users || []))
       .catch(() => {})
       .finally(() => setLoading(false));

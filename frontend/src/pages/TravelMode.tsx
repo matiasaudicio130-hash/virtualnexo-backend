@@ -4,6 +4,19 @@ import { ArrowLeft, Plus, MapPin, Calendar, X, Airplane, Chat, CheckCircle } fro
 import { travelApi, messagingApi } from "@/lib/api";
 import { useAuthStore } from "@/store/authStore";
 import { ProtectedAvatar } from "@/components/ProtectedImage";
+import { useTravelStore } from "@/store/travelStore";
+
+async function geocodeCity(city: string, province: string): Promise<{ lat: number; lng: number } | null> {
+  try {
+    const q = encodeURIComponent(`${city}, ${province}, Argentina`);
+    const r = await fetch(`https://nominatim.openstreetmap.org/search?q=${q}&format=json&limit=1`, {
+      headers: { "Accept-Language": "es" },
+    });
+    const data = await r.json();
+    if (data[0]) return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+  } catch { /* ignore */ }
+  return null;
+}
 
 const PROVINCES = [
   "Buenos Aires","CABA","Catamarca","Chaco","Chubut","Córdoba","Corrientes",
@@ -243,6 +256,26 @@ export default function TravelMode() {
                       </button>
                     )}
                   </div>
+                  {plan.status === "active" && (
+                    <button
+                      onClick={async () => {
+                        const coords = await geocodeCity(plan.dest_city, plan.dest_province);
+                        if (coords) {
+                          useTravelStore.getState().setTravelCity({
+                            name:    plan.dest_city,
+                            display: `${plan.dest_city}, ${plan.dest_province}`,
+                            lat:     coords.lat,
+                            lng:     coords.lng,
+                          });
+                          navigate("/feed");
+                        }
+                      }}
+                      className="mt-3 w-full flex items-center justify-center gap-1.5 py-1.5 rounded-xl text-xs font-medium transition-all hover:opacity-80"
+                      style={{ background: "rgba(201,162,39,0.12)", color: "var(--gold,#C9A227)", border: "1px solid rgba(201,162,39,0.25)" }}
+                    >
+                      <Airplane size={12} weight="fill"/> Ver feed desde {plan.dest_city}
+                    </button>
+                  )}
                   {plan.status !== "active" && (
                     <span className="inline-block mt-2 text-[10px] px-2 py-0.5 rounded-full bg-bg-muted text-text-muted">
                       Cancelado
