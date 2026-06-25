@@ -4,7 +4,7 @@
  * Inputs underline-only. Botón pill dorado.
  * Tipografía: Cormorant para el saludo, Manrope para el cuerpo.
  */
-import { useState, useCallback } from "react";
+import React, { useState, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -39,8 +39,9 @@ export default function Login() {
   const [totpState, setTotpState] = useState<{ session: string } | null>(null);
   const [showPwd, setShowPwd]     = useState(false);
   const togglePwd = useCallback(() => setShowPwd(v => !v), []);
-  const [totpCode, setTotpCode]   = useState("");
+  const [totpCode, setTotpCode]     = useState("");
   const [totpLoading, setTotpLoading] = useState(false);
+  const [useBackup, setUseBackup]   = useState(false);
 
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -58,11 +59,12 @@ export default function Login() {
     }
   };
 
-  async function handleTotpVerify() {
-    if (!totpState || !totpCode.trim()) return;
+  async function handleTotpVerify(codeOverride?: string | React.MouseEvent) {
+    const code = (typeof codeOverride === "string" ? codeOverride : totpCode).trim();
+    if (!totpState || !code) return;
     setTotpLoading(true); setError("");
     try {
-      const status = await verifyTotpLogin(totpState.session, totpCode.trim());
+      const status = await verifyTotpLogin(totpState.session, code);
       navigate(REDIRECT[status] ?? "/feed");
     } catch (e: any) {
       const msg = e.response?.data?.detail;
@@ -116,25 +118,42 @@ export default function Login() {
             </div>
             <input
               value={totpCode}
-              onChange={e => setTotpCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+              onChange={e => {
+                const val = useBackup
+                  ? e.target.value.toUpperCase().slice(0, 10)
+                  : e.target.value.replace(/\D/g, "").slice(0, 6);
+                setTotpCode(val);
+                if (!useBackup && val.length === 6) handleTotpVerify(val);
+              }}
               onKeyDown={e => e.key === "Enter" && handleTotpVerify()}
-              placeholder="000000"
-              inputMode="numeric"
-              maxLength={6}
+              placeholder={useBackup ? "XXXXXXXXXX" : "000000"}
+              inputMode={useBackup ? "text" : "numeric"}
+              maxLength={useBackup ? 10 : 6}
               autoFocus
+              autoComplete="one-time-code"
               style={{
-                textAlign: "center", fontSize: 28, letterSpacing: "0.5em", padding: "12px 0",
+                textAlign: "center", fontSize: useBackup ? 20 : 28,
+                letterSpacing: useBackup ? "0.2em" : "0.5em", padding: "12px 0",
                 background: "transparent", border: "none", borderBottom: "1px solid var(--ash)",
                 color: "var(--paper)", fontFamily: "var(--font-mono)", outline: "none", width: "100%",
               }}
             />
-            <Button onClick={handleTotpVerify} loading={totpLoading} disabled={totpCode.length < 6} fullWidth>
+            <p style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.12em", color: "var(--mist)", textAlign: "center", marginTop: -12 }}>
+              {useBackup ? "Código de respaldo de 10 caracteres" : "Código de tu app autenticadora"}
+            </p>
+            <Button onClick={handleTotpVerify} loading={totpLoading} disabled={useBackup ? totpCode.length < 10 : totpCode.length < 6} fullWidth>
               Verificar
             </Button>
-            <button onClick={() => { setTotpState(null); setTotpCode(""); setError(""); }}
-              style={{ fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.14em", color: "var(--mist)", background: "none", border: "none", cursor: "pointer", textTransform: "uppercase" }}>
-              Volver al login
-            </button>
+            <div style={{ display: "flex", justifyContent: "space-between" }}>
+              <button onClick={() => { setUseBackup(v => !v); setTotpCode(""); setError(""); }}
+                style={{ fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.12em", color: "rgba(201,162,39,0.6)", background: "none", border: "none", cursor: "pointer" }}>
+                {useBackup ? "Usar app autenticadora" : "Usar código de respaldo"}
+              </button>
+              <button onClick={() => { setTotpState(null); setTotpCode(""); setError(""); setUseBackup(false); }}
+                style={{ fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.14em", color: "var(--mist)", background: "none", border: "none", cursor: "pointer", textTransform: "uppercase" }}>
+                Volver
+              </button>
+            </div>
           </div>
         ) : (
           <form onSubmit={handleSubmit(onSubmit)} style={{ display: "flex", flexDirection: "column", gap: 28 }}>

@@ -56,7 +56,15 @@ export default function Register() {
       });
       navigate("/verificar-email?sent=true");
     } catch (e: any) {
-      setError(e.response?.data?.detail ?? "Error al registrarse. Intentá de nuevo.");
+      const detail: string = e.response?.data?.detail ?? "";
+      const status: number = e.response?.status ?? 0;
+      if (status === 409 || /email|ya.registrad|already/i.test(detail)) {
+        setError("Este email ya tiene una cuenta. ¿Querés iniciar sesión?");
+      } else if (status === 400 && /master.key|clave/i.test(detail)) {
+        setError("La clave maestra es inválida o ya fue usada.");
+      } else {
+        setError(detail || "Error al registrarse. Intentá de nuevo.");
+      }
     }
   };
 

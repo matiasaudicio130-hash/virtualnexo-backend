@@ -260,7 +260,10 @@ function GroupChat({
     try {
       const { data } = await groupsApi.sendMessage(groupId, { content });
       setMessages(prev => [...prev, data]);
-    } catch { setText(content); }
+    } catch {
+      setText(content);
+      toast.error("No se pudo enviar el mensaje. Revisá tu conexión.");
+    }
     setSending(false);
   }
 
