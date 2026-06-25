@@ -122,7 +122,9 @@ async def suspend_user(user_id: str, request: Request):
     _require_admin(request)
     db = get_supabase()
     db.table("users").update({"status": "suspended"}).eq("id", user_id).execute()
-    return {"suspended": True}
+    # Revocar todas las sesiones activas — el usuario no puede seguir logueado
+    db.table("sessions").delete().eq("user_id", user_id).execute()
+    return {"suspended": True, "sessions_revoked": True}
 
 
 @router.post("/users/{user_id}/shadow-ban")

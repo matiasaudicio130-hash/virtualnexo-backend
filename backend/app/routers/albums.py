@@ -180,10 +180,12 @@ async def delete_album(album_id: str, request: Request):
 async def add_photo(album_id: str, request: Request, file: UploadFile = File(...)):
     payload = _require_auth(request)
     db = get_supabase()
-    album = db.table("albums").select("user_id, photos_count").eq("id", album_id).execute().data
+    album = db.table("albums").select("user_id").eq("id", album_id).execute().data
     if not album or album[0]["user_id"] != payload["sub"]:
         raise HTTPException(403, "No tenés permiso.")
-    if album[0]["photos_count"] >= 50:
+    # Contar fotos reales (no el campo denormalizado — previene race condition)
+    real_count_r = db.table("album_photos").select("id", count="exact").eq("album_id", album_id).execute()
+    if (real_count_r.count or 0) >= 50:
         raise HTTPException(400, "Máximo 50 fotos por album.")
 
     data = await file.read()
