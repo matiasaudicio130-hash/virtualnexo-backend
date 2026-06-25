@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams, Navigate } from "react-router-dom";
 import { SlidersHorizontal, MagnifyingGlass, MapPin, PaperPlaneTilt, Plus, X, Airplane } from "@phosphor-icons/react";
 import { NavLogo }    from "@/components/AuraLogo";
 import { feedApi, adsApi, followsApi, messagingApi } from "@/lib/api";
@@ -277,6 +277,18 @@ export default function Feed() {
     : ADS_EVERY_NONE;
 
   if (!user) return <GuestFeedGate />;
+
+  // Usuarios autenticados con estado no activo → redirect según estado
+  if (user.status === "pending_email")  return <Navigate to="/verificar-email" replace />;
+  if (user.status === "pending_kyc")    return <Navigate to="/kyc" replace />;
+  if (user.status === "pending_manual") return <Navigate to="/aprobacion-pendiente" replace />;
+  if (user.status === "suspended" || user.status === "rejected") return <Navigate to="/acceso-denegado" replace />;
+
+  // Onboarding pendiente
+  const onboardingDone = !!localStorage.getItem("onboarding_done");
+  if (!onboardingDone && (user as any).role !== "admin" && (!user.profile_photo_url || !(user as any).province)) {
+    return <Navigate to="/onboarding" replace />;
+  }
 
   return (
     <div className="min-h-screen bg-bg-base text-text-primary">

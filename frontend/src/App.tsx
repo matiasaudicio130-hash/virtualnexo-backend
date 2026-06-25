@@ -64,6 +64,8 @@ export default function App() {
       <Route path="/terminos"        element={<Terminos />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password"  element={<ResetPassword />} />
+      {/* Feed público — auth guard soft manejado en Feed.tsx */}
+      <Route path="/feed" element={<Feed />} />
 
       {/* KYC: autenticado con status pending_kyc */}
       <Route element={<ProtectedRoute allowedStatuses={["pending_kyc"]} redirectTo="/login" />}>
@@ -79,7 +81,6 @@ export default function App() {
       <Route element={<ProtectedRoute allowedStatuses={["active"]} />}>
         <Route path="/onboarding" element={<OnboardingWizard />} />
         <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/feed" element={<Feed />} />
         <Route path="/profile/:userId" element={<ProfileView />} />
         <Route path="/reviews/:userId" element={<Reviews />} />
         <Route path="/travel" element={<TravelMode />} />
