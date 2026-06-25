@@ -308,8 +308,8 @@ async def create_post_from_storage(body: FromStorageBody, request: Request):
     payload = _require_auth(request)
     user_id = payload["sub"]
 
-    # Verificar que el path empieza con el user_id (seguridad)
-    if not body.path.startswith(f"{user_id}/"):
+    # Verificar que el path empieza con el user_id y no contiene traversal
+    if ".." in body.path or not body.path.startswith(f"{user_id}/"):
         raise HTTPException(403, "Path inválido")
 
     db = get_supabase()
@@ -920,7 +920,8 @@ async def vote_poll(post_id: str, body: PollVoteBody, request: Request):
             "option_index": body.option_index,
         }).execute()
     except Exception:
-        raise HTTPException(409, "Ya votaste en este poll")
+        existing = db.table("post_poll_votes").select("option_index").eq("post_id", post_id).eq("user_id", user_id).maybe_single().execute()
+        raise HTTPException(409, {"message": "Ya votaste en este poll", "existing_vote": existing.data["option_index"] if existing.data else None})
 
     # Recalcular conteos
     votes_r = db.table("post_poll_votes").select("option_index").eq("post_id", post_id).execute()

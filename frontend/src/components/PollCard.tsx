@@ -57,7 +57,13 @@ export function PollCard({ postId, poll, userVote: initialVote, expiresAt, onVot
       onVoted?.(idx, data.votes, data.total_votes);
     } catch (e: any) {
       if (e?.response?.status === 409) {
-        setUserVote(idx);
+        const detail = e.response?.data?.detail;
+        const existingVote = typeof detail === "object" ? detail?.existing_vote : null;
+        setUserVote(existingVote ?? idx);
+      } else {
+        // import toast si no está disponible en este archivo
+        const { toast } = await import("@/store/toastStore");
+        toast.error("No se pudo registrar tu voto. Intentá de nuevo.");
       }
     }
     setLoading(null);
