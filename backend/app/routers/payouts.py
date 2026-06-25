@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, Request, Query
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional
 
 from app.core.security import decode_access_token
@@ -21,8 +21,8 @@ def _require_admin(request: Request) -> dict:
 
 class RegisterPayoutBody(BaseModel):
     influencer_id: str
-    amount_ars: float
-    payout_pct: float
+    amount_ars:  float = Field(..., gt=0, description="Monto en ARS, debe ser positivo")
+    payout_pct:  float = Field(..., ge=0, le=100)
     period_start: str   # YYYY-MM-DD
     period_end: str     # YYYY-MM-DD
     reference: Optional[str] = None
@@ -31,7 +31,7 @@ class RegisterPayoutBody(BaseModel):
 
 class UpdateKeyPctBody(BaseModel):
     key_code: str
-    payout_pct: float   # 0-100
+    payout_pct: float = Field(..., ge=0, le=100)
 
 
 @router.get("/summary")

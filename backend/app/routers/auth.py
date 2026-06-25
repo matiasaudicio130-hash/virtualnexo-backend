@@ -343,6 +343,39 @@ async def update_profile_extended(request: Request):
     if not isinstance(updates, dict) or not updates:
         raise HTTPException(400, "Body vacío o inválido")
 
+    # Sanitizar URLs de links (prevenir XSS con javascript: u otros protocolos)
+    if "links" in updates and isinstance(updates["links"], list):
+        safe_links = []
+        for link in updates["links"]:
+            if not isinstance(link, dict):
+                continue
+            url = str(link.get("url", "")).strip()
+            if url and not (url.startswith("http://") or url.startswith("https://")):
+                url = f"https://{url}"
+            try:
+                from urllib.parse import urlparse
+                parsed = urlparse(url)
+                if parsed.scheme not in ("http", "https"):
+                    continue  # descartar links con protocolos peligrosos
+            except Exception:
+                continue
+            safe_links.append({"label": str(link.get("label", ""))[:80], "url": url[:500]})
+        updates["links"] = safe_links
+
+    if "website" in updates and updates["website"]:
+        w = str(updates["website"]).strip()
+        if not (w.startswith("http://") or w.startswith("https://")):
+            w = f"https://{w}"
+        from urllib.parse import urlparse
+        try:
+            p = urlparse(w)
+            if p.scheme not in ("http", "https"):
+                updates["website"] = None
+            else:
+                updates["website"] = w[:500]
+        except Exception:
+            updates["website"] = None
+
     # Obtener profile_extended actual y mergear
     user_r = db.table("users").select("profile_extended").eq("id", payload["sub"]).maybe_single().execute()
     current: dict = (user_r.data.get("profile_extended") or {}) if user_r.data else {}

@@ -106,6 +106,13 @@ export function EditProfileDrawer({ onClose, onSaved }: Props) {
     return `https://${url}`;
   }
 
+  function isSafeUrl(url: string): boolean {
+    try {
+      const u = new URL(url);
+      return u.protocol === "http:" || u.protocol === "https:";
+    } catch { return false; }
+  }
+
   // ── Links múltiples (máx. 5) ──────────────────────────────────
   function addLink() {
     if (links.length >= 5) return;
@@ -175,7 +182,7 @@ export function EditProfileDrawer({ onClose, onSaved }: Props) {
       const normalizedWeb = normalizeWebsite(website.trim());
       const cleanLinks = links
         .map(l => ({ label: l.label.trim(), url: normalizeWebsite(l.url.trim()) }))
-        .filter(l => l.url);
+        .filter(l => l.url && isSafeUrl(l.url));
       await extendedProfileApi.update({ website: normalizedWeb || null, links: cleanLinks });
 
       if (isPrivate !== !!user?.is_private) {

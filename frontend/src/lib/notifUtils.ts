@@ -24,6 +24,8 @@ export function getNotifUrl(n: NotifItem): string | null {
     case "new_like":
     case "like":
       return n.data?.post_id ? `/feed?post=${n.data.post_id}` : "/feed";
+    case "story_reaction":
+      return n.data?.actor_id ? `/profile/${n.data.actor_id}` : "/feed";
     case "comment":
     case "comment_reply":
       return n.data?.post_id ? `/feed?post=${n.data.post_id}` : "/feed";
@@ -32,7 +34,13 @@ export function getNotifUrl(n: NotifItem): string | null {
     case "match":
       return n.data?.matched_user_id ? `/profile/${n.data.matched_user_id}` : null;
     case "new_review":
-      return "/reviews";
+      return n.data?.actor_id ? `/reviews` : "/reviews";
+    case "group_invite":
+      return n.data?.group_id ? `/groups` : "/groups";
+    case "kyc_approved":
+    case "membership_activated":
+    case "system":
+      return "/dashboard";
     default:
       return null;
   }
