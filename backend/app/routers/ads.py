@@ -4,6 +4,7 @@ from pydantic import BaseModel
 import uuid
 
 from app.core.security import require_auth as _require_auth
+from app.core.limiter import limiter
 from app.services.ads_service import ads_service
 from app.db.supabase import get_supabase
 
@@ -57,6 +58,7 @@ async def feed_ads(
 
 
 @router.post("/{ad_id}/event")
+@limiter.limit("30/minute")
 async def record_ad_event(ad_id: str, body: AdEventBody, request: Request):
     """
     Registra un evento (impression | click | overlay_open | overlay_close).

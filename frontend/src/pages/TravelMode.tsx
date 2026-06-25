@@ -108,6 +108,8 @@ export default function TravelMode() {
     }
   }
 
+  const { travelCity, clearTravel } = useTravelStore();
+
   if (!user) return null;
 
   return (
@@ -127,6 +129,14 @@ export default function TravelMode() {
             </h1>
           </div>
           <div className="flex-1"/>
+          {travelCity && (
+            <button
+              onClick={() => { clearTravel(); navigate("/feed"); }}
+              className="flex items-center gap-1 px-3 py-1.5 text-xs rounded-xl border border-status-error/40 text-status-error hover:bg-status-error/10 transition-all"
+            >
+              <X size={12}/> Desactivar
+            </button>
+          )}
           <button
             onClick={() => setTab("create")}
             className="flex items-center gap-1.5 px-3 py-2 text-xs rounded-xl text-white transition-all hover:opacity-90"

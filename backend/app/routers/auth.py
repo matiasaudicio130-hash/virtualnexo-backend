@@ -493,6 +493,7 @@ async def heartbeat(request: Request):
 
 # ── GDPR: Exportar datos ──────────────────────────────────────────────────────
 @router.get("/me/export")
+@limiter.limit("3/hour")
 async def export_my_data(request: Request):
     """
     Exporta todos los datos del usuario en formato JSON.
