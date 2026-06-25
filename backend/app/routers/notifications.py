@@ -26,10 +26,10 @@ async def list_notifications(
 async def unread_count(request: Request):
     payload = _require_auth(request)
     db = get_supabase()
-    rows = db.table("notifications").select("id").eq(
-        "user_id", payload["sub"]
-    ).is_("read_at", "null").execute().data
-    return {"count": len(rows)}
+    result = db.table("notifications").select(
+        "id", count="exact"
+    ).eq("user_id", payload["sub"]).is_("read_at", "null").execute()
+    return {"count": result.count or 0}
 
 
 @router.post("/{notif_id}/read")
@@ -68,8 +68,7 @@ async def mark_conversation_read(sender_id: str, request: Request):
         ]
         if ids:
             now = datetime.now(timezone.utc).isoformat()
-            for nid in ids:
-                db.table("notifications").update({"read_at": now}).eq("id", nid).execute()
+            db.table("notifications").update({"read_at": now}).in_("id", ids).execute()
     except Exception:
         pass
     return {"cleared": True}

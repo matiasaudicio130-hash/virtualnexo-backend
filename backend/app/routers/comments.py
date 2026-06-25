@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException, Request
 from typing import Optional
 from pydantic import BaseModel
+from datetime import datetime, timezone
 
 from app.core.security import require_auth as _require_auth
 from app.services.comments_service import comments_service
@@ -31,6 +32,21 @@ async def add_comment(post_id: str, body: CommentBody, request: Request):
         raise HTTPException(400, "El comentario no puede estar vacío")
     if len(body.content) > 500:
         raise HTTPException(400, "Máximo 500 caracteres")
+    # Rate limit: máximo 1 comentario cada 5 segundos por usuario
+    try:
+        from app.db.supabase import get_supabase as _gs
+        from datetime import timedelta
+        _db = _gs()
+        cutoff = (datetime.now(timezone.utc) - timedelta(seconds=5)).isoformat()
+        recent = _db.table("comments").select("id", count="exact").eq(
+            "user_id", actor_id
+        ).gte("created_at", cutoff).execute()
+        if (recent.count or 0) > 0:
+            raise HTTPException(429, "Demasiados comentarios. Esperá unos segundos.")
+    except HTTPException:
+        raise
+    except Exception:
+        pass
     try:
         result = comments_service.add_comment(
             post_id, actor_id, body.content, body.parent_id
