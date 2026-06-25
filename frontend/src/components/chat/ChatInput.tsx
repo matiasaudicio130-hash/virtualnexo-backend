@@ -315,18 +315,25 @@ export function ChatInput({
           </div>
 
           {/* Text area */}
-          <textarea
-            ref={textareaRef}
-            value={text}
-            onChange={e => handleTextChange(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder={disabled ? "Bloqueado" : `Mensaje${recipientName ? ` a ${recipientName}` : ""}…`}
-            disabled={disabled}
-            rows={1}
-            maxLength={2000}
-            className="flex-1 px-4 py-2.5 rounded-2xl bg-bg-muted border border-border text-sm text-text-primary placeholder-text-muted resize-none focus:outline-none focus:border-accent-purple/60 max-h-28 transition-colors disabled:opacity-50"
-            style={{ minHeight: 42 }}
-          />
+          <div className="flex-1 relative">
+            <textarea
+              ref={textareaRef}
+              value={text}
+              onChange={e => handleTextChange(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder={disabled ? "Bloqueado" : `Mensaje${recipientName ? ` a ${recipientName}` : ""}…`}
+              disabled={disabled}
+              rows={1}
+              maxLength={2000}
+              className="w-full px-4 py-2.5 rounded-2xl bg-bg-muted border border-border text-sm text-text-primary placeholder-text-muted resize-none focus:outline-none focus:border-accent-purple/60 max-h-28 transition-colors disabled:opacity-50"
+              style={{ minHeight: 42 }}
+            />
+            {text.length > 1800 && (
+              <span className={`absolute bottom-1 right-2 text-[9px] tabular-nums pointer-events-none ${text.length >= 1980 ? "text-status-error" : "text-amber-400"}`}>
+                {2000 - text.length}
+              </span>
+            )}
+          </div>
 
           {/* Right: mic or send */}
           <div className="flex items-center gap-1 flex-shrink-0 pb-0.5">

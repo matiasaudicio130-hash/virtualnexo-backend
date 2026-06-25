@@ -139,11 +139,25 @@ async def create_event(body: CreateEventBody, request: Request):
 @router.post("/{event_id}/rsvp")
 async def rsvp(event_id: str, body: RsvpBody, request: Request):
     payload = _require_auth(request)
+    user_id = payload["sub"]
     from app.db.supabase import get_supabase
     db = get_supabase()
+
+    # Verificar capacidad cuando el usuario intenta ir (going)
+    if body.status == "going":
+        event_r = db.table("events").select("max_participants,going_count").eq("id", event_id).maybe_single().execute()
+        if event_r.data:
+            max_p = event_r.data.get("max_participants")
+            if max_p:
+                # Verificar si el usuario ya tenía RSVP "going" (no cuenta como nueva plaza)
+                existing_r = db.table("event_attendees").select("status").eq("event_id", event_id).eq("user_id", user_id).maybe_single().execute()
+                already_going = existing_r.data and existing_r.data.get("status") == "going"
+                if not already_going and (event_r.data.get("going_count") or 0) >= max_p:
+                    raise HTTPException(400, f"El evento ya está lleno ({max_p} participantes)")
+
     db.table("event_attendees").upsert({
         "event_id": event_id,
-        "user_id":  payload["sub"],
+        "user_id":  user_id,
         "status":   body.status,
     }, on_conflict="event_id,user_id").execute()
     # Update going_count
