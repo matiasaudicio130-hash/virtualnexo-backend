@@ -1,14 +1,13 @@
 -- Fix tildes faltantes en ads de auto-promoción de Aura SW
--- BUG F: "Albumes privados verificados" → "Álbumes privados verificados"
---        "Crear mi album" → "Crear mi álbum"
---        "biometria real" → "biometría real"
+-- Columnas reales: title, description, cta_text (NO "body")
+-- Ejecutado manualmente el 2026-06-25 via Python script
 
 UPDATE ads SET
-  title   = REPLACE(title,   'Albumes', 'Álbumes'),
-  body    = REPLACE(REPLACE(body, 'Albumes', 'Álbumes'), 'biometria', 'biometría'),
-  cta_text = REPLACE(cta_text, 'album', 'álbum')
+  title       = REPLACE(title,       'Albumes',   'Álbumes'),
+  description = REPLACE(REPLACE(description, 'Albumes', 'Álbumes'), 'biometria', 'biometría'),
+  cta_text    = REPLACE(cta_text,    'album',     'álbum')
 WHERE
-  title   ILIKE '%albumes%'
-  OR body  ILIKE '%albumes%'
-  OR body  ILIKE '%biometria%'
+  title       ILIKE '%albumes%'
+  OR description ILIKE '%albumes%'
+  OR description ILIKE '%biometria%'
   OR cta_text ILIKE '%album%';

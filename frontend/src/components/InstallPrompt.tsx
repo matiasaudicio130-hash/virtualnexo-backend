@@ -9,7 +9,19 @@ import { useState, useEffect } from "react";
 import { X, DownloadSimple, ShareNetwork } from "@phosphor-icons/react";
 import { APP_CONFIG } from "@/config/app";
 
-const DISMISSED_KEY = "pwa_install_dismissed";
+const DISMISSED_KEY  = "pwa_install_dismissed";
+const SESSION_KEY    = "pwa_session_start";
+const MIN_SESSION_MS = 5 * 60 * 1000; // 5 minutos de sesión antes de molestar
+
+function msUntilReady(): number {
+  const start = sessionStorage.getItem(SESSION_KEY);
+  if (!start) {
+    sessionStorage.setItem(SESSION_KEY, Date.now().toString());
+    return MIN_SESSION_MS;
+  }
+  const elapsed = Date.now() - parseInt(start, 10);
+  return Math.max(0, MIN_SESSION_MS - elapsed);
+}
 
 export function InstallPrompt() {
   const [prompt, setPrompt]       = useState<any>(null);
@@ -24,9 +36,9 @@ export function InstallPrompt() {
     if (isInPWA || localStorage.getItem(DISMISSED_KEY)) return;
 
     if (isIOS) {
-      // iOS no tiene beforeinstallprompt, mostrar instrucción manual
-      setTimeout(() => setShowIOS(true), 3000);
-      return;
+      const delay = msUntilReady();
+      const t = setTimeout(() => setShowIOS(true), delay);
+      return () => clearTimeout(t);
     }
 
     const handler = (e: Event) => {

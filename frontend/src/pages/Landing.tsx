@@ -157,6 +157,7 @@ function Counter({ target, prefix = "", suffix }: { target: number; prefix?: str
       onEnter: () => {
         if (fired.current) return;
         fired.current = true;
+        if (ref.current) ref.current.textContent = prefix + "0" + suffix;
         const obj = { v: 0 };
         gsap.to(obj, {
           v: target, duration: 2, ease: "power2.out",
@@ -167,7 +168,7 @@ function Counter({ target, prefix = "", suffix }: { target: number; prefix?: str
     });
     return () => st.kill();
   }, [target, prefix, suffix]);
-  return <span ref={ref}>{prefix}0{suffix}</span>;
+  return <span ref={ref}>{prefix}{target}{suffix}</span>;
 }
 
 /* ═══════════════════════════════════════════════════════════ */
