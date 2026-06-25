@@ -63,11 +63,15 @@ async def follow_user(user_id: str, request: Request):
 
             return {"requested": True, "following": False, "following_id": user_id}
 
-    # Upsert — si ya existe no falla
+    # Verificar si ya sigue (para evitar notificación duplicada)
+    already_r = db.table("user_follows").select("id").eq("follower_id", me).eq("following_id", user_id).maybe_single().execute()
+    if already_r.data:
+        return {"following": True}  # ya sigue, no re-notificar
+
     try:
         db.table("user_follows").insert({"follower_id": me, "following_id": user_id}).execute()
     except Exception:
-        pass  # Ya existe — idempotente
+        return {"following": True}  # race condition — ya insertado por otro request
 
     # Notificar al seguido
     try:

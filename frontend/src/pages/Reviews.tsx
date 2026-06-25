@@ -269,14 +269,21 @@ export default function Reviews() {
                   <p className="text-xs text-text-muted mb-2">Calificación</p>
                   <StarRating value={form.rating} onChange={v => setForm(f => ({...f, rating: v}))} size={24}/>
                 </div>
-                <textarea
-                  value={form.text}
-                  onChange={e => setForm(f => ({...f, text: e.target.value}))}
-                  placeholder="Contá tu experiencia (opcional)"
-                  rows={3}
-                  maxLength={500}
-                  className="w-full px-4 py-2.5 rounded-xl bg-bg-muted border border-border text-sm text-text-primary placeholder-text-muted resize-none focus:outline-none focus:border-accent-purple/60 transition-colors"
-                />
+                <div className="relative">
+                  <textarea
+                    value={form.text}
+                    onChange={e => setForm(f => ({...f, text: e.target.value}))}
+                    placeholder="Contá tu experiencia (opcional)"
+                    rows={3}
+                    maxLength={500}
+                    className="w-full px-4 py-2.5 rounded-xl bg-bg-muted border border-border text-sm text-text-primary placeholder-text-muted resize-none focus:outline-none focus:border-accent-purple/60 transition-colors"
+                  />
+                  {form.text.length > 400 && (
+                    <span className={`absolute bottom-2 right-3 text-[10px] tabular-nums ${form.text.length >= 490 ? "text-status-error" : "text-text-muted"}`}>
+                      {500 - form.text.length}
+                    </span>
+                  )}
+                </div>
                 <label className="flex items-center gap-2 text-sm text-text-secondary cursor-pointer">
                   <input
                     type="checkbox"

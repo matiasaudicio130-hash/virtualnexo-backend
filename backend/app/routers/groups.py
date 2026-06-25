@@ -2,7 +2,7 @@
 Grupos de chat — conversaciones con múltiples participantes verificados.
 Estructura separada de los DMs 1-on-1 para no romper compatibilidad.
 """
-from fastapi import APIRouter, HTTPException, Request, Query, UploadFile, File
+from fastapi import APIRouter, HTTPException, Request, Query
 from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime, timezone
@@ -274,6 +274,16 @@ async def remove_member(group_id: str, user_id: str, request: Request):
 
     if user_id != me:
         _require_admin(db, group_id, me)
+
+    # Prevenir grupo sin admin: verificar si es el único admin antes de eliminar
+    target_role_r = db.table("group_members").select("role").eq("group_id", group_id).eq("user_id", user_id).maybe_single().execute()
+    if target_role_r.data and target_role_r.data.get("role") == "admin":
+        admin_count_r = db.table("group_members").select("id", count="exact").eq("group_id", group_id).eq("role", "admin").execute()
+        if (admin_count_r.count or 0) <= 1:
+            if user_id == me:
+                raise HTTPException(400, "Sos el único admin. Designá otro admin antes de salir del grupo.")
+            else:
+                raise HTTPException(400, "No podés remover al único admin del grupo.")
 
     db.table("group_members").delete().eq("group_id", group_id).eq("user_id", user_id).execute()
     count_r = db.table("group_members").select("id", count="exact").eq("group_id", group_id).execute()

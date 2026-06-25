@@ -29,6 +29,16 @@ class CreateReviewBody(BaseModel):
             raise ValueError("Rating debe ser entre 1 y 5")
         return v
 
+    @field_validator("text")
+    @classmethod
+    def valid_text(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return v
+        v = v.strip()
+        if len(v) > 500:
+            raise ValueError("El texto no puede superar 500 caracteres")
+        return v or None
+
 
 @router.post("/", status_code=201)
 async def create_review(body: CreateReviewBody, request: Request):
