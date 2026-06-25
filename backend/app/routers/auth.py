@@ -72,6 +72,9 @@ def _get_current_user(request: Request) -> dict:
 async def register(request: Request, body: RegisterRequest):
     db = get_supabase()
 
+    # Normalizar email a minúsculas para evitar duplicados case-sensitive
+    body.email = body.email.strip().lower()
+
     # Verificar email duplicado
     existing = db.table("users").select("id").eq("email", body.email).execute()
     if existing.data:
@@ -170,7 +173,7 @@ async def verify_email(body: VerifyEmailRequest):
 async def login(request: Request, body: LoginRequest):
     db = get_supabase()
 
-    result = db.table("users").select("*").eq("email", body.email).execute()
+    result = db.table("users").select("*").eq("email", body.email.strip().lower()).execute()
     if not result.data:
         raise HTTPException(401, "Credenciales incorrectas")
 

@@ -11,7 +11,8 @@ router = APIRouter(prefix="/events", tags=["events"])
 class CreateEventBody(BaseModel):
     title:          str
     description:    Optional[str] = None
-    event_date:     str           # ISO datetime
+    event_date:     str           # ISO datetime string
+    # validaciones en el endpoint
     location_name:  Optional[str] = None
     province:       Optional[str] = None
     city:           Optional[str] = None
@@ -102,6 +103,20 @@ async def my_events(request: Request):
 @router.post("/", status_code=201)
 async def create_event(body: CreateEventBody, request: Request):
     payload = _require_auth(request)
+
+    if not body.title.strip():
+        raise HTTPException(400, "El título es obligatorio")
+    if len(body.title) > 120:
+        raise HTTPException(400, "El título no puede superar 120 caracteres")
+    if body.description and len(body.description) > 2000:
+        raise HTTPException(400, "La descripción no puede superar 2000 caracteres")
+    try:
+        event_dt = datetime.fromisoformat(body.event_date.replace("Z", "+00:00"))
+        if event_dt <= datetime.now(timezone.utc):
+            raise HTTPException(400, "La fecha del evento debe ser en el futuro")
+    except ValueError:
+        raise HTTPException(400, "Formato de fecha inválido")
+
     from app.db.supabase import get_supabase
     db = get_supabase()
     result = db.table("events").insert({

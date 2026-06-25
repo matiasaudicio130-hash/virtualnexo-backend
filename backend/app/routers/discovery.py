@@ -30,7 +30,7 @@ async def nearby_users(
     request: Request,
     lat:       float = Query(...),
     lng:       float = Query(...),
-    radius_km: int   = Query(50, le=200),
+    radius_km: int   = Query(50, ge=1, le=200),
     limit:     int   = Query(20, le=50),
 ):
     """Usuarios verificados y activos cerca de las coordenadas dadas."""
