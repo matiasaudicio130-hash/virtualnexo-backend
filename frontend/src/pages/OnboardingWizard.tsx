@@ -4,6 +4,7 @@ import { Camera, MapPin, Heart, FileText, CaretRight, Check, Sparkle, UserPlus }
 import { mediaApi, albumsApi, profileApi, followsApi } from "@/lib/api";
 import { useAuthStore } from "@/store/authStore";
 import { Logo } from "@/components/brand/Logo";
+import { toast } from "@/store/toastStore";
 
 const SEEKING_TAGS = [
   { id: "conexion_real",        label: "Conexión real" },
@@ -177,7 +178,9 @@ export default function OnboardingWizard() {
       } else {
         finish();
       }
-    } catch { /* non-blocking */ }
+    } catch {
+      toast.warning("No se pudo guardar este paso. Podés completarlo desde tu perfil más tarde.");
+    }
     setLoading(false);
   }
 

@@ -313,13 +313,11 @@ export function CreatePost({ onCreated, onClose }: Props) {
         // 2) Subir DIRECTAMENTE a Supabase (bypass Railway / sin límite de body)
         // Supabase requiere el Content-Type exacto — iPhone graba video/quicktime (.mov)
         const contentType = file.type || (isVideo ? "video/mp4" : "image/jpeg");
-        console.log("[upload] PUT", signed.upload_url.slice(0, 80), "type:", contentType, "size:", file.size);
         const putRes = await fetch(signed.upload_url, {
           method: "PUT",
           headers: { "Content-Type": contentType },
           body: file,
         });
-        console.log("[upload] PUT status:", putRes.status);
         if (!putRes.ok) {
           let detail = `${putRes.status}`;
           try { const j = await putRes.json(); detail = j.message || j.error || detail; } catch {}
