@@ -36,6 +36,10 @@ export default function Checkout() {
   if (!user) { navigate("/login"); return null; }
 
   async function handleCheckout() {
+    if (!navigator.onLine) {
+      setError("Sin conexión a internet. Verificá tu red e intentá de nuevo.");
+      return;
+    }
     setLoading(true);
     setError("");
     try {

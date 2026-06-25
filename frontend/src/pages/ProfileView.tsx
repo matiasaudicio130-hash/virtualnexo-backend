@@ -864,17 +864,27 @@ export default function ProfileView() {
       {/* ── Lightbox foto de perfil ── */}
       {showPhotoLightbox && profile.profile_photo_url && (
         <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Foto de perfil ampliada"
           style={{ position: "fixed", inset: 0, zIndex: 80, background: "rgba(2,2,7,0.96)", display: "flex", alignItems: "center", justifyContent: "center" }}
           onClick={() => setShowPhotoLightbox(false)}
+          onKeyDown={e => e.key === "Escape" && setShowPhotoLightbox(false)}
+          tabIndex={-1}
+          ref={el => el?.focus()}
         >
           <img
             src={profile.profile_photo_url}
-            alt=""
+            alt={`${profile.first_name} ${profile.last_name || ""}`.trim()}
             draggable={false}
             onContextMenu={e => e.preventDefault()}
             style={{ maxWidth: "90vw", maxHeight: "90vh", borderRadius: 12, objectFit: "contain", userSelect: "none", pointerEvents: "none" }}
           />
-          <button onClick={() => setShowPhotoLightbox(false)} style={{ position: "absolute", top: 16, right: 16, padding: 8, background: "rgba(255,255,255,0.1)", border: "none", borderRadius: 8, color: "white", cursor: "pointer" }}>
+          <button
+            onClick={() => setShowPhotoLightbox(false)}
+            aria-label="Cerrar foto"
+            style={{ position: "absolute", top: 16, right: 16, padding: 8, background: "rgba(255,255,255,0.1)", border: "none", borderRadius: 8, color: "white", cursor: "pointer" }}
+          >
             ✕
           </button>
         </div>

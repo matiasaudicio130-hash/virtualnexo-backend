@@ -4,6 +4,7 @@ import { API_BASE_URL } from "@/config/app";
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: { "Content-Type": "application/json" },
+  timeout: 15_000, // 15s — evita requests colgados que congelan la UI
 });
 
 // Cliente separado para uploads multipart: sin Content-Type default,
