@@ -16,6 +16,17 @@ MAX_MEDIA_BYTES  = 20 * 1024 * 1024  # 20 MB
 ALLOWED_MIME     = {"image/jpeg", "image/jpg", "image/png", "image/webp", "image/gif", "image/heic", "image/heif"}
 
 
+def _assert_valid_image(data: bytes) -> None:
+    """Verifica que los bytes son realmente una imagen usando Pillow (magic-bytes check)."""
+    try:
+        import io
+        from PIL import Image
+        img = Image.open(io.BytesIO(data))
+        img.verify()
+    except Exception:
+        raise HTTPException(400, "El archivo no es una imagen válida. Verificá el formato.")
+
+
 def _require_admin(request: Request) -> dict:
     payload = _require_auth(request)
     if payload.get("role") != "admin":
@@ -39,6 +50,7 @@ async def upload_avatar(request: Request, file: UploadFile = File(...)):
         raise HTTPException(413, "Imagen demasiado grande. Máximo 5 MB.")
     if len(image_bytes) < 1000:
         raise HTTPException(400, "Archivo inválido o demasiado pequeño.")
+    _assert_valid_image(image_bytes)
 
     result = await storage_service.upload_avatar(
         image_bytes=image_bytes,
@@ -67,6 +79,7 @@ async def upload_post_image(request: Request, file: UploadFile = File(...)):
     image_bytes = await file.read()
     if len(image_bytes) > MAX_MEDIA_BYTES:
         raise HTTPException(413, "Imagen demasiado grande. Máximo 20 MB.")
+    _assert_valid_image(image_bytes)
 
     result = await storage_service.upload_post_image(
         image_bytes=image_bytes,
