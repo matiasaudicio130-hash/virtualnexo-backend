@@ -191,6 +191,15 @@ async def login(request: Request, body: LoginRequest):
     if user["status"] == "suspended":
         raise HTTPException(403, "Tu cuenta está suspendida.")
 
+    # Limpiar sesiones expiradas y limitar sesiones activas por usuario (max 10)
+    now_iso = datetime.now(timezone.utc).isoformat()
+    db.table("sessions").delete().eq("user_id", user["id"]).lt("expires_at", now_iso).execute()
+    active_sessions = db.table("sessions").select("id,created_at").eq("user_id", user["id"]).order("created_at").execute()
+    MAX_SESSIONS = 10
+    if len(active_sessions.data) >= MAX_SESSIONS:
+        oldest_ids = [s["id"] for s in active_sessions.data[:len(active_sessions.data) - MAX_SESSIONS + 1]]
+        db.table("sessions").delete().in_("id", oldest_ids).execute()
+
     # Crear sesión (siempre, con refresh token placeholder si hay 2FA)
     expires = datetime.now(timezone.utc) + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
     refresh_token = create_refresh_token()

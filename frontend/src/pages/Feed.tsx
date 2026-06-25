@@ -217,6 +217,8 @@ export default function Feed() {
     isFetchingNextPage: loadingMore,
     hasNextPage: hasMore,
     fetchNextPage,
+    isError: feedError,
+    refetch: refetchFeed,
   } = useInfiniteQuery({
     queryKey: ["feed", feedTab, effectiveLat ?? 0, effectiveLng ?? 0, radius, mundial] as const,
     queryFn: async ({ pageParam }: { pageParam: number }) => {
@@ -548,11 +550,22 @@ export default function Feed() {
         </div>
 
         {/* Sentinel infinite scroll */}
-        <div ref={sentinelRef} className="py-4 flex justify-center">
+        <div ref={sentinelRef} className="py-4 flex flex-col items-center gap-2">
           {loadingMore && (
             <div className="w-5 h-5 border-2 border-accent-purple/30 border-t-accent-purple rounded-full animate-spin"/>
           )}
-          {!hasMore && posts.length > 0 && (
+          {feedError && !loadingMore && (
+            <div className="flex flex-col items-center gap-2">
+              <p className="text-xs text-text-muted">No se pudieron cargar más publicaciones.</p>
+              <button
+                onClick={() => refetchFeed()}
+                className="text-xs px-4 py-1.5 rounded-full border border-border text-text-muted hover:text-text-primary transition-colors"
+              >
+                Reintentar
+              </button>
+            </div>
+          )}
+          {!hasMore && posts.length > 0 && !feedError && (
             <p className="text-[10px] text-text-muted tracking-widest uppercase">Ya viste todo</p>
           )}
         </div>
