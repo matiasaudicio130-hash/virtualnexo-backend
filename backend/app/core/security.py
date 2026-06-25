@@ -63,6 +63,14 @@ def require_auth(request: Request) -> dict:
     return payload
 
 
+def optional_auth(request: Request) -> Optional[dict]:
+    """Como require_auth pero devuelve None si no hay token válido (en vez de 401)."""
+    auth = request.headers.get("Authorization", "")
+    if not auth.startswith("Bearer "):
+        return None
+    return decode_access_token(auth.split(" ")[1])
+
+
 def create_totp_session_token(user_id: str, session_id: str) -> str:
     """Token temporal de 5 minutos usado entre el login y la verificación 2FA."""
     expire = datetime.now(timezone.utc) + timedelta(minutes=5)

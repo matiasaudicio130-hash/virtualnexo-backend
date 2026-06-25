@@ -9,7 +9,7 @@ import type { Lang } from "@/i18n";
 import { APP_CONFIG } from "@/config/app";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { Bell, BookmarkSimple, ChartBar, Check, Eye, EyeSlash, Gear, Heart, QrCode, Shield, SignOut, User } from "@phosphor-icons/react";
+import { Bell, BookmarkSimple, ChartBar, Check, Eye, EyeSlash, Gear, Heart, QrCode, Shield, ShieldWarning, SignOut, User } from "@phosphor-icons/react";
 import { ProfileQRModal } from "@/components/ProfileQRModal";
 import { BottomNav } from "@/components/BottomNav";
 import { usePricingPlans, formatARS, formatUSD } from "@/hooks/useExchangeRate";
@@ -59,6 +59,7 @@ export default function Dashboard() {
   const [anonMode, setAnonMode] = useState((user as any)?.anonymous_mode ?? false);
   const [showQR, setShowQR] = useState(false);
   const [socialStats, setSocialStats] = useState({ followers: 0, following: 0 });
+  const [dashTab, setDashTab] = useState<"perfil" | "cuenta" | "seguridad">("perfil");
 
   useScreenCapture({ warn: true });
 
@@ -399,37 +400,76 @@ export default function Dashboard() {
         {/* Story Highlights */}
         <HighlightsCarousel userId={user.id} isOwn={true} />
 
-        {/* Mi perfil — stats privados, completitud, username, albums */}
-        <Card className="p-5">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold text-sm flex items-center gap-2">
-              <Shield size={15} className="text-accent-purple" />
-              Mi perfil
-            </h2>
+        {/* Banner 2FA — visible en todos los tabs cuando no está activado */}
+        {!user.totp_enabled && (
+          <div className="flex items-center gap-3 px-3 py-3 rounded-xl border border-amber-800/50 bg-amber-950/40">
+            <ShieldWarning size={18} className="text-amber-400 flex-shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm text-amber-200 leading-tight">Tu cuenta no tiene 2FA activado.</p>
+              <p className="text-xs text-amber-400/80 mt-0.5">Protegé tu contenido privado.</p>
+            </div>
             <button
-              onClick={() => setShowEditProfile(true)}
-              className="text-xs text-accent-purple hover:opacity-80 transition-opacity flex items-center gap-1"
+              onClick={() => setDashTab("seguridad")}
+              className="text-xs text-amber-400 hover:text-amber-300 flex-shrink-0 whitespace-nowrap"
             >
-              <Gear size={12} /> Editar datos
+              Activar →
             </button>
           </div>
-          <MyProfileSection />
-        </Card>
+        )}
 
-        {/* Perfil e identidad — tipo + orientación (colapsado) */}
-        <Card className="p-5 border-accent-purple/15">
-          <details>
-            <summary className="font-semibold text-sm flex items-center gap-2 cursor-pointer list-none">
-              <Shield size={15} className="text-accent-purple" />
-              {t.profile.title}
-            </summary>
-            <div className="mt-4">
-              <ProfileTypeSettings onSaved={() => refreshUser()} />
-            </div>
-          </details>
-        </Card>
+        {/* ── Tab bar del Dashboard ── */}
+        <div className="sticky top-[57px] z-10 -mx-4 px-4 py-2 bg-bg-base/95 backdrop-blur-sm border-b border-border/60 flex gap-1">
+          {(["perfil", "cuenta", "seguridad"] as const).map(tab => (
+            <button
+              key={tab}
+              onClick={() => setDashTab(tab)}
+              className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                dashTab === tab
+                  ? "text-[#0a0a0f]"
+                  : "text-text-muted hover:text-text-primary bg-transparent"
+              }`}
+              style={dashTab === tab ? { background: "var(--gold,#C9A227)" } : {}}
+            >
+              {tab === "perfil" ? "Mi perfil" : tab === "cuenta" ? "Cuenta" : "Seguridad"}
+            </button>
+          ))}
+        </div>
 
-        {/* Cuenta */}
+        {/* ── Tab: Perfil ── */}
+        {dashTab === "perfil" && (
+          <>
+            <Card className="p-5">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="font-semibold text-sm flex items-center gap-2">
+                  <Shield size={15} className="text-accent-purple" />
+                  Mi perfil
+                </h2>
+                <button
+                  onClick={() => setShowEditProfile(true)}
+                  className="text-xs text-accent-purple hover:opacity-80 transition-opacity flex items-center gap-1"
+                >
+                  <Gear size={12} /> Editar datos
+                </button>
+              </div>
+              <MyProfileSection />
+            </Card>
+
+            <Card className="p-5 border-accent-purple/15">
+              <details>
+                <summary className="font-semibold text-sm flex items-center gap-2 cursor-pointer list-none">
+                  <Shield size={15} className="text-accent-purple" />
+                  {t.profile.title}
+                </summary>
+                <div className="mt-4">
+                  <ProfileTypeSettings onSaved={() => refreshUser()} />
+                </div>
+              </details>
+            </Card>
+          </>
+        )}
+
+        {/* ── Tab: Cuenta ── */}
+        {dashTab === "cuenta" && (<>
         <Card glow className="p-5">
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-semibold text-sm flex items-center gap-2">
@@ -526,9 +566,10 @@ export default function Dashboard() {
         <CoupleSection />
 
         {user.membership_type === "none" && <MembershipCTA />}
+        </>)}
 
-        {/* Seguridad */}
-        <SecuritySection />
+        {/* ── Tab: Seguridad ── */}
+        {dashTab === "seguridad" && <SecuritySection />}
       </main>
 
       <BottomNav />
@@ -539,7 +580,7 @@ export default function Dashboard() {
 function SecuritySection() {
   const [open, setOpen] = useState(false);
   return (
-    <div>
+    <div id="security-section">
       <button
         onClick={() => setOpen(v => !v)}
         className="flex items-center gap-2 text-sm text-text-muted hover:text-text-primary transition-colors w-full py-2"

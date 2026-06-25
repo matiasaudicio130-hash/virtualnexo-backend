@@ -40,6 +40,7 @@ export interface User {
   username?: string | null;
   seeking_tags?: string[] | null;
   seeking_text?: string | null;
+  totp_enabled?: boolean;
 }
 
 export interface AuthTokens {

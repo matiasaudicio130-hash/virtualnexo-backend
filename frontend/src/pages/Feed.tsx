@@ -276,7 +276,7 @@ export default function Feed() {
     ? (user.membership_type === "lifetime" ? Infinity : ADS_EVERY_MEMBER)
     : ADS_EVERY_NONE;
 
-  if (!user) return null;
+  if (!user) return <GuestFeedGate />;
 
   return (
     <div className="min-h-screen bg-bg-base text-text-primary">
@@ -549,7 +549,7 @@ export default function Feed() {
       {/* FAB */}
       <button
         onClick={() => setShowCreate(true)}
-        className="fixed bottom-[76px] right-4 w-12 h-12 bg-accent-purple rounded-full shadow-lg flex items-center justify-center text-white hover:scale-105 active:scale-95 transition-transform z-30"
+        className="fixed bottom-[76px] right-4 w-12 h-12 bg-accent-purple rounded-full shadow-lg flex items-center justify-center text-white hover:scale-105 active:scale-95 transition-transform z-50"
         aria-label="Nueva publicación"
       >
         <Plus size={22} />
@@ -572,6 +572,65 @@ export default function Feed() {
 
       <PushPromptBanner />
       <BottomNav />
+    </div>
+  );
+}
+
+// ── Guest feed gate ───────────────────────────────────────────
+function GuestFeedGate() {
+  const navigate = useNavigate();
+  return (
+    <div className="min-h-screen bg-bg-base text-text-primary flex flex-col">
+      <header className="sticky top-0 z-20 bg-bg-base/90 backdrop-blur-md border-b border-border px-4 pt-safe-3 pb-3 flex items-center justify-between">
+        <NavLogo />
+      </header>
+      <main className="flex-1 max-w-lg mx-auto w-full px-4 py-6 space-y-4 pb-[100px]">
+        {/* Placeholder posts bloqueados */}
+        {[1, 2, 3].map(i => (
+          <div key={i} className="rounded-2xl overflow-hidden border border-border/60" style={{ background: "#0e0c09" }}>
+            <div className="flex items-center gap-3 px-4 py-3">
+              <div className="w-9 h-9 rounded-full bg-bg-muted blur-sm" />
+              <div className="flex-1 space-y-1.5">
+                <div className="h-2.5 rounded-full w-24 bg-bg-muted blur-sm" />
+                <div className="h-2 rounded-full w-16 bg-bg-muted/60 blur-sm" />
+              </div>
+            </div>
+            <div className="relative h-72 w-full overflow-hidden">
+              <div className="absolute inset-0 blur-xl" style={{ background: "linear-gradient(135deg, #1a1208 0%, #0e0c09 100%)" }} />
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
+                <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ background: "rgba(201,162,39,0.1)", border: "1px solid rgba(201,162,39,0.3)" }}>
+                  <Plus size={22} style={{ color: "var(--gold,#C9A227)" }} />
+                </div>
+                <p className="text-xs text-text-muted text-center px-8 leading-relaxed">
+                  {i === 1 ? "Contenido exclusivo de miembros verificados" : i === 2 ? "Fotos, posts y más — solo para miembros" : "Conectá con personas verificadas con DNI real"}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-4 px-4 py-3">
+              <div className="h-4 w-12 rounded-full bg-bg-muted/40 blur-sm" />
+              <div className="h-4 w-12 rounded-full bg-bg-muted/40 blur-sm" />
+            </div>
+          </div>
+        ))}
+      </main>
+      {/* CTA sticky */}
+      <div className="fixed bottom-0 left-0 right-0 px-4 pb-safe-4 pt-4" style={{ background: "linear-gradient(to top, #020207 70%, transparent)" }}>
+        <div className="max-w-lg mx-auto space-y-2">
+          <button
+            onClick={() => navigate("/register")}
+            className="w-full py-3.5 rounded-2xl text-sm font-semibold"
+            style={{ background: "var(--gold,#C9A227)", color: "#0a0a0f" }}
+          >
+            Ver el feed completo — Crear cuenta gratis
+          </button>
+          <button
+            onClick={() => navigate("/login")}
+            className="w-full py-3 rounded-2xl text-sm text-text-muted border border-border/60"
+          >
+            Ya tengo cuenta — Iniciar sesión
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

@@ -523,7 +523,7 @@ export default function ProfileView() {
               <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}>
                 <MapPin size={12} style={{ color: "var(--mist)" }} strokeWidth={1.5}/>
                 <p style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--mist)", letterSpacing: "0.14em" }}>
-                  {profile.city ? `${profile.city}, ` : ""}{profile.province}
+                  {profile.city && profile.city !== profile.province ? `${profile.city}, ` : ""}{profile.province}
                 </p>
               </div>
             )}
@@ -574,11 +574,18 @@ export default function ProfileView() {
         )}
 
         {/* ── ZONA 3: Stats ── */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 1, margin: "0 0 24px", borderTop: "1px solid var(--border-soft)", borderBottom: "1px solid var(--border-soft)", background: "var(--border-soft)" }}>
-          <StatCounter value={followCounts.followers} label="Seguidores" onClick={() => openFollowList("followers")} />
-          <StatCounter value={followCounts.following} label="Siguiendo"  onClick={() => openFollowList("following")} />
-          <StatCounter value={profile.review_stats?.total_reviews || 0} label="Reseñas" onClick={() => navigate(`/reviews/${userId}`)} />
-        </div>
+        {(() => {
+          const hasReviews = (profile.review_stats?.total_reviews || 0) > 0;
+          return (
+            <div style={{ display: "grid", gridTemplateColumns: hasReviews ? "1fr 1fr 1fr" : "1fr 1fr", gap: 1, margin: "0 0 24px", borderTop: "1px solid var(--border-soft)", borderBottom: "1px solid var(--border-soft)", background: "var(--border-soft)" }}>
+              <StatCounter value={followCounts.followers} label="Seguidores" onClick={() => openFollowList("followers")} />
+              <StatCounter value={followCounts.following} label="Siguiendo"  onClick={() => openFollowList("following")} />
+              {hasReviews && (
+                <StatCounter value={profile.review_stats!.total_reviews} label="Reseñas" onClick={() => navigate(`/reviews/${userId}`)} />
+              )}
+            </div>
+          );
+        })()}
 
         {/* ── ZONA 3b: Badges ── */}
         <div style={{ padding: "0 24px 20px", display: "flex", justifyContent: "center" }}>

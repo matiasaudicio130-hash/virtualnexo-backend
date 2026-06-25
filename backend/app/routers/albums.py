@@ -385,7 +385,7 @@ async def record_view(user_id: str, request: Request):
         return {"recorded": False}
     db = get_supabase()
     db.table("profile_views").upsert(
-        {"viewed_id": user_id, "viewer_id": viewer_id},
+        {"viewed_id": user_id, "viewer_id": viewer_id, "viewed_at": datetime.now(timezone.utc).isoformat()},
         on_conflict="viewer_id,viewed_id",
     ).execute()
     db.rpc("increment_profile_views", {"p_user_id": user_id}).execute()

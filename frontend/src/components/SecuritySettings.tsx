@@ -9,6 +9,17 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 
+function formatIp(ip: string): string {
+  if (!ip) return "IP desconocida";
+  const parts = ip.split(".");
+  if (parts[0] === "100") {
+    const second = parseInt(parts[1], 10);
+    if (second >= 64 && second <= 127) return "Red del proveedor";
+  }
+  if (ip.startsWith("10.") || ip.startsWith("192.168.") || ip.startsWith("172.")) return "Red local";
+  return ip;
+}
+
 function timeAgo(d: string): string {
   const diff = Date.now() - new Date(d).getTime();
   const m = Math.floor(diff / 60000);
@@ -283,7 +294,7 @@ function SessionsSection() {
                 {i === 0 && <span className="ml-2 text-[10px] text-accent-purple bg-accent-purple/10 px-1.5 py-0.5 rounded-full">Esta sesión</span>}
               </p>
               <p className="text-xs text-text-muted">
-                {s.ip_address || "IP desconocida"} · {s.last_used_at ? timeAgo(s.last_used_at) : "—"}
+                {formatIp(s.ip_address)} · {s.last_used_at ? timeAgo(s.last_used_at) : "—"}
               </p>
             </div>
             {i > 0 && (

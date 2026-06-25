@@ -111,10 +111,10 @@ function CommentItem({
           <div className="bg-bg-muted/50 rounded-xl px-3 py-2">
             <button
               onClick={() => navigate(`/profile/${comment.author.id}`)}
-              className="text-xs font-semibold text-text-primary hover:text-accent-purple transition-colors mr-1.5"
+              className="text-xs font-semibold text-text-primary hover:text-accent-purple transition-colors mr-1"
             >
               {comment.author.name}
-            </button>
+            </button>{" "}
             <span className="text-sm text-text-secondary leading-snug"><CommentText content={comment.content} /></span>
           </div>
 

@@ -207,6 +207,28 @@ async def login(request: Request, body: LoginRequest):
         {"last_login_at": datetime.now(timezone.utc).isoformat()}
     ).eq("id", user["id"]).execute()
 
+    # Notificar si es un dispositivo no visto antes para este usuario
+    device_name = _parse_device_name(request.headers.get("user-agent", ""))
+    try:
+        prev_r = (
+            db.table("sessions")
+            .select("id")
+            .eq("user_id", user["id"])
+            .eq("device_name", device_name)
+            .neq("id", session_id)
+            .execute()
+        )
+        if not prev_r.data:
+            from app.services.push_service import send_push
+            send_push(
+                user_id=user["id"],
+                title="Nueva sesión detectada",
+                body=f"Acceso desde {device_name}. ¿Fuiste vos?",
+                url="/dashboard",
+            )
+    except Exception:
+        pass  # No bloquear el login si la notificación falla
+
     # Si 2FA está activo → devolver token temporal, NO el access token
     if user.get("totp_enabled"):
         from app.core.security import create_totp_session_token
@@ -289,7 +311,8 @@ async def me(request: Request):
         "identity_description,profile_extended,"
         "hide_from_solos,no_messages_from_solos,"
         "current_streak,longest_streak,last_streak_date,"
-        "username,seeking_tags,seeking_text"
+        "username,seeking_tags,seeking_text,"
+        "totp_enabled"
     ).eq("id", payload["sub"]).execute()
     if not result.data:
         raise HTTPException(404, "Usuario no encontrado")

@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, Request, Query, UploadFile, File
 from typing import Optional, Literal, List
 from pydantic import BaseModel
 
-from app.core.security import require_auth as _require_auth
+from app.core.security import require_auth as _require_auth, optional_auth as _optional_auth
 from app.services.feed_service import feed_service
 from app.services.storage_service import storage_service
 from app.utils.blocks import block_between
@@ -67,9 +67,9 @@ async def get_feed(
     limit: int             = Query(30, le=50),
     offset: int            = Query(0, ge=0),
 ):
-    payload = _require_auth(request)
+    payload = _optional_auth(request)
     return feed_service.get_feed(
-        viewer_id=payload["sub"],
+        viewer_id=payload["sub"] if payload else None,
         viewer_lat=lat,
         viewer_lng=lng,
         radius_km=radius_km,

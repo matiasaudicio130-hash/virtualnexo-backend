@@ -83,6 +83,7 @@ export default function Explore() {
 
   // Trending hashtags
   const [trending,        setTrending]        = useState<TrendingTag[]>([]);
+  const [trendingLoading, setTrendingLoading] = useState(false);
   const [hashtagPosts,    setHashtagPosts]     = useState<HashtagPost[]>([]);
   const [hashtagLoading,  setHashtagLoading]   = useState(false);
   const [activeHashtag,   setActiveHashtag]    = useState(urlTab === "hashtag" ? urlTag : "");
@@ -95,7 +96,11 @@ export default function Explore() {
 
   // Load trending on mount
   useEffect(() => {
-    hashtagsApi.trending().then(r => setTrending(r.data)).catch(() => {});
+    setTrendingLoading(true);
+    hashtagsApi.trending()
+      .then(r => setTrending(Array.isArray(r.data) ? r.data : []))
+      .catch(() => {})
+      .finally(() => setTrendingLoading(false));
   }, []);
 
   // Load hashtag posts when activeHashtag changes
@@ -418,7 +423,10 @@ export default function Explore() {
             {tab === "personas" && (
               <>
                 {coords ? (
-                  <NearbyUsers lat={coords.lat} lng={coords.lng} />
+                  <>
+                    <NearbyUsers lat={coords.lat} lng={coords.lng} />
+                    <ProfileSuggestions />
+                  </>
                 ) : (
                   <div className="mx-4 mt-3 p-4 rounded-xl border border-border text-center">
                     <MapPin size={20} className="mx-auto mb-2" style={{ color: "var(--gold, #C9A227)" }} />
@@ -432,7 +440,6 @@ export default function Explore() {
                     </button>
                   </div>
                 )}
-                <ProfileSuggestions />
               </>
             )}
 
@@ -443,6 +450,7 @@ export default function Explore() {
             {tab === "hashtag" && (
               <HashtagTab
                 trending={trending}
+                trendingLoading={trendingLoading}
                 posts={hashtagPosts}
                 loading={hashtagLoading}
                 activeTag={activeHashtag}
@@ -465,14 +473,15 @@ export default function Explore() {
 
 // ── Hashtag tab ───────────────────────────────────────────────────────────────
 function HashtagTab({
-  trending, posts, loading, activeTag, onSelectTag, onNavigate,
+  trending, trendingLoading, posts, loading, activeTag, onSelectTag, onNavigate,
 }: {
-  trending:    TrendingTag[];
-  posts:       HashtagPost[];
-  loading:     boolean;
-  activeTag:   string;
-  onSelectTag: (tag: string) => void;
-  onNavigate:  ReturnType<typeof useNavigate>;
+  trending:        TrendingTag[];
+  trendingLoading: boolean;
+  posts:           HashtagPost[];
+  loading:         boolean;
+  activeTag:       string;
+  onSelectTag:     (tag: string) => void;
+  onNavigate:      ReturnType<typeof useNavigate>;
 }) {
   return (
     <div className="px-4 pt-4 space-y-5">
@@ -481,7 +490,13 @@ function HashtagTab({
         <p className="text-[10px] text-text-muted uppercase tracking-widest mb-3">
           Trending esta semana
         </p>
-        {trending.length === 0 ? (
+        {trendingLoading ? (
+          <div className="flex flex-wrap gap-2">
+            {[...Array(5)].map((_, i) => (
+              <div key={i} className="h-7 rounded-full" style={{ width: 80 + i * 12, background: "#1a1815", animation: "aura-pulse 2s ease-in-out infinite" }} />
+            ))}
+          </div>
+        ) : trending.length === 0 ? (
           <p className="text-xs text-text-muted/60">Todavía no hay hashtags populares.</p>
         ) : (
           <div className="flex flex-wrap gap-2">

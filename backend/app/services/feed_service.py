@@ -39,7 +39,7 @@ class FeedService:
 
     def get_feed(
         self,
-        viewer_id: str,
+        viewer_id: Optional[str],
         viewer_lat: Optional[float] = None,
         viewer_lng: Optional[float] = None,
         radius_km: int = 100,
@@ -49,37 +49,45 @@ class FeedService:
         offset: int = 0,
     ) -> dict:
         """
-        Devuelve posts del feed para el viewer.
+        Devuelve posts del feed para el viewer (None = guest sin sesión).
         Aplica filtro de shadow ban: posts de shadow-banned no aparecen para otros.
         """
         db = get_supabase()
 
-        # 1. Las 3 queries de contexto del viewer son independientes entre sí:
-        #    las ejecutamos en paralelo con threads para reducir latencia total.
-        def _fetch_viewer():
-            return self._get_viewer_data(viewer_id)
+        if viewer_id:
+            # 1. Las 3 queries de contexto del viewer son independientes entre sí:
+            #    las ejecutamos en paralelo con threads para reducir latencia total.
+            def _fetch_viewer():
+                return self._get_viewer_data(viewer_id)
 
-        def _fetch_blocked():
-            return blocked_user_ids(get_supabase(), viewer_id)
+            def _fetch_blocked():
+                return blocked_user_ids(get_supabase(), viewer_id)
 
-        def _fetch_following():
-            try:
-                r = get_supabase().table("user_follows").select("following_id").eq("follower_id", viewer_id).execute()
-                return {f["following_id"] for f in r.data}
-            except Exception:
-                return set()
+            def _fetch_following():
+                try:
+                    r = get_supabase().table("user_follows").select("following_id").eq("follower_id", viewer_id).execute()
+                    return {f["following_id"] for f in r.data}
+                except Exception:
+                    return set()
 
-        with ThreadPoolExecutor(max_workers=3) as _ex:
-            _f_viewer   = _ex.submit(_fetch_viewer)
-            _f_blocked  = _ex.submit(_fetch_blocked)
-            _f_following = _ex.submit(_fetch_following)
-            viewer_data    = _f_viewer.result()
-            blocked_ids    = _f_blocked.result()
-            viewer_following = _f_following.result()
+            with ThreadPoolExecutor(max_workers=3) as _ex:
+                _f_viewer   = _ex.submit(_fetch_viewer)
+                _f_blocked  = _ex.submit(_fetch_blocked)
+                _f_following = _ex.submit(_fetch_following)
+                viewer_data    = _f_viewer.result()
+                blocked_ids    = _f_blocked.result()
+                viewer_following = _f_following.result()
 
-        viewer_type    = viewer_data.get("profile_type", "solo_h")
-        viewer_is_solo = viewer_type in SOLO_TYPES
-        interested_in  = viewer_data.get("interested_in") or []
+            viewer_type    = viewer_data.get("profile_type", "solo_h")
+            viewer_is_solo = viewer_type in SOLO_TYPES
+            interested_in  = viewer_data.get("interested_in") or []
+        else:
+            # Guest sin sesión — sin filtros personalizados, sin bloqueados
+            blocked_ids      = set()
+            viewer_following = set()
+            viewer_type      = None
+            viewer_is_solo   = False
+            interested_in    = []
 
         # Tipos permitidos que el viewer quiere descubrir (None = sin filtro)
         allowed_types: Optional[set] = None
@@ -197,7 +205,7 @@ class FeedService:
         # 4. Reacciones del viewer en estos posts
         post_ids = [p["id"] for p in posts]
         viewer_reactions: dict = {}
-        if post_ids:
+        if post_ids and viewer_id:
             rxn_r = db.table("post_reactions").select("post_id,type").eq("user_id", viewer_id).in_("post_id", post_ids).execute()
             viewer_reactions = {r["post_id"]: r["type"] for r in rxn_r.data}
 

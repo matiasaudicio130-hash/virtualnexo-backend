@@ -32,7 +32,7 @@ export function ProfileFeedTabs({ tab, onChange, isOwn }: Props) {
   const indicatorRef = useRef<HTMLDivElement>(null);
   const btnRefs = useRef<Map<ProfileFeedTab, HTMLButtonElement>>(new Map());
 
-  const visibleTabs = TABS.filter(t => t.id !== "saved" || isOwn);
+  const visibleTabs = isOwn ? TABS : TABS.filter(t => t.id === "posts" || t.id === "reels");
 
   useGSAP(() => {
     const btn = btnRefs.current.get(tab);

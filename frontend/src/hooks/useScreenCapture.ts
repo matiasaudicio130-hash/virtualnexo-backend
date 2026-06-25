@@ -68,6 +68,8 @@ export function useScreenCapture({ onDetected, warn = true }: Options = {}) {
 
   useEffect(() => {
     const overlay = getOverlay();
+    // Siempre asegurar que el overlay está oculto al montar
+    if (!document.hidden) overlay.style.display = "none";
 
     // ── 1. App switcher (iOS + Android) ─────────────────
     // Cuando la app pasa al fondo, iOS/Android captura un snapshot
