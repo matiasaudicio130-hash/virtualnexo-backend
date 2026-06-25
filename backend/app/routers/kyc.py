@@ -110,6 +110,10 @@ async def _process_kyc_result(parsed: dict, raw_data: dict):
     kyc = kyc_result.data[0]
     user_id = kyc["user_id"]
 
+    # Idempotency: si ya procesamos este mismo estado, no re-enviar emails
+    if kyc.get("status") == parsed["status"]:
+        return
+
     db.table("kyc_verifications").update({
         "status": parsed["status"],
         "metamap_identity_id": parsed["identity_id"],
