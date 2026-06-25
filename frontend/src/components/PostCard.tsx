@@ -8,6 +8,7 @@ import {
 import { feedApi } from "@/lib/api";
 import { imgUrl } from "@/utils/image";
 import { ProtectedAvatar } from "@/components/ProtectedImage";
+import { toast } from "@/store/toastStore";
 import { CommentsSection } from "@/components/Comments";
 import { Carousel } from "@/components/Carousel";
 import { DoubleTapLike } from "@/components/DoubleTapLike";
@@ -169,10 +170,15 @@ export function PostCard({ post, currentUserId, onDelete, initialSaved = false }
   }
 
   async function handleSave() {
+    const prev = saved;
+    setSaved(s => !s); // optimistic
     try {
       const { data } = await feedApi.savePost(post.id);
       setSaved(data.saved);
-    } catch { /* ignore */ }
+    } catch {
+      setSaved(prev); // rollback
+      toast.error("No se pudo guardar. Intentá de nuevo.");
+    }
   }
 
   async function handleDelete() {

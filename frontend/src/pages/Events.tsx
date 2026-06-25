@@ -74,8 +74,14 @@ export default function Events() {
   }
 
   async function handleRsvp(eventId: string, status: string) {
-    await eventsApi.rsvp(eventId, status);
-    setRsvpMap(prev => ({ ...prev, [eventId]: status }));
+    const prev = rsvpMap[eventId];
+    setRsvpMap(p => ({ ...p, [eventId]: status })); // optimistic
+    try {
+      await eventsApi.rsvp(eventId, status);
+    } catch {
+      setRsvpMap(p => ({ ...p, [eventId]: prev })); // rollback
+      toast.error("No se pudo registrar tu respuesta. Intentá de nuevo.");
+    }
   }
 
   async function handleCreate() {

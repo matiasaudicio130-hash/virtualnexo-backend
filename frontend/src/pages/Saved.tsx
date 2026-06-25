@@ -156,6 +156,10 @@ export default function Saved() {
   const [editColId,   setEditColId]   = useState<string | null>(null);
   const [editColName, setEditColName] = useState("");
 
+  // Inline new collection input
+  const [showNewCol, setShowNewCol] = useState(false);
+  const [newColName, setNewColName] = useState("");
+
   const load = useCallback(async (off: number, append = false) => {
     if (off === 0) setLoading(true); else setLoadingMore(true);
     try {
@@ -315,13 +319,36 @@ export default function Saved() {
           </div>
         ))}
 
-        {/* New collection */}
-        <button
-          onClick={() => { const name = prompt("Nombre de la colección:"); if (name?.trim()) handleCreateCollection(name.trim()); }}
-          className="flex-shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-full border border-dashed border-border text-xs text-text-muted hover:border-amber-400/50 hover:text-amber-400 transition-all"
-        >
-          <Plus size={11}/> Nueva
-        </button>
+        {/* New collection — inline input */}
+        {showNewCol ? (
+          <form
+            className="flex-shrink-0 flex items-center gap-1"
+            onSubmit={e => {
+              e.preventDefault();
+              if (newColName.trim()) { handleCreateCollection(newColName.trim()); }
+              setNewColName(""); setShowNewCol(false);
+            }}
+          >
+            <input
+              autoFocus
+              value={newColName}
+              onChange={e => setNewColName(e.target.value)}
+              onBlur={() => { setNewColName(""); setShowNewCol(false); }}
+              placeholder="Nombre…"
+              maxLength={40}
+              className="w-28 px-2 py-1.5 rounded-full border border-amber-400/50 bg-bg-muted text-xs outline-none"
+              style={{ fontSize: "16px" }}
+            />
+            <button type="submit" className="p-1 text-amber-400"><Check size={12}/></button>
+          </form>
+        ) : (
+          <button
+            onClick={() => setShowNewCol(true)}
+            className="flex-shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-full border border-dashed border-border text-xs text-text-muted hover:border-amber-400/50 hover:text-amber-400 transition-all"
+          >
+            <Plus size={11}/> Nueva
+          </button>
+        )}
       </div>
 
       {/* Empty collection state */}
