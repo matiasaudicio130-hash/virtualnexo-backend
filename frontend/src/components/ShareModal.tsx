@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { toast } from "@/store/toastStore";
-import { X, MagnifyingGlass, PaperPlaneTilt, Check, ArrowCounterClockwise, CaretRight } from "@phosphor-icons/react";
+import { X, MagnifyingGlass, PaperPlaneTilt, Check, ArrowCounterClockwise, CaretRight, Link } from "@phosphor-icons/react";
 import { messagingApi, feedApi } from "@/lib/api";
 
 interface Props {
@@ -43,9 +43,10 @@ export function ShareModal({ postId, authorId, currentUserId, caption, onClose }
     setSending(conv.id);
     try {
       await feedApi.sharePost(postId);
+      const postUrl = `https://aurasw.club/feed?post=${postId}`;
       await messagingApi.sendMessage(conv.id, {
         recipient_id: conv.other_user?.id,
-        content:      `📸 ${caption || "Compartió una publicación"} · aurasw.club`,
+        content:      `📸 ${caption || "Compartió una publicación"} · ${postUrl}`,
       });
       setSent(prev => new Set([...prev, conv.id]));
     } catch { /* ignore */ }
@@ -137,6 +138,21 @@ export function ShareModal({ postId, authorId, currentUserId, caption, onClose }
             )}
           </div>
         )}
+
+        {/* ── Copiar enlace ─────────────────────────────────────────── */}
+        <button
+          onClick={() => {
+            navigator.clipboard?.writeText(`https://aurasw.club/feed?post=${postId}`)
+              .then(() => toast.success("Enlace copiado"))
+              .catch(() => toast.error("No se pudo copiar"));
+          }}
+          className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-border hover:bg-bg-muted transition-colors text-left"
+        >
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 bg-bg-muted">
+            <Link size={16} className="text-text-muted" />
+          </div>
+          <p className="text-sm font-medium">Copiar enlace</p>
+        </button>
 
         {/* ── Compartir por mensaje ──────────────────────────────────── */}
         <div>

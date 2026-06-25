@@ -120,6 +120,7 @@ function PostSkeleton() {
 
 // ── Componente principal ──────────────────────────────────────
 export default function Feed() {
+  const navigate        = useNavigate();
   const { user }        = useAuthStore();
   const { travelCity }  = useTravelStore();
   const queryClient     = useQueryClient();
@@ -513,23 +514,39 @@ export default function Feed() {
               <div className="w-14 h-14 rounded-full border border-border flex items-center justify-center mx-auto mb-4 bg-bg-muted">
                 <MagnifyingGlass size={22} weight="light" className="text-text-muted" />
               </div>
-              <p className="font-semibold mb-1">
-                {selectedCity
-                  ? `Todavía no hay muchos miembros cerca de ${selectedCity.name}`
-                  : "No hay publicaciones cerca"}
-              </p>
-              <p className="text-sm text-text-muted/70">
-                {selectedCity
-                  ? "Los que hay son reales. Expandí el radio o buscá otra ciudad."
-                  : "Probá expandir el radio o seleccioná una ciudad."}
-              </p>
-              <button
-                onClick={() => setShowCreate(true)}
-                className="mt-6 px-6 py-2.5 rounded-full text-sm font-medium transition-all hover:opacity-90"
-                style={{ background: "var(--gold, #C9A227)", color: "#0a0a0f" }}
-              >
-                Sé el primero en publicar
-              </button>
+              {feedTab === "following" ? (
+                <>
+                  <p className="font-semibold mb-1">Todavía no seguís a nadie</p>
+                  <p className="text-sm text-text-muted/70">Seguí personas para ver sus publicaciones acá.</p>
+                  <button
+                    onClick={() => navigate("/explore")}
+                    className="mt-6 px-6 py-2.5 rounded-full text-sm font-medium transition-all hover:opacity-90"
+                    style={{ background: "var(--gold, #C9A227)", color: "#0a0a0f" }}
+                  >
+                    Explorar personas
+                  </button>
+                </>
+              ) : (
+                <>
+                  <p className="font-semibold mb-1">
+                    {selectedCity
+                      ? `Todavía no hay muchos miembros cerca de ${selectedCity.name}`
+                      : "No hay publicaciones cerca"}
+                  </p>
+                  <p className="text-sm text-text-muted/70">
+                    {selectedCity
+                      ? "Los que hay son reales. Expandí el radio o buscá otra ciudad."
+                      : "Probá expandir el radio o seleccioná una ciudad."}
+                  </p>
+                  <button
+                    onClick={() => setShowCreate(true)}
+                    className="mt-6 px-6 py-2.5 rounded-full text-sm font-medium transition-all hover:opacity-90"
+                    style={{ background: "var(--gold, #C9A227)", color: "#0a0a0f" }}
+                  >
+                    Sé el primero en publicar
+                  </button>
+                </>
+              )}
             </div>
           )}
 
