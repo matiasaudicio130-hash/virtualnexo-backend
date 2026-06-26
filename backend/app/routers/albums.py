@@ -262,6 +262,17 @@ async def request_access(album_id: str, request: Request):
     if a["user_id"] == requester_id:
         raise HTTPException(400, "No podés solicitar acceso a tu propio album.")
 
+    # Verificar solicitud existente antes del insert (previene race condition)
+    existing_req = db.table("album_access_requests").select("id,status").eq(
+        "album_id", album_id
+    ).eq("requester_id", requester_id).maybe_single().execute()
+    if existing_req.data:
+        status = existing_req.data.get("status", "pending")
+        if status == "pending":
+            raise HTTPException(409, "Ya enviaste una solicitud para este album.")
+        elif status == "approved":
+            raise HTTPException(409, "Ya tenés acceso a este album.")
+
     try:
         r = db.table("album_access_requests").insert({
             "album_id": album_id,

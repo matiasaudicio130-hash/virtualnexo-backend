@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { CaretLeft, BookmarkSimple, Play, SquaresFour, Plus, X, FolderOpen, Check, Pencil, Trash } from "@phosphor-icons/react";
 import { feedApi, collectionsApi } from "@/lib/api";
+import { toast } from "@/store/toastStore";
 import { useAuthStore } from "@/store/authStore";
 import { PostCard } from "@/components/PostCard";
 import { BottomNav } from "@/components/BottomNav";
@@ -214,7 +215,9 @@ export default function Saved() {
     try {
       await collectionsApi.addPost(col.id, pickerPost.id);
       setCollections(prev => prev.map(c => c.id === col.id ? { ...c, post_ids: [pickerPost.id, ...c.post_ids.filter(id => id !== pickerPost.id)] } : c));
-    } catch { /* ignore */ }
+    } catch {
+      toast.error("No se pudo agregar a la colección. Intentá de nuevo.");
+    }
   }
 
   async function handleRemoveFromCollection(col: Collection) {

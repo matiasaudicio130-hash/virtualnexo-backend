@@ -42,7 +42,7 @@ async def mention_autocomplete(
 @router.get("")
 async def global_search(
     request: Request,
-    q: str = Query(..., min_length=1, max_length=100),
+    q: str = Query(..., min_length=2, max_length=100),
     limit: int = Query(default=20, ge=1, le=50),
 ):
     """

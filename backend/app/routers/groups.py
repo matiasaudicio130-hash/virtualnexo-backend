@@ -216,6 +216,12 @@ async def send_message(group_id: str, body: SendGroupMessageBody, request: Reque
     if len(content) > MAX_MSG_LEN:
         raise HTTPException(400, f"Mensaje demasiado largo (max {MAX_MSG_LEN} chars)")
 
+    # Validar que reply_to_id pertenece al mismo grupo
+    if body.reply_to_id:
+        ref_r = db.table("group_messages").select("id").eq("id", body.reply_to_id).eq("group_id", group_id).maybe_single().execute()
+        if not ref_r.data:
+            raise HTTPException(400, "El mensaje citado no pertenece a este grupo")
+
     msg_r = db.table("group_messages").insert({
         "group_id":    group_id,
         "sender_id":   me,
