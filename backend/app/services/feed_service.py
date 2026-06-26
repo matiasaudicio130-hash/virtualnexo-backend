@@ -445,7 +445,18 @@ class FeedService:
 
     def delete_post(self, post_id: str, user_id: str) -> None:
         db = get_supabase()
-        db.table("posts").update({"status": "deleted"}).eq("id", post_id).eq("user_id", user_id).execute()
+        # Verificar propiedad antes de eliminar
+        check = db.table("posts").select("id,storage_path").eq("id", post_id).eq("user_id", user_id).maybe_single().execute()
+        if not check.data:
+            return
+        db.table("posts").update({"status": "deleted"}).eq("id", post_id).execute()
+        # Limpiar registros relacionados para no dejar huérfanos
+        try:
+            db.table("post_reactions").delete().eq("post_id", post_id).execute()
+            db.table("post_saves").delete().eq("post_id", post_id).execute()
+            db.table("comments").update({"is_deleted": True}).eq("post_id", post_id).execute()
+        except Exception:
+            pass  # Los huérfanos no bloquean la operación principal
 
 
 feed_service = FeedService()
