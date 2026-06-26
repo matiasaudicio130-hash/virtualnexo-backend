@@ -84,6 +84,9 @@ async def send_couple_request(target_id: str, request: Request):
         raise HTTPException(409, "Esa persona ya tiene una pareja vinculada.")
     if my_ext.get("couple_request_sent_to"):
         raise HTTPException(409, "Ya tenés una solicitud pendiente.")
+    # Prevenir sobrescribir solicitud existente de otra persona
+    if tgt_ext.get("couple_request_from") and tgt_ext["couple_request_from"] != me:
+        raise HTTPException(409, "Esa persona ya tiene una solicitud pendiente de otro usuario.")
 
     # Guardar solicitud en ambos lados
     _set_ext(db, me, {"couple_request_sent_to": target_id})
@@ -187,7 +190,13 @@ async def unlink_couple(request: Request):
     if not partner_id:
         raise HTTPException(400, "No tenés pareja vinculada")
 
-    _set_ext(db, me, {"partner_id": None})
-    _set_ext(db, partner_id, {"partner_id": None})
+    # Limpiar todos los campos de pareja en ambos usuarios
+    couple_fields_none = {
+        "partner_id": None,
+        "couple_request_from": None,
+        "couple_request_sent_to": None,
+    }
+    _set_ext(db, me, couple_fields_none)
+    _set_ext(db, partner_id, couple_fields_none)
 
     return {"unlinked": True}

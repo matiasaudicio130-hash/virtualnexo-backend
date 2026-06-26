@@ -2022,7 +2022,7 @@ function ModerationTab() {
     try {
       await moderationApi.action(reportId, { action, admin_note: noteMap[reportId] || "" });
       setReports(prev => prev.filter(r => r.id !== reportId));
-      setPendingCount(c => action !== "dismiss" ? Math.max(0, c - 1) : Math.max(0, c - 1));
+      setPendingCount(c => Math.max(0, c - 1)); // tanto "dismiss" como "action" remueven de pending
     } catch { /* ignore */ }
     setActioning(null);
   }
