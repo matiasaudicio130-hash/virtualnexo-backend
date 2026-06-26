@@ -25,6 +25,7 @@ from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
 from app.core.security import decode_access_token, create_access_token, create_refresh_token, require_auth as _require_auth
+from app.core.limiter import limiter
 from app.core.branding import APP_NAME
 from app.db.supabase import get_supabase
 
@@ -164,7 +165,8 @@ async def disable_2fa(body: DisableBody, request: Request):
 
 
 @router.post("/verify")
-async def verify_totp_login(body: VerifyLoginBody):
+@limiter.limit("5/minute;20/hour")
+async def verify_totp_login(request: Request, body: VerifyLoginBody):
     """
     Paso 2 del login con 2FA.
     Recibe totp_session (token temporal) + código TOTP.

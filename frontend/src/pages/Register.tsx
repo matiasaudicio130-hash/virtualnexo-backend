@@ -22,9 +22,12 @@ const schema = z.object({
   first_name: z.string().min(2, "Mínimo 2 caracteres"),
   last_name: z.string().min(2, "Mínimo 2 caracteres"),
   birth_date: z.string().refine((v) => {
-    const d = new Date(v);
-    const age = new Date().getFullYear() - d.getFullYear();
-    return age >= 18;
+    if (!v) return false;
+    const birth = new Date(v);
+    if (isNaN(birth.getTime())) return false;
+    const today = new Date();
+    const age18 = new Date(birth.getFullYear() + 18, birth.getMonth(), birth.getDate());
+    return today >= age18;
   }, "Debés ser mayor de 18 años"),
   master_key: z.string().optional(),
   terms: z.literal(true, { errorMap: () => ({ message: "Debés aceptar los términos" }) }),
@@ -122,6 +125,8 @@ export default function Register() {
             type="date"
             error={errors.birth_date?.message}
             hint="Debés ser mayor de 18 años"
+            max={new Date(new Date().setFullYear(new Date().getFullYear() - 18)).toISOString().split("T")[0]}
+            min="1920-01-01"
             {...register("birth_date")}
           />
 
