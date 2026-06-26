@@ -84,6 +84,7 @@ async def report_user(user_id: str, body: ReportBody, request: Request):
 
 
 @router.post("/{user_id}/view")
+@limiter.limit("20/hour")
 async def record_view(user_id: str, request: Request):
     payload = _require_auth(request)
     profile_service.record_view(payload["sub"], user_id)

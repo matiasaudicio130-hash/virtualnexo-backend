@@ -599,10 +599,19 @@ async def post_reactions(post_id: str, request: Request):
 async def toggle_save(post_id: str, request: Request):
     """Guarda o quita un post de los guardados."""
     payload = _require_auth(request)
+    user_id = payload["sub"]
     from app.db.supabase import get_supabase
     db = get_supabase()
+    # Verificar si ya está guardado (para el toggle)
+    existing = db.table("post_saves").select("id").eq("user_id", user_id).eq("post_id", post_id).maybe_single().execute()
+    is_saved = bool(existing.data)
+    # Límite de 1000 posts guardados si va a agregar (no aplica al quitar)
+    if not is_saved:
+        count_r = db.table("post_saves").select("id", count="exact").eq("user_id", user_id).execute()
+        if (count_r.count or 0) >= 1000:
+            raise HTTPException(400, "Límite de guardados alcanzado (1000). Eliminá algunos para guardar más.")
     result = db.rpc("toggle_post_save", {
-        "p_user_id": payload["sub"],
+        "p_user_id": user_id,
         "p_post_id": post_id,
     }).execute()
     return {"saved": result.data}
