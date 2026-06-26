@@ -152,7 +152,9 @@ async def disable_2fa(body: DisableBody, request: Request):
     totp = pyotp.TOTP(u["totp_secret"])
     backup_codes: list = u.get("totp_backup_codes") or []
 
-    if not totp.verify(code, valid_window=1) and code.upper() not in backup_codes:
+    import hmac
+    backup_match = any(hmac.compare_digest(code.upper(), c) for c in backup_codes)
+    if not totp.verify(code, valid_window=1) and not backup_match:
         raise HTTPException(400, "Código TOTP o código de respaldo incorrecto")
 
     db.table("users").update({
@@ -195,7 +197,8 @@ async def verify_totp_login(request: Request, body: VerifyLoginBody):
     code = body.code.strip()
     totp = pyotp.TOTP(u["totp_secret"])
     backup_codes: list = u.get("totp_backup_codes") or []
-    used_backup = code.upper() in backup_codes
+    import hmac
+    used_backup = any(hmac.compare_digest(code.upper(), c) for c in backup_codes)
 
     if not totp.verify(code, valid_window=1) and not used_backup:
         raise HTTPException(400, "Código incorrecto")

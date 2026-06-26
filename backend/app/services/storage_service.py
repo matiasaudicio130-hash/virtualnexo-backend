@@ -163,8 +163,8 @@ class StorageService:
                 "has_stealth_wm": False,
                 "wm_payload": None,
             }).execute()
-        except Exception:
-            pass  # no romper upload si la tabla falla
+        except Exception as _e:
+            logging.getLogger(__name__).warning("media_uploads insert failed: %s", _e)
 
         return {
             "signed_url": public_url,

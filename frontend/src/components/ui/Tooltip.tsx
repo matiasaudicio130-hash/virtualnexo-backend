@@ -1,4 +1,4 @@
-import { useState, useRef, type ReactNode } from "react";
+import { useState, useRef, useEffect, type ReactNode } from "react";
 
 interface Props {
   label: string;
@@ -13,7 +13,13 @@ interface Props {
 export function Tooltip({ label, children, position = "bottom" }: Props) {
   const [visible, setVisible]   = useState(false);
   const timerRef                = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hideTimerRef            = useRef<ReturnType<typeof setTimeout> | null>(null);
   const shownByTouchRef         = useRef(false);
+
+  useEffect(() => () => {
+    if (timerRef.current)     clearTimeout(timerRef.current);
+    if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+  }, []);
 
   /* ── Desktop: hover ───────────────────────── */
   function onMouseEnter() { setVisible(true); }
@@ -26,7 +32,7 @@ export function Tooltip({ label, children, position = "bottom" }: Props) {
       shownByTouchRef.current = true;
       setVisible(true);
       // Ocultar automáticamente tras 1.8 s
-      setTimeout(() => setVisible(false), 1800);
+      hideTimerRef.current = setTimeout(() => setVisible(false), 1800);
     }, 600);
   }
 

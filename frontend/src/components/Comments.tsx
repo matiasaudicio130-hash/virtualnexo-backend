@@ -213,6 +213,7 @@ export function CommentsSection({
         setMentionResults((data.users || []).filter((u: any) => u.username));
       } catch { setMentionResults([]); }
     }, 250);
+    return () => { if (mentionDebounce.current) clearTimeout(mentionDebounce.current); };
   }, [mentionQuery]);
 
   function handleTextChange(val: string) {
