@@ -215,7 +215,11 @@ export default function ProfileView() {
     try {
       const { data } = await profilesApi.block(userId);
       setBlocked(data.blocked);
-      if (data.blocked) navigate(-1);
+      if (data.blocked) {
+        // Invalida el cache del perfil bloqueado para que no se sirva stale
+        qc.removeQueries({ queryKey: ["profile", userId] });
+        navigate(-1);
+      }
     } catch {
       toast.error("No se pudo bloquear. Intentá de nuevo.");
     }

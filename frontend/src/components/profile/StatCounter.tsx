@@ -2,6 +2,7 @@ import { useCountUp } from "@/hooks/useCountUp";
 
 /** Formato compacto de miles: 1234 → "1.2k", 12345 → "12k". */
 function fmtCount(n: number): string {
+  if (!isFinite(n) || isNaN(n) || n < 0) return "0";
   const v = Math.round(n);
   if (v >= 10000) return Math.round(v / 1000) + "k";
   if (v >= 1000)  return (v / 1000).toFixed(1).replace(/\.0$/, "") + "k";

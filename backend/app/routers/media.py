@@ -110,7 +110,7 @@ async def get_signed_url(
         raise HTTPException(400, "Bucket inválido")
     # Verificar que el path pertenece al usuario autenticado (previene path traversal)
     user_id = payload["sub"]
-    if not path.startswith(f"{user_id}/"):
+    if ".." in path or not path.startswith(f"{user_id}/"):
         raise HTTPException(403, "Acceso denegado a este archivo")
     url = storage_service.get_signed_url(path, bucket=bucket, expires=expires)
     return {"signed_url": url, "expires_in": expires}
