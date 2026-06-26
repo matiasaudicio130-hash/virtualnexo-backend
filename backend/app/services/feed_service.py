@@ -456,7 +456,18 @@ class FeedService:
             db.table("post_saves").delete().eq("post_id", post_id).execute()
             db.table("comments").update({"is_deleted": True}).eq("post_id", post_id).execute()
         except Exception:
-            pass  # Los huérfanos no bloquean la operación principal
+            pass
+
+        # Si era el post fijado del perfil, limpiar pinned_post_id
+        try:
+            user_r = db.table("users").select("profile_extended").eq("id", user_id).maybe_single().execute()
+            if user_r.data:
+                ext = user_r.data.get("profile_extended") or {}
+                if ext.get("pinned_post_id") == post_id:
+                    ext["pinned_post_id"] = None
+                    db.table("users").update({"profile_extended": ext}).eq("id", user_id).execute()
+        except Exception:
+            pass
 
 
 feed_service = FeedService()
