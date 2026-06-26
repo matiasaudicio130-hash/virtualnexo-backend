@@ -13,7 +13,9 @@ interface Props {
   onClose: () => void;
 }
 
-const TENOR_KEY = "LIVDSRZULELA";
+// LIVDSRZULELA es la clave demo pública de Tenor — reemplazar con una key propia en producción
+// Registrar en https://developers.google.com/tenor
+const TENOR_KEY = import.meta.env.VITE_TENOR_API_KEY ?? "LIVDSRZULELA";
 
 export function GifPicker({ onSelect, onClose }: Props) {
   const [query, setQuery]     = useState("");

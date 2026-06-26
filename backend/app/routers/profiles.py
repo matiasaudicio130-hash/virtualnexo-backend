@@ -3,6 +3,7 @@ from typing import Literal, Optional
 from pydantic import BaseModel
 
 from app.core.security import require_auth as _require_auth
+from app.core.limiter import limiter
 from app.services.profile_service import profile_service
 
 router = APIRouter(prefix="/profiles", tags=["profiles"])
@@ -58,6 +59,7 @@ async def get_profile(user_id: str, request: Request):
 
 
 @router.post("/{user_id}/like")
+@limiter.limit("100/hour")
 async def toggle_like(user_id: str, request: Request):
     payload = _require_auth(request)
     if payload["sub"] == user_id:

@@ -53,6 +53,14 @@ export function VideoTrimmer({ file, maxSeconds, onDone, onCancel }: Props) {
   // Cleanup blob URL
   useEffect(() => () => URL.revokeObjectURL(url), [url]);
 
+  // Timeout: si el video no carga metadata en 10s, mostrar error
+  useEffect(() => {
+    const t = setTimeout(() => {
+      if (duration === 0) setError("No se pudo cargar el video. El formato puede no ser compatible.");
+    }, 10000);
+    return () => clearTimeout(t);
+  }, [duration]);
+
   function onLoaded() {
     const v = videoRef.current;
     if (!v) return;
@@ -189,6 +197,7 @@ export function VideoTrimmer({ file, maxSeconds, onDone, onCancel }: Props) {
             src={url}
             playsInline
             onLoadedMetadata={onLoaded}
+            onError={() => setError("No se pudo cargar el video. El formato puede no ser compatible.")}
             onTimeUpdate={onTimeUpdate}
             onPlay={() => setPlaying(true)}
             onPause={() => setPlaying(false)}
