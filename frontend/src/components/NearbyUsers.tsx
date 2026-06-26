@@ -50,7 +50,13 @@ export function NearbyUsers({ lat, lng }: Props) {
     </div>
   );
 
-  if (users.length === 0) return null;
+  if (users.length === 0) return (
+    <div className="mx-4 mt-3 mb-1 p-4 rounded-xl border border-border/60 text-center">
+      <MapPin size={18} className="mx-auto mb-2" style={{ color: "var(--gold,#C9A227)" }} />
+      <p className="text-sm text-text-muted">No hay personas cerca en este momento.</p>
+      <p className="text-xs text-text-muted/70 mt-0.5">Probá expandir el radio o volvé más tarde.</p>
+    </div>
+  );
 
   return (
     <div className="border-b border-border/40">

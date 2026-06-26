@@ -63,7 +63,12 @@ export function AudioRecorder({ onSend, onCancel }: Props) {
 
       mr.start(100);
       timerRef.current = setInterval(() => setDuration(d => d + 1), 1000);
-    } catch {
+    } catch (err: any) {
+      const isDenied = err?.name === "NotAllowedError" || err?.name === "PermissionDeniedError";
+      if (isDenied) {
+        const { toast } = await import("@/store/toastStore");
+        toast.error("Permiso de micrófono denegado. Habilitalo en la configuración del navegador.");
+      }
       onCancel();
     }
   }

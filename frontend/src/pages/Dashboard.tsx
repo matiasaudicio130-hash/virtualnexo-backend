@@ -265,11 +265,16 @@ export default function Dashboard() {
                     <button
                       key={id}
                       onClick={async () => {
+                        const prev = msgSetting;
                         setMsgSetting(id);
                         try {
                           const { extendedProfileApi } = await import("@/lib/api");
                           await extendedProfileApi.update({ message_settings: id });
-                        } catch { /* ignore */ }
+                        } catch {
+                          setMsgSetting(prev);
+                          const { toast } = await import("@/store/toastStore");
+                          toast.error("No se pudo guardar la configuración.");
+                        }
                       }}
                       className={`flex-1 py-1.5 rounded-lg text-xs font-medium border transition-all ${
                         msgSetting === id
