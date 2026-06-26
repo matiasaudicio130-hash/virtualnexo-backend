@@ -179,8 +179,8 @@ class MessagingService:
         db = get_supabase()
         q = db.table("conversations").select(
             "*, "
-            "user_a:users!conversations_participant_a_fkey(id,first_name,last_name,profile_photo_url,profile_type),"
-            "user_b:users!conversations_participant_b_fkey(id,first_name,last_name,profile_photo_url,profile_type)"
+            "user_a:users!conversations_participant_a_fkey(id,first_name,last_name,profile_photo_url,profile_type,status),"
+            "user_b:users!conversations_participant_b_fkey(id,first_name,last_name,profile_photo_url,profile_type,status)"
         ).or_(
             f"participant_a.eq.{user_id},participant_b.eq.{user_id}"
         ).order("last_message_at", desc=True)
@@ -210,6 +210,10 @@ class MessagingService:
             is_a  = c["participant_a"] == user_id
             other = c.get("user_b") if is_a else c.get("user_a")
             blocked_me = c.get("blocked_by_b") if is_a else c.get("blocked_by_a")
+
+            # Ocultar datos de usuarios suspendidos/eliminados
+            if other and other.get("status") not in ("active", None):
+                other = {"id": other.get("id"), "first_name": "Usuario", "last_name": "suspendido", "profile_photo_url": None}
 
             result.append({
                 "id":                   c["id"],

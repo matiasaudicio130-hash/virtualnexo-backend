@@ -45,10 +45,12 @@ async def payout_summary(request: Request):
 async def payout_history(
     request: Request,
     influencer_id: Optional[str] = Query(None),
+    limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0),
 ):
-    """Historial de liquidaciones realizadas."""
+    """Historial de liquidaciones realizadas (paginado)."""
     _require_admin(request)
-    return payouts_service.list_payouts(influencer_id=influencer_id)
+    return payouts_service.list_payouts(influencer_id=influencer_id, limit=limit, offset=offset)
 
 
 @router.post("/register", status_code=201)

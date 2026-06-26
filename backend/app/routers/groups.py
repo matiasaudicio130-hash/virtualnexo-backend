@@ -60,8 +60,8 @@ async def create_group(body: CreateGroupBody, request: Request):
     db = get_supabase()
 
     name = body.name.strip()
-    if not name or len(name) > MAX_NAME_LEN:
-        raise HTTPException(400, f"El nombre debe tener entre 1 y {MAX_NAME_LEN} caracteres")
+    if len(name) < 3 or len(name) > MAX_NAME_LEN:
+        raise HTTPException(400, f"El nombre debe tener entre 3 y {MAX_NAME_LEN} caracteres")
 
     # Validar que los miembros existen y están activos
     invited = list({uid for uid in body.member_ids if uid != me})[:MAX_MEMBERS - 1]

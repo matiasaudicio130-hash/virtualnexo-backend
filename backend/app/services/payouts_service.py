@@ -146,12 +146,12 @@ class PayoutsService:
         }).execute()
         return result.data[0]
 
-    def list_payouts(self, influencer_id: Optional[str] = None) -> list:
+    def list_payouts(self, influencer_id: Optional[str] = None, limit: int = 50, offset: int = 0) -> list:
         db = get_supabase()
         q = db.table("payouts").select("*")
         if influencer_id:
             q = q.eq("influencer_id", influencer_id)
-        return q.order("created_at", desc=True).execute().data
+        return q.order("created_at", desc=True).range(offset, offset + limit - 1).execute().data
 
     def update_pct_for_key(self, key_code: str, pct: float) -> None:
         db = get_supabase()
