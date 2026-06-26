@@ -745,6 +745,13 @@ async def repost_post(post_id: str, body: RepostBody, request: Request):
     if orig["user_id"] == actor_id:
         raise HTTPException(400, "No podés repostear tus propios posts")
 
+    # No repostear posts privados ni de usuarios que te bloquearon
+    orig_visibility = (orig.get("extra_data") or {}).get("visibility", "public")
+    if orig_visibility == "only_me":
+        raise HTTPException(403, "No se puede repostear un post privado")
+    if block_between(db, actor_id, orig["user_id"]):
+        raise HTTPException(403, "No podés interactuar con este post")
+
     # Verificar que no lo haya reposteado ya
     existing_r = db.table("posts").select("id, extra_data").eq("user_id", actor_id).eq("status", "active").eq("type", "text").execute()
     for p in existing_r.data or []:
@@ -938,6 +945,11 @@ async def vote_poll(post_id: str, body: PollVoteBody, request: Request):
         raise HTTPException(400, "Este post no es un poll")
     if body.option_index < 0 or body.option_index >= len(poll["options"]):
         raise HTTPException(400, "Índice de opción inválido")
+
+    # No votar en polls privados (only_me)
+    poll_visibility = extra.get("visibility", "public")
+    if poll_visibility == "only_me" and post.get("user_id") != user_id:
+        raise HTTPException(403, "No podés votar en este poll")
 
     # Verificar que no expiró
     if post.get("expires_at"):

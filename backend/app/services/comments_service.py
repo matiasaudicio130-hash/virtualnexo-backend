@@ -42,11 +42,15 @@ class CommentsService:
     def add_comment(self, post_id: str, user_id: str, content: str, parent_id: str | None = None) -> dict:
         db = get_supabase()
 
-        # Verificar que el post existe y obtener el dueño
-        post_r = db.table("posts").select("user_id").eq("id", post_id).eq("status", "active").execute()
+        # Verificar que el post existe, está activo y es visible para el comentador
+        post_r = db.table("posts").select("user_id,extra_data").eq("id", post_id).eq("status", "active").execute()
         if not post_r.data:
             raise ValueError("Post no encontrado")
-        post_owner_id = post_r.data[0]["user_id"]
+        post_row = post_r.data[0]
+        post_owner_id = post_row["user_id"]
+        visibility = (post_row.get("extra_data") or {}).get("visibility", "public")
+        if visibility == "only_me" and user_id != post_owner_id:
+            raise ValueError("No se puede comentar un post privado")
 
         # Verificar que el post tiene comentarios habilitados
         # (si el owner deshabilitó comentarios)

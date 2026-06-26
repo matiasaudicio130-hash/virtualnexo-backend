@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Request, Query, UploadFile, File
 from pydantic import BaseModel
 from typing import Literal, Optional
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 import uuid
 
 from app.core.security import require_auth as _require_auth
@@ -360,7 +360,7 @@ async def edit_message(message_id: str, body: EditMessageBody, request: Request)
     from app.db.supabase import get_supabase
     db = get_supabase()
 
-    msg = db.table("messages").select("sender_id,type,view_once,deleted_at").eq(
+    msg = db.table("messages").select("sender_id,type,view_once,deleted_at,created_at").eq(
         "id", message_id
     ).execute()
     if not msg.data:
@@ -374,6 +374,15 @@ async def edit_message(message_id: str, body: EditMessageBody, request: Request)
         raise HTTPException(400, "No se pueden editar mensajes de vista única")
     if m.get("deleted_at"):
         raise HTTPException(400, "El mensaje fue eliminado")
+    # Límite de 15 minutos para editar
+    try:
+        created_dt = datetime.fromisoformat(m["created_at"].replace("Z", "+00:00"))
+        if datetime.now(timezone.utc) - created_dt > timedelta(minutes=15):
+            raise HTTPException(400, "El plazo para editar expiró (máximo 15 minutos)")
+    except HTTPException:
+        raise
+    except Exception:
+        pass
 
     db.table("messages").update({
         "content":   body.content.strip(),

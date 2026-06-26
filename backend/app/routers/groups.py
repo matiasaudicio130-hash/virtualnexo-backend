@@ -69,6 +69,11 @@ async def create_group(body: CreateGroupBody, request: Request):
     if len(name) < 3 or len(name) > MAX_NAME_LEN:
         raise HTTPException(400, f"El nombre debe tener entre 3 y {MAX_NAME_LEN} caracteres")
 
+    # Límite de grupos por usuario
+    user_groups_r = db.table("group_chats").select("id", count="exact").eq("created_by", me).execute()
+    if (user_groups_r.count or 0) >= 50:
+        raise HTTPException(400, "Límite de grupos alcanzado (máximo 50 creados por usuario)")
+
     # Validar que los miembros existen y están activos
     invited = list({uid for uid in body.member_ids if uid != me})[:MAX_MEMBERS - 1]
     if invited:
