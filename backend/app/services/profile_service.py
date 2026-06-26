@@ -305,13 +305,15 @@ class ProfileService:
         return {"liked": True, "matched": False}
 
     # ── Matches ──────────────────────────────────────────────────
-    def get_matches(self, user_id: str) -> list:
+    def get_matches(self, user_id: str, limit: int = 50, offset: int = 0) -> list:
         db = get_supabase()
         r = db.table("matches").select(
             "id,created_at,"
             "user_a:users!matches_user_a_id_fkey(id,first_name,last_name,profile_photo_url,profile_type,province),"
             "user_b:users!matches_user_b_id_fkey(id,first_name,last_name,profile_photo_url,profile_type,province)"
-        ).or_(f"user_a_id.eq.{user_id},user_b_id.eq.{user_id}").order("created_at", desc=True).execute()
+        ).or_(f"user_a_id.eq.{user_id},user_b_id.eq.{user_id}").order(
+            "created_at", desc=True
+        ).range(offset, offset + limit - 1).execute()
 
         result = []
         for row in r.data:

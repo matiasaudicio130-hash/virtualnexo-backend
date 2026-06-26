@@ -11,6 +11,14 @@ class LocationBody(BaseModel):
     lat: float
     lng: float
 
+    model_config = {"validate_assignment": True}
+
+    def model_post_init(self, __context) -> None:
+        if not (-90 <= self.lat <= 90):
+            raise ValueError("Latitud inválida (debe ser entre -90 y 90)")
+        if not (-180 <= self.lng <= 180):
+            raise ValueError("Longitud inválida (debe ser entre -180 y 180)")
+
 
 @router.post("/location")
 async def update_location(body: LocationBody, request: Request):
@@ -28,10 +36,10 @@ async def update_location(body: LocationBody, request: Request):
 @router.get("/nearby")
 async def nearby_users(
     request: Request,
-    lat:       float = Query(...),
-    lng:       float = Query(...),
+    lat:       float = Query(..., ge=-90,  le=90),
+    lng:       float = Query(..., ge=-180, le=180),
     radius_km: int   = Query(50, ge=1, le=200),
-    limit:     int   = Query(20, le=50),
+    limit:     int   = Query(20, ge=1, le=50),
 ):
     """Usuarios verificados y activos cerca de las coordenadas dadas."""
     payload = _require_auth(request)

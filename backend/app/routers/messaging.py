@@ -29,6 +29,8 @@ class SendMessageBody(BaseModel):
             raise ValueError("El mensaje no puede superar los 2000 caracteres")
         if self.type not in ("text", "image", "video", "audio", "gif", "share"):
             raise ValueError(f"Tipo de mensaje inválido: {self.type}")
+        if self.audio_duration is not None and (self.audio_duration < 0 or self.audio_duration > 3600):
+            raise ValueError("Duración de audio inválida (máximo 3600 segundos)")
 
 
 class ReactionBody(BaseModel):
@@ -287,14 +289,24 @@ async def send_message(conv_id: str, body: SendMessageBody, request: Request):
     payload = _require_auth(request)
     user_id = payload["sub"]
 
+    from app.db.supabase import get_supabase as _gs
+    _db = _gs()
+
     recipient_id = body.recipient_id
     if not recipient_id:
-        from app.db.supabase import get_supabase as _gs
-        c_r = _gs().table("conversations").select("participant_a,participant_b").eq("id", conv_id).execute()
+        c_r = _db.table("conversations").select("participant_a,participant_b").eq("id", conv_id).execute()
         if not c_r.data:
             raise HTTPException(404, "Conversación no encontrada")
         c = c_r.data[0]
         recipient_id = c["participant_b"] if c["participant_a"] == user_id else c["participant_a"]
+
+    # Validar que reply_to_id pertenece a esta conversación
+    if body.reply_to_id:
+        ref_r = _db.table("messages").select("conversation_id").eq(
+            "id", body.reply_to_id
+        ).limit(1).execute()
+        if not ref_r.data or ref_r.data[0]["conversation_id"] != conv_id:
+            raise HTTPException(400, "El mensaje citado no pertenece a esta conversación")
 
     try:
         return messaging_service.send_message(

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Request
 from pydantic import BaseModel
 from typing import Optional
 
@@ -38,12 +38,18 @@ async def subscribe(body: SubscribeBody, request: Request):
     return {"subscribed": True}
 
 
+class UnsubscribeBody(BaseModel):
+    endpoint: Optional[str] = None
+
+
 @router.delete("/unsubscribe")
-async def unsubscribe(request: Request):
-    """Elimina todas las suscripciones push del usuario en este dispositivo."""
+async def unsubscribe(body: UnsubscribeBody, request: Request):
+    """Elimina la suscripción push del dispositivo actual (o todas si no se envía endpoint)."""
     payload = _require_auth(request)
     from app.db.supabase import get_supabase
-    get_supabase().table("push_subscriptions").delete().eq(
-        "user_id", payload["sub"]
-    ).execute()
+    db = get_supabase()
+    q = db.table("push_subscriptions").delete().eq("user_id", payload["sub"])
+    if body.endpoint:
+        q = q.eq("endpoint", body.endpoint)
+    q.execute()
     return {"unsubscribed": True}

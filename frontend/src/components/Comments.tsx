@@ -5,6 +5,7 @@ import { commentsApi, searchApi } from "@/lib/api";
 import { useAuthStore } from "@/store/authStore";
 import { imgUrl } from "@/utils/image";
 import { ProtectedAvatar } from "@/components/ProtectedImage";
+import { toast } from "@/store/toastStore";
 
 const MENTION_TOKEN_RE = /(@[A-Za-z0-9_]{2,30})/g;
 
@@ -258,8 +259,12 @@ export function CommentsSection({
   }, [open]);
 
   async function handleDelete(commentId: string) {
-    await commentsApi.delete(commentId);
-    load();
+    try {
+      await commentsApi.delete(commentId);
+      load();
+    } catch {
+      toast.error("No se pudo eliminar el comentario");
+    }
   }
 
   function handleReply(comment: Comment) {
@@ -277,7 +282,9 @@ export function CommentsSection({
       setText("");
       setReplyTo(null);
       load();
-    } catch { /* ignore */ }
+    } catch {
+      toast.error("No se pudo publicar el comentario");
+    }
     setSubmitting(false);
   }
 

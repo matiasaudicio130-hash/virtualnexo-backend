@@ -155,7 +155,7 @@ async def assign_membership(user_id: str, request: Request):
     Asignar membresía manual (pago en efectivo u otro método offline).
     Body: { "type": "monthly" | "lifetime", "days": 30 }
     """
-    _require_admin(request)
+    admin = _require_admin(request)
     body = await request.json()
     membership_type = body.get("type", "monthly")
     days = body.get("days", 30)
@@ -173,6 +173,19 @@ async def assign_membership(user_id: str, request: Request):
         "membership_expires_at": expires_at,
         "status": "active",
     }).eq("id", user_id).execute()
+
+    try:
+        from app.services.audit_service import audit_service
+        audit_service.log(
+            action="membership.assign_manual",
+            actor_id=admin["sub"],
+            actor_role="admin",
+            resource_type="user",
+            resource_id=user_id,
+            metadata={"membership_type": membership_type, "days": days, "expires_at": expires_at},
+        )
+    except Exception:
+        pass
 
     return {"membership_assigned": membership_type, "expires_at": expires_at}
 

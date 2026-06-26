@@ -22,9 +22,13 @@ class ReportBody(BaseModel):
 
 
 @router.get("/matches")
-async def my_matches(request: Request):
+async def my_matches(
+    request: Request,
+    limit:  int = Query(50, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+):
     payload = _require_auth(request)
-    return profile_service.get_matches(payload["sub"])
+    return profile_service.get_matches(payload["sub"], limit=limit, offset=offset)
 
 
 @router.get("/viewers")

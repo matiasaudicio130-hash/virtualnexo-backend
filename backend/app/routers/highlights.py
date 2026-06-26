@@ -19,9 +19,21 @@ class ReactStoryBody(BaseModel):
 
 @router.get("/user/{user_id}")
 async def get_user_highlights(user_id: str, request: Request):
-    _require_auth(request)
+    payload = _require_auth(request)
+    viewer_id = payload["sub"]
     from app.db.supabase import get_supabase
     db = get_supabase()
+
+    # Si el perfil es privado, solo seguidores pueden ver highlights
+    if viewer_id != user_id:
+        owner_r = db.table("users").select("is_private").eq("id", user_id).execute()
+        if owner_r.data and owner_r.data[0].get("is_private"):
+            follow_r = db.table("user_follows").select("id").eq(
+                "follower_id", viewer_id
+            ).eq("following_id", user_id).execute()
+            if not follow_r.data:
+                raise HTTPException(403, "Este perfil es privado")
+
     hl = db.table("story_highlights").select(
         "*, items:story_highlight_items(story_id, sort_order, posts!story_highlight_items_story_id_fkey(id,media_url,storage_path,created_at))"
     ).eq("user_id", user_id).order("created_at").execute()

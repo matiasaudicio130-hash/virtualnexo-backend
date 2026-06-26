@@ -44,38 +44,40 @@ async def revoke_session(session_id: str, request: Request):
     payload = _require_auth(request)
     db = get_supabase()
 
-    result = db.table("sessions").select("id,user_id").eq("id", session_id).execute()
+    # Combina check de ownership y delete en una sola query — evita race condition
+    result = db.table("sessions").delete().eq("id", session_id).eq(
+        "user_id", payload["sub"]
+    ).execute()
     if not result.data:
-        raise HTTPException(404, "Sesión no encontrada")
-    if result.data[0]["user_id"] != payload["sub"]:
-        raise HTTPException(403, "No tenés permiso para revocar esta sesión")
-
-    db.table("sessions").delete().eq("id", session_id).execute()
+        raise HTTPException(404, "Sesión no encontrada o sin permiso")
     return {"revoked": True}
 
 
 @router.delete("/")
 async def revoke_all_other_sessions(request: Request):
-    """Revoca todas las sesiones excepto la actual."""
+    """Revoca todas las sesiones excepto la más reciente (la actual)."""
     payload = _require_auth(request)
     db = get_supabase()
 
-    # Identificar sesión actual por el refresh token del header (si se envía)
-    # Como no lo tenemos, borramos las más antiguas que no fueron usadas recientemente
-    # Estrategia: mantener la sesión usada en los últimos 2 minutos, borrar el resto
-    from datetime import timedelta
-    cutoff = (datetime.now(timezone.utc) - timedelta(minutes=2)).isoformat()
+    # La sesión actual es la que tiene last_used_at más reciente
+    # (acaba de hacer esta request, así que es la mayor)
+    result = db.table("sessions").select("id,last_used_at").eq(
+        "user_id", payload["sub"]
+    ).order("last_used_at", desc=True).execute()
 
-    result = db.table("sessions").select("id,last_used_at").eq("user_id", payload["sub"]).execute()
-    to_delete = [
-        s["id"] for s in result.data
-        if not s.get("last_used_at") or s["last_used_at"] < cutoff
-    ]
+    if not result.data:
+        return {"revoked": 0, "kept": 0}
 
-    for sid in to_delete:
-        db.table("sessions").delete().eq("id", sid).execute()
+    # Mantener solo la primera (más reciente); borrar el resto
+    keep_id = result.data[0]["id"]
+    to_delete = [s["id"] for s in result.data[1:]]
 
-    return {"revoked": len(to_delete), "kept": len(result.data) - len(to_delete)}
+    if to_delete:
+        db.table("sessions").delete().eq("user_id", payload["sub"]).neq(
+            "id", keep_id
+        ).execute()
+
+    return {"revoked": len(to_delete), "kept": 1}
 
 
 def _label_ua(ua: str) -> str:

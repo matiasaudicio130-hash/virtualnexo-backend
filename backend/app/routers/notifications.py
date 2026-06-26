@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException, Request, Query
 from datetime import datetime, timezone
 
 from app.core.security import require_auth as _require_auth
+from app.core.limiter import limiter
 from app.db.supabase import get_supabase
 
 router = APIRouter(prefix="/notifications", tags=["notifications"])
@@ -33,6 +34,7 @@ async def unread_count(request: Request):
 
 
 @router.post("/{notif_id}/read")
+@limiter.limit("120/minute")
 async def mark_read(notif_id: str, request: Request):
     payload = _require_auth(request)
     db = get_supabase()

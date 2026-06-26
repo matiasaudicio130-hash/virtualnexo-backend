@@ -45,7 +45,9 @@ function ChatWindow({
   const other                             = conv.other_user;
 
   const load = useCallback(() => {
-    messagingApi.getMessages(conv.id).then(r => setMessages(r.data)).catch(() => {});
+    messagingApi.getMessages(conv.id)
+      .then(r => setMessages(Array.isArray(r.data) ? r.data : []))
+      .catch(() => toast.error("No se pudieron cargar los mensajes"));
   }, [conv.id]);
 
   useEffect(() => { load(); }, [load]);
@@ -710,7 +712,7 @@ export default function Messages() {
                             const { data } = await messagingApi.acceptRequest(req.from_id);
                             setRequests(prev => prev.filter(r => r.from_id !== req.from_id));
                             openConv({ ...data, other_user: { id: req.from_id, first_name: req.from_name?.split(" ")[0] || "", profile_photo_url: req.from_avatar }, unread_count: 0 });
-                          } catch { /* ignore */ }
+                          } catch { toast.error("No se pudo aceptar la solicitud"); }
                           setRequestAction(null);
                         }}
                         className="flex-1 py-2 rounded-xl text-xs font-semibold transition-all disabled:opacity-50"
@@ -725,7 +727,7 @@ export default function Messages() {
                           try {
                             await messagingApi.rejectRequest(req.from_id);
                             setRequests(prev => prev.filter(r => r.from_id !== req.from_id));
-                          } catch { /* ignore */ }
+                          } catch { toast.error("No se pudo rechazar la solicitud"); }
                           setRequestAction(null);
                         }}
                         className="px-4 py-2 rounded-xl border border-border text-xs text-text-muted hover:border-status-error/40 hover:text-status-error transition-colors disabled:opacity-50"
