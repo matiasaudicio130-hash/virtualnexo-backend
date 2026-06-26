@@ -335,7 +335,25 @@ async def me(request: Request):
     ).eq("id", payload["sub"]).execute()
     if not result.data:
         raise HTTPException(404, "Usuario no encontrado")
-    return result.data[0]
+    user = result.data[0]
+
+    # Expiración lazy: si la membresía venció, revocarla en este mismo request
+    from datetime import datetime, timezone
+    exp = user.get("membership_expires_at")
+    if exp and user.get("membership_type") and user["membership_type"] != "lifetime":
+        try:
+            exp_dt = datetime.fromisoformat(exp.replace("Z", "+00:00"))
+            if exp_dt < datetime.now(timezone.utc):
+                db.table("users").update({
+                    "membership_type": None,
+                    "membership_expires_at": None,
+                }).eq("id", payload["sub"]).execute()
+                user["membership_type"] = None
+                user["membership_expires_at"] = None
+        except Exception:
+            pass
+
+    return user
 
 
 @router.patch("/me/extended")

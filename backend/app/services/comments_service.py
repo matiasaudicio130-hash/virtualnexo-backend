@@ -114,7 +114,11 @@ class CommentsService:
         return {"deleted": True}
 
     def report_comment(self, comment_id: str, reporter_id: str, reason: str) -> dict:
+        from fastapi import HTTPException
         db = get_supabase()
+        c_r = db.table("post_comments").select("user_id").eq("id", comment_id).maybe_single().execute()
+        if c_r.data and c_r.data["user_id"] == reporter_id:
+            raise HTTPException(400, "No podés reportar tu propio comentario")
         db.table("comment_reports").upsert({
             "comment_id":  comment_id,
             "reporter_id": reporter_id,

@@ -257,6 +257,12 @@ class FeedService:
             if p.get("users") and p["users"].get("is_shadow_banned") and p["users"]["id"] != viewer_id
         }
 
+        # Usuarios que el viewer bloqueó o lo bloquearon a él
+        try:
+            blocked_ids = blocked_user_ids(db, viewer_id)
+        except Exception:
+            blocked_ids = set()
+
         # Batch: viewer's follows + viewer's partner_id
         follows_r = db.table("user_follows").select("following_id").eq("follower_id", viewer_id).execute()
         viewer_follows = {f["following_id"] for f in follows_r.data}
@@ -276,6 +282,8 @@ class FeedService:
             user = p.get("users") or {}
             uid = user.get("id")
             if uid in banned_ids:
+                continue
+            if uid != viewer_id and uid in blocked_ids:
                 continue
 
             # Audience gate (skip own stories)

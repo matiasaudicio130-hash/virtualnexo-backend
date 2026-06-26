@@ -291,6 +291,7 @@ export function EditProfileDrawer({ onClose, onSaved }: Props) {
               placeholder="ej: instagram.com/tu_usuario"
               inputMode="url"
               autoCapitalize="none"
+              maxLength={500}
               style={inputStyle}
             />
           </div>
@@ -312,6 +313,7 @@ export function EditProfileDrawer({ onClose, onSaved }: Props) {
                     value={link.label}
                     onChange={e => updateLink(i, "label", e.target.value)}
                     placeholder="Etiqueta"
+                    maxLength={80}
                     style={{ ...inputStyle, width: "38%", padding: "10px 12px", fontSize: 13 }}
                   />
                   <input
@@ -320,6 +322,7 @@ export function EditProfileDrawer({ onClose, onSaved }: Props) {
                     placeholder="URL"
                     inputMode="url"
                     autoCapitalize="none"
+                    maxLength={500}
                     style={{ ...inputStyle, flex: 1, padding: "10px 12px", fontSize: 13 }}
                   />
                   <button onClick={() => removeLink(i)} style={{ flexShrink: 0, padding: "0 8px", background: "none", border: "none", color: "var(--mist)", cursor: "pointer" }}>
