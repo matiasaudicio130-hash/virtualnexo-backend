@@ -5,7 +5,7 @@
  * Tipografía: Cormorant para el saludo, Manrope para el cuerpo.
  */
 import React, { useState, useCallback } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -34,6 +34,10 @@ const REDIRECT: Record<UserStatus, string> = {
 
 export default function Login() {
   const navigate = useNavigate();
+  const location = useLocation();
+  // Ruta original a la que intentaba acceder antes de ser redirigido a /login
+  const fromPath = (location.state as any)?.from?.pathname;
+  const returnTo = fromPath && fromPath.startsWith("/") && !fromPath.startsWith("/login") ? fromPath : null;
   const { login, verifyTotpLogin } = useAuth();
   const [error, setError]         = useState("");
   const [totpState, setTotpState] = useState<{ session: string } | null>(null);
@@ -52,7 +56,7 @@ export default function Login() {
     try {
       const result = await login(data.email, data.password);
       if (result.requires2fa) { setTotpState({ session: result.totpSession }); return; }
-      navigate(REDIRECT[result.status] ?? "/feed");
+      navigate(result.status === "active" && returnTo ? returnTo : (REDIRECT[result.status] ?? "/feed"));
     } catch (e: any) {
       const status = e.response?.status;
       const msg = e.response?.data?.detail;
@@ -71,7 +75,7 @@ export default function Login() {
     setTotpLoading(true); setError("");
     try {
       const status = await verifyTotpLogin(totpState.session, code);
-      navigate(REDIRECT[status] ?? "/feed");
+      navigate(status === "active" && returnTo ? returnTo : (REDIRECT[status] ?? "/feed"));
     } catch (e: any) {
       const msg = e.response?.data?.detail;
       setError(typeof msg === "string" ? msg : "Código incorrecto");

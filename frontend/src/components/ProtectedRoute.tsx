@@ -16,7 +16,7 @@ export function ProtectedRoute({
   const { isAuthenticated, user } = useAuthStore();
   const location = useLocation();
 
-  if (!isAuthenticated || !user) return <Navigate to={redirectTo} replace />;
+  if (!isAuthenticated || !user) return <Navigate to={redirectTo} state={{ from: location }} replace />;
 
   if (!allowedStatuses.includes(user.status)) {
     const statusRedirects: Partial<Record<UserStatus, string>> = {

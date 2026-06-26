@@ -1,5 +1,6 @@
 import axios from "axios";
 import { API_BASE_URL } from "@/config/app";
+import { toast } from "@/store/toastStore";
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -24,29 +25,65 @@ function attachToken(config: any) {
 api.interceptors.request.use(attachToken);
 uploadApi.interceptors.request.use(attachToken);
 
-// Refresca el token si expira (401)
+// Lock para que múltiples 401 simultáneos no disparen varios refreshes en paralelo
+let refreshPromise: Promise<void> | null = null;
+
+// Interceptor de respuesta: 401 (refresh), 429 (rate limit), 503 (server down), red caída
 api.interceptors.response.use(
   (res) => res,
   async (error) => {
     const original = error.config;
-    if (error.response?.status === 401 && !original._retry) {
+    const status = error.response?.status;
+
+    // 401 — access token expirado, refrescar una sola vez
+    if (status === 401 && !original._retry) {
       original._retry = true;
       const refresh = localStorage.getItem("refresh_token");
       if (refresh) {
-        try {
-          const { data } = await axios.post(`${API_BASE_URL}/auth/refresh`, {
-            refresh_token: refresh,
-          });
-          localStorage.setItem("access_token", data.access_token);
-          localStorage.setItem("refresh_token", data.refresh_token);
-          original.headers.Authorization = `Bearer ${data.access_token}`;
-          return api(original);
-        } catch {
-          localStorage.clear();
-          window.location.href = "/login";
+        // Solo un refresh a la vez — los 401 siguientes esperan el mismo promise
+        if (!refreshPromise) {
+          refreshPromise = axios
+            .post(`${API_BASE_URL}/auth/refresh`, { refresh_token: refresh })
+            .then(({ data }) => {
+              localStorage.setItem("access_token", data.access_token);
+              localStorage.setItem("refresh_token", data.refresh_token);
+            })
+            .catch(() => {
+              localStorage.removeItem("access_token");
+              localStorage.removeItem("refresh_token");
+              window.location.href = "/login";
+            })
+            .finally(() => { refreshPromise = null; });
         }
+        try {
+          await refreshPromise;
+          const newToken = localStorage.getItem("access_token");
+          if (newToken) {
+            original.headers.Authorization = `Bearer ${newToken}`;
+            return api(original);
+          }
+        } catch { /* ya está redirigiendo a /login */ }
       }
     }
+
+    // 429 — rate limit
+    if (status === 429) {
+      toast.error("Demasiadas solicitudes. Esperá un momento e intentá de nuevo.");
+    }
+
+    // 503 — servidor no disponible
+    if (status === 503) {
+      toast.error("El servidor no está disponible en este momento. Intentá en unos minutos.");
+    }
+
+    // Sin conexión a internet
+    if (!error.response && error.code === "ERR_NETWORK") {
+      toast.error("Sin conexión a internet. Revisá tu red e intentá de nuevo.");
+    }
+    if (error.code === "ECONNABORTED") {
+      toast.error("La solicitud tardó demasiado. Verificá tu conexión.");
+    }
+
     return Promise.reject(error);
   }
 );
