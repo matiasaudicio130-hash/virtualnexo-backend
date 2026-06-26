@@ -69,5 +69,19 @@ def create_notification(
             "body":    body,
             "data":    payload,
         }).execute()
+
+        # Limpieza preventiva: borrar notificaciones leídas de más de 90 días
+        # Se ejecuta con ~2% de probabilidad para no hacerlo en cada notificación
+        import random
+        if random.random() < 0.02:
+            try:
+                from datetime import timedelta
+                cutoff = (datetime.now(timezone.utc) - timedelta(days=90)).isoformat()
+                db.table("notifications").delete().eq(
+                    "user_id", user_id
+                ).lt("created_at", cutoff).not_.is_("read_at", "null").execute()
+            except Exception:
+                pass
+
     except Exception as e:
         logger.debug(f"Notificación no creada ({notif_type}): {e}")

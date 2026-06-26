@@ -439,6 +439,13 @@ async def react_to_post(post_id: str, body: ReactionBody, request: Request):
     """Toggle reacción (fire|heart|star). Si ya existe, la quita."""
     payload = _require_auth(request)
     actor_id = payload["sub"]
+
+    # No permitir reaccionar a los propios posts
+    from app.db.supabase import get_supabase as _gs
+    post_check = _gs().table("posts").select("user_id").eq("id", post_id).maybe_single().execute()
+    if post_check.data and post_check.data.get("user_id") == actor_id:
+        raise HTTPException(400, "No podés reaccionar a tus propios posts")
+
     result   = feed_service.toggle_reaction(post_id, actor_id, body.type)
 
     # Push al dueño del post sólo al AGREGAR (no al quitar)

@@ -171,11 +171,13 @@ async def search_messages(
 
     conv_ids = list(other_by_conv.keys())
 
+    # Escapar wildcards de LIKE antes de pasarlos al ilike
+    q_safe = q.strip().replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
     # Buscar en el contenido de mensajes (case-insensitive)
     msgs_r = db.table("messages").select(
         "id,conversation_id,content,created_at,sender_id,type"
     ).in_("conversation_id", conv_ids).ilike(
-        "content", f"%{q.strip()}%"
+        "content", f"%{q_safe}%"
     ).eq("type", "text").order(
         "created_at", desc=True
     ).limit(limit).execute()

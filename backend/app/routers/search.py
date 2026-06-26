@@ -57,7 +57,9 @@ async def global_search(
     if not term:
         return {"users": [], "posts": []}
 
-    like = f"%{term}%"
+    # Escapar wildcards LIKE para evitar pattern injection
+    term_safe = term.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+    like = f"%{term_safe}%"
 
     # ── Usuarios ──────────────────────────────────────────────────────────────
     # Busca por nombre completo, username o provincia.

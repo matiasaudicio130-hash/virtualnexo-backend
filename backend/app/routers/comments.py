@@ -47,6 +47,18 @@ async def add_comment(post_id: str, body: CommentBody, request: Request):
         raise
     except Exception:
         pass
+    # Prevenir reply-to-reply: parent_id debe ser un comentario raíz (sin parent_id propio)
+    if body.parent_id:
+        try:
+            from app.db.supabase import get_supabase as _gs2
+            parent_r = _gs2().table("comments").select("parent_id").eq("id", body.parent_id).maybe_single().execute()
+            if parent_r.data and parent_r.data.get("parent_id"):
+                raise HTTPException(400, "No se pueden anidar respuestas más de un nivel")
+        except HTTPException:
+            raise
+        except Exception:
+            pass
+
     try:
         result = comments_service.add_comment(
             post_id, actor_id, body.content, body.parent_id
