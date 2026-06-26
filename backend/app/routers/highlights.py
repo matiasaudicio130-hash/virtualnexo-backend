@@ -51,26 +51,44 @@ async def my_stories(request: Request):
     return r.data
 
 
+MAX_HIGHLIGHTS_PER_USER = 20
+MAX_STORIES_PER_HIGHLIGHT = 50
+
 @router.post("/", status_code=201)
 async def create_highlight(body: CreateHighlightBody, request: Request):
     payload = _require_auth(request)
+    user_id = payload["sub"]
     if not body.title.strip():
         raise HTTPException(400, "El título es obligatorio")
+    if len(body.title) > 60:
+        raise HTTPException(400, "El título no puede superar 60 caracteres")
 
     from app.db.supabase import get_supabase
     db = get_supabase()
+
+    # Límite de highlights por usuario
+    existing_r = db.table("story_highlights").select("id", count="exact").eq("user_id", user_id).execute()
+    if (existing_r.count or 0) >= MAX_HIGHLIGHTS_PER_USER:
+        raise HTTPException(400, f"Máximo {MAX_HIGHLIGHTS_PER_USER} highlights por perfil")
+
     hl = db.table("story_highlights").insert({
-        "user_id":   payload["sub"],
+        "user_id":   user_id,
         "title":     body.title.strip(),
         "cover_url": body.cover_url,
     }).execute().data[0]
 
     if body.story_ids:
-        items = [
-            {"highlight_id": hl["id"], "story_id": sid, "sort_order": i}
-            for i, sid in enumerate(body.story_ids)
-        ]
-        db.table("story_highlight_items").insert(items).execute()
+        # Verificar que las stories pertenecen al usuario antes de agregarlas
+        valid_stories = db.table("posts").select("id").in_(
+            "id", body.story_ids[:MAX_STORIES_PER_HIGHLIGHT]
+        ).eq("type", "story").eq("user_id", user_id).execute()
+        valid_ids = [s["id"] for s in valid_stories.data]
+        if valid_ids:
+            items = [
+                {"highlight_id": hl["id"], "story_id": sid, "sort_order": i}
+                for i, sid in enumerate(valid_ids)
+            ]
+            db.table("story_highlight_items").insert(items).execute()
     return hl
 
 

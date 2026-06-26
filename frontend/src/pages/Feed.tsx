@@ -351,7 +351,7 @@ export default function Feed() {
         {(["all", "following"] as const).map(tab => (
           <button
             key={tab}
-            onClick={() => setFeedTab(tab)}
+            onClick={() => { setFeedTab(tab); window.scrollTo({ top: 0, behavior: "smooth" }); }}
             className={`flex-1 py-2.5 text-xs font-medium border-b-2 transition-colors ${
               feedTab === tab
                 ? "border-accent-purple text-accent-purple"

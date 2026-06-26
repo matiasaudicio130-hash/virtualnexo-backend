@@ -324,6 +324,12 @@ export function ImageCropFilter({ file, onDone, onCancel }: Props) {
   const [error,    setError]    = useState("");
 
   useEffect(() => {
+    // Validar antes de crear la URL — evita cuelgues con archivos corruptos o demasiado grandes
+    if (!file || file.size === 0) { onCancel(); return; }
+    const MAX_BYTES = 50 * 1024 * 1024; // 50 MB
+    if (file.size > MAX_BYTES) { setError(`La imagen pesa ${(file.size/1024/1024).toFixed(0)} MB — máximo 50 MB para editar.`); return; }
+    const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif", "image/heic", "image/heif"];
+    if (!ALLOWED_TYPES.includes(file.type.toLowerCase())) { setError("Formato no soportado. Usá JPG, PNG o WebP."); return; }
     const url = URL.createObjectURL(file);
     setImgSrc(url);
     return () => URL.revokeObjectURL(url);
