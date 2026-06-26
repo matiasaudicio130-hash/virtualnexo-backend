@@ -117,8 +117,11 @@ async def register(request: Request, body: RegisterRequest):
         "expires_at": expires.isoformat(),
     }).execute()
 
-    # Enviar email de verificación
-    send_verification_email(body.email, body.first_name, token)
+    # Enviar email de verificación — no bloqueante: si falla SMTP el usuario igual se registra
+    try:
+        send_verification_email(body.email, body.first_name, token)
+    except Exception:
+        pass  # El usuario puede reenviar el email desde /verificar-email
 
     return MessageResponse(
         message="Registro exitoso",

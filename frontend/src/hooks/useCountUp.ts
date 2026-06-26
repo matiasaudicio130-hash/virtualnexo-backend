@@ -20,8 +20,13 @@ export function useCountUp(
     if (!el) return;
 
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (reduce || target <= 0) {
-      el.textContent = format(target);
+    if (reduce || target < 0) {
+      el.textContent = format(Math.max(0, target));
+      return;
+    }
+    // target === 0: mostrar sin animación
+    if (target === 0) {
+      el.textContent = format(0);
       return;
     }
 

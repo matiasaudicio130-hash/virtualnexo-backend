@@ -87,6 +87,11 @@ export function ProfileGrid({ userId, tab, isOwn, pinnedPostId, pinLoading, onTo
           {isFetchingNextPage && <GridSkeleton count={3} />}
         </div>
       )}
+      {!hasNextPage && posts.length > 6 && (
+        <p style={{ textAlign: "center", padding: "16px 0", fontSize: 9, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--mist)" }}>
+          — Ya viste todo —
+        </p>
+      )}
     </div>
   );
 }
