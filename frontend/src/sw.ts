@@ -59,8 +59,10 @@ self.addEventListener("push", (event) => {
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
 
-  const targetUrl: string =
+  const rawUrl: string =
     (event.notification.data as { url?: string } | undefined)?.url ?? "/feed";
+  // Solo rutas relativas para prevenir open redirect
+  const targetUrl = rawUrl.startsWith("/") ? rawUrl : "/feed";
 
   event.waitUntil(
     self.clients
@@ -68,7 +70,7 @@ self.addEventListener("notificationclick", (event) => {
       .then((clientList) => {
         // Si ya hay una ventana abierta de Aura, enfocarla y navegar
         for (const client of clientList) {
-          if (client.url.includes(self.location.origin) && "focus" in client) {
+          if (client.url.startsWith(self.location.origin) && "focus" in client) {
             (client as WindowClient).focus();
             (client as WindowClient).navigate(targetUrl);
             return;

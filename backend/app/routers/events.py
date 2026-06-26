@@ -4,6 +4,7 @@ from typing import Optional
 from datetime import datetime, timezone
 
 from app.core.security import require_auth as _require_auth
+from app.core.limiter import limiter
 
 router = APIRouter(prefix="/events", tags=["events"])
 
@@ -137,16 +138,19 @@ async def create_event(body: CreateEventBody, request: Request):
 
 
 @router.post("/{event_id}/rsvp")
+@limiter.limit("20/minute")
 async def rsvp(event_id: str, body: RsvpBody, request: Request):
     payload = _require_auth(request)
     user_id = payload["sub"]
     from app.db.supabase import get_supabase
     db = get_supabase()
 
-    # Verificar que el evento existe y no es del pasado
-    event_r = db.table("events").select("max_participants,going_count,event_date").eq("id", event_id).maybe_single().execute()
+    # Verificar que el evento existe, está activo y no es del pasado
+    event_r = db.table("events").select("max_participants,going_count,event_date,is_active").eq("id", event_id).maybe_single().execute()
     if not event_r.data:
         raise HTTPException(404, "Evento no encontrado")
+    if not event_r.data.get("is_active", True):
+        raise HTTPException(400, "Este evento ha sido cancelado")
     if event_r.data.get("event_date"):
         from datetime import datetime as _dt, timezone as _tz
         event_dt = _dt.fromisoformat(event_r.data["event_date"].replace("Z", "+00:00"))

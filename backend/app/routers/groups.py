@@ -38,11 +38,17 @@ class CreateGroupBody(BaseModel):
     member_ids: list[str] = []   # IDs de usuarios a invitar al crear
 
 
+_ALLOWED_MEDIA_TYPES = {"image", "video", "audio", "gif"}
+
 class SendGroupMessageBody(BaseModel):
     content: Optional[str] = None
     media_url: Optional[str] = None
     media_type: Optional[str] = None
     reply_to_id: Optional[str] = None
+
+    def model_post_init(self, __context) -> None:
+        if self.media_type and self.media_type not in _ALLOWED_MEDIA_TYPES:
+            raise ValueError(f"media_type inválido. Valores permitidos: {_ALLOWED_MEDIA_TYPES}")
 
 
 class UpdateGroupBody(BaseModel):

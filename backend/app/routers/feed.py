@@ -3,6 +3,7 @@ from typing import Optional, Literal, List
 from pydantic import BaseModel
 
 from app.core.security import require_auth as _require_auth, optional_auth as _optional_auth
+from app.core.limiter import limiter
 from app.services.feed_service import feed_service
 from app.services.storage_service import storage_service
 from app.utils.blocks import block_between
@@ -189,6 +190,7 @@ async def get_stories(
 
 
 @router.post("/posts", status_code=201)
+@limiter.limit("30/hour")
 async def create_text_post(body: CreatePostBody, request: Request):
     """Crea un post de texto o poll (sin imagen)."""
     payload = _require_auth(request)
@@ -306,6 +308,7 @@ class FromStorageBody(BaseModel):
 
 
 @router.post("/posts/from-storage", status_code=201)
+@limiter.limit("30/hour")
 async def create_post_from_storage(body: FromStorageBody, request: Request):
     """Crea el post después de que el frontend ya subió el archivo a Supabase."""
     from app.db.supabase import get_supabase
@@ -378,6 +381,7 @@ async def create_post_from_storage(body: FromStorageBody, request: Request):
 
 
 @router.post("/posts/upload", status_code=201)
+@limiter.limit("30/hour")
 async def create_photo_post(
     request: Request,
     caption: str = "",
@@ -822,6 +826,7 @@ async def share_post(post_id: str, request: Request):
 
 
 @router.post("/posts/upload-carousel", status_code=201)
+@limiter.limit("30/hour")
 async def upload_carousel(
     request: Request,
     caption: str = "",

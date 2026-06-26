@@ -392,6 +392,13 @@ async def update_profile_extended(request: Request):
         except Exception:
             updates["website"] = None
 
+    # Validar ownership de pinned_post_id (no se puede pinear post ajeno)
+    if "pinned_post_id" in updates and updates["pinned_post_id"] is not None:
+        pin_id = str(updates["pinned_post_id"])
+        pin_r = db.table("posts").select("user_id").eq("id", pin_id).maybe_single().execute()
+        if not pin_r.data or pin_r.data["user_id"] != payload["sub"]:
+            raise HTTPException(403, "Solo podés fijar tus propios posts")
+
     # Obtener profile_extended actual y mergear
     user_r = db.table("users").select("profile_extended").eq("id", payload["sub"]).maybe_single().execute()
     current: dict = (user_r.data.get("profile_extended") or {}) if user_r.data else {}

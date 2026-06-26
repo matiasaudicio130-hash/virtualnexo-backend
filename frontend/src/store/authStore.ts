@@ -55,6 +55,7 @@ export const useAuthStore = create<AuthState>()(
       logout: () => {
         localStorage.removeItem("access_token");
         localStorage.removeItem("refresh_token");
+        localStorage.removeItem("aura-travel-city");
         set({ user: null, access_token: null, refresh_token: null, isAuthenticated: false });
       },
     }),

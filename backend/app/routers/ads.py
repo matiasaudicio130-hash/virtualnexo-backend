@@ -65,6 +65,16 @@ async def record_ad_event(ad_id: str, body: AdEventBody, request: Request):
     El frontend llama este endpoint cuando el usuario interactúa con un anuncio.
     """
     payload = _require_auth(request)
+    from app.db.supabase import get_supabase
+    from datetime import datetime, timezone
+    now = datetime.now(timezone.utc).isoformat()
+    ad_r = get_supabase().table("ads").select("id,is_active,starts_at,ends_at").eq(
+        "id", ad_id
+    ).eq("is_active", True).lte("starts_at", now).maybe_single().execute()
+    if not ad_r.data:
+        raise HTTPException(400, "Anuncio no válido o inactivo")
+    if ad_r.data.get("ends_at") and ad_r.data["ends_at"] < now:
+        raise HTTPException(400, "Anuncio expirado")
     province = body.province or _get_user_province(payload["sub"])
     ads_service.record_event(
         ad_id=ad_id,
@@ -99,6 +109,18 @@ class AdBody(BaseModel):
     provinces: Optional[list] = None   # None = todas las provincias
     priority: int = 1
     ends_at: Optional[str] = None
+
+    def model_post_init(self, __context) -> None:
+        if len(self.title) > 120:
+            raise ValueError("El título no puede superar los 120 caracteres")
+        if self.description and len(self.description) > 500:
+            raise ValueError("La descripción no puede superar los 500 caracteres")
+        if not self.target_url.startswith(("http://", "https://")):
+            raise ValueError("target_url debe comenzar con http:// o https://")
+        if len(self.target_url) > 2000:
+            raise ValueError("target_url demasiado largo")
+        if self.type not in ("banner", "overlay"):
+            raise ValueError("type debe ser 'banner' u 'overlay'")
 
 
 @router.get("/admin/advertisers")
