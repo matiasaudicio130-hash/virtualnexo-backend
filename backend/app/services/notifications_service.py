@@ -2,11 +2,17 @@
 Helper para crear notificaciones in-app.
 Módulo independiente para evitar imports circulares.
 """
+import re
 import logging
 from datetime import datetime, timezone
 from app.db.supabase import get_supabase
 
 logger = logging.getLogger(__name__)
+
+
+def _sanitize_notif_text(text: str, max_len: int = 500) -> str:
+    """Elimina tags HTML y limita longitud — previene XSS si el cliente renderiza sin escape."""
+    return re.sub(r"<[^>]+>", "", text)[:max_len]
 
 
 def create_notification(
@@ -22,6 +28,8 @@ def create_notification(
     Para new_message: agrupa mensajes del mismo remitente en una sola notificación no leída."""
     try:
         db = get_supabase()
+        title = _sanitize_notif_text(title, 200)
+        body  = _sanitize_notif_text(body, 500)
         payload = dict(data or {})
 
         if actor_id and "actor_avatar" not in payload:

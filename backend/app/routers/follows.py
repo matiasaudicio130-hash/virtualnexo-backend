@@ -73,8 +73,19 @@ async def follow_user(user_id: str, request: Request):
     except Exception:
         return {"following": True}  # race condition — ya insertado por otro request
 
-    # Notificar al seguido
+    # Notificar al seguido — pero solo si no hubo notificación de follow en las últimas 24h
     try:
+        from datetime import datetime, timezone, timedelta
+        cutoff_24h = (datetime.now(timezone.utc) - timedelta(hours=24)).isoformat()
+        recent_r = db.table("notifications").select("id,data").eq(
+            "user_id", user_id
+        ).eq("type", "new_follower").gte("created_at", cutoff_24h).execute()
+        already_notified = any(
+            (n.get("data") or {}).get("follower_id") == me
+            for n in (recent_r.data or [])
+        )
+        if already_notified:
+            return {"following": True}
         me_data = db.table("users").select("first_name,last_name,username,profile_photo_url").eq("id", me).execute().data
         if me_data:
             u = me_data[0]
