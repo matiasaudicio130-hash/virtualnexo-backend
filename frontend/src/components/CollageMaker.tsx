@@ -265,7 +265,14 @@ export function CollageMaker({ onDone, onCancel }: Props) {
         ctx.restore();
       }
 
+      // Timeout por si toBlob nunca llama al callback (canvas inválido)
+      const blobTimeout = setTimeout(() => {
+        setError("No se pudo generar el collage. Intentá de nuevo.");
+        setApplying(false);
+      }, 15000);
+
       canvas.toBlob(blob => {
+        clearTimeout(blobTimeout);
         if (!blob) { setError("Error al generar el collage. Intentá de nuevo."); setApplying(false); return; }
         const outFile = new File([blob], "collage.jpg", { type: "image/jpeg" });
         onDone(outFile);

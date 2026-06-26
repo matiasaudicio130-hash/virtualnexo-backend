@@ -238,7 +238,7 @@ export default function Analytics() {
                 className="text-3xl font-bold tabular-nums mt-0.5"
                 style={{ color: "var(--gold,#C9A227)", fontFamily: "var(--font-mono,'Courier New',monospace)" }}
               >
-                {data.engagement_rate}%
+                {(isNaN(data.engagement_rate) || !isFinite(data.engagement_rate)) ? "0" : data.engagement_rate}%
               </p>
               <p className="text-[10px] text-text-muted mt-0.5">
                 (likes + comentarios) ÷ seguidores ÷ publicaciones
