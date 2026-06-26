@@ -441,6 +441,7 @@ async def update_privacy(body: PrivacyBody, request: Request):
 
 
 @router.post("/heartbeat")
+@limiter.limit("10/hour")
 async def heartbeat(request: Request):
     """
     Llamar una vez al abrir la app (o al volver al primer plano).

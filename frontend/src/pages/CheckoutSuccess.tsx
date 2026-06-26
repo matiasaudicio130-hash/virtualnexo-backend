@@ -9,8 +9,11 @@ export default function CheckoutSuccess() {
   const { refreshUser } = useAuthStore();
 
   useEffect(() => {
-    // Refresca el perfil del usuario para que vea la membresía activada
+    // El webhook de Stripe puede tardar unos segundos en procesar.
+    // Refrescamos inmediatamente y de nuevo a los 3s para capturar el estado final.
     refreshUser?.();
+    const t = setTimeout(() => refreshUser?.(), 3000);
+    return () => clearTimeout(t);
   }, []);
 
   return (

@@ -54,8 +54,14 @@ export default function Login() {
       if (result.requires2fa) { setTotpState({ session: result.totpSession }); return; }
       navigate(REDIRECT[result.status] ?? "/feed");
     } catch (e: any) {
+      const status = e.response?.status;
       const msg = e.response?.data?.detail;
-      setError(typeof msg === "string" ? msg : "Credenciales incorrectas");
+      if (status === 403) {
+        // Cuenta suspendida, rechazada, o sin verificar
+        setError(typeof msg === "string" ? msg : "Tu cuenta no puede iniciar sesión en este momento. Contactá soporte.");
+      } else {
+        setError(typeof msg === "string" ? msg : "Credenciales incorrectas");
+      }
     }
   };
 
