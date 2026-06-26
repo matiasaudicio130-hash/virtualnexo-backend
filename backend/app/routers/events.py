@@ -143,6 +143,16 @@ async def rsvp(event_id: str, body: RsvpBody, request: Request):
     from app.db.supabase import get_supabase
     db = get_supabase()
 
+    # Verificar que el evento existe y no es del pasado
+    event_r = db.table("events").select("max_participants,going_count,event_date").eq("id", event_id).maybe_single().execute()
+    if not event_r.data:
+        raise HTTPException(404, "Evento no encontrado")
+    if event_r.data.get("event_date"):
+        from datetime import datetime as _dt, timezone as _tz
+        event_dt = _dt.fromisoformat(event_r.data["event_date"].replace("Z", "+00:00"))
+        if event_dt <= _dt.now(_tz.utc):
+            raise HTTPException(400, "No podés inscribirte a un evento que ya ocurrió")
+
     # Verificar capacidad cuando el usuario intenta ir (going)
     if body.status == "going":
         event_r = db.table("events").select("max_participants,going_count").eq("id", event_id).maybe_single().execute()

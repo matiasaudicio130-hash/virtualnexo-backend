@@ -318,8 +318,8 @@ async def following_feed(
     me = payload["sub"]
     db = get_supabase()
 
-    # IDs de usuarios que sigo
-    follows_r = db.table("user_follows").select("following_id").eq("follower_id", me).execute()
+    # IDs de usuarios que sigo — limitado a 500 para evitar IN clause gigante
+    follows_r = db.table("user_follows").select("following_id").eq("follower_id", me).limit(500).execute()
     ids = [f["following_id"] for f in follows_r.data]
 
     if not ids:

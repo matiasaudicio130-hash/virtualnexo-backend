@@ -204,6 +204,10 @@ async def create_text_post(body: CreatePostBody, request: Request):
             raise HTTPException(400, "Un poll necesita entre 2 y 10 opciones")
         if not all(o.strip() for o in opts):
             raise HTTPException(400, "Todas las opciones deben tener texto")
+        if any(len(o.strip()) > 200 for o in opts):
+            raise HTTPException(400, "Cada opción no puede superar 200 caracteres")
+        if len(body.poll_question.strip()) > 300:
+            raise HTTPException(400, "La pregunta no puede superar 300 caracteres")
         dur = max(1, min(168, body.poll_duration_hours))
         extra_data = {
             "poll": {
