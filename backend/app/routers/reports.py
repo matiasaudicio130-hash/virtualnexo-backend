@@ -57,6 +57,8 @@ async def download_annual_report(year: int, request: Request):
 async def preview_report_data(year: int, month: int, request: Request):
     """Preview de datos del reporte (JSON) — para renderizar en la UI antes de descargar."""
     _require_admin(request)
+    if not (1 <= month <= 12):
+        raise HTTPException(400, "Mes inválido (debe ser 1-12)")
     from app.db.supabase import get_supabase
     db = get_supabase()
     if month:

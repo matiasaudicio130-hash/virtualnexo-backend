@@ -1,4 +1,4 @@
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, Field, field_validator
 from typing import Optional, Literal
 from datetime import datetime
 
@@ -11,8 +11,8 @@ class ManualPaymentCreate(BaseModel):
     reference: Optional[str] = None
     notes: Optional[str] = None
     # Monto custom (si el admin quiere poner un precio distinto al estándar)
-    amount_override_ars: Optional[float] = None
-    amount_override_usd: Optional[float] = None
+    amount_override_ars: Optional[float] = Field(None, gt=0, le=10_000_000, description="Monto en ARS (máximo $10M)")
+    amount_override_usd: Optional[float] = Field(None, gt=0, le=10_000, description="Monto en USD (máximo $10.000)")
 
     @field_validator("method")
     @classmethod

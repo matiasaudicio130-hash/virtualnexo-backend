@@ -21,7 +21,7 @@ def _require_admin(request: Request) -> dict:
 
 class RegisterPayoutBody(BaseModel):
     influencer_id: str
-    amount_ars:  float = Field(..., gt=0, description="Monto en ARS, debe ser positivo")
+    amount_ars:  float = Field(..., gt=0, le=50_000_000, description="Monto en ARS (máximo $50M)")
     payout_pct:  float = Field(..., ge=0, le=100)
     period_start: str   # YYYY-MM-DD
     period_end: str     # YYYY-MM-DD

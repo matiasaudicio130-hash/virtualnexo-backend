@@ -3,7 +3,7 @@
  * Solo se muestra cuando STRIPE_SECRET_KEY está vacío (modo simulación).
  * En producción esta ruta no existe — Stripe redirige directamente a /checkout/success.
  */
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { stripeApi } from "@/lib/api";
 import { toast } from "@/store/toastStore";
@@ -19,6 +19,10 @@ export default function CheckoutPay() {
   const sessionId = params.get("session_id") ?? "";
   const plan      = params.get("plan") ?? "monthly";
   const currency  = params.get("currency") ?? "ARS";
+
+  useEffect(() => {
+    if (!sessionId) navigate("/checkout", { replace: true });
+  }, [sessionId, navigate]);
 
   const [loading, setLoading] = useState(false);
   const [step, setStep]       = useState<"idle" | "processing" | "done">("idle");
