@@ -448,10 +448,14 @@ async def react_to_post(post_id: str, body: ReactionBody, request: Request):
     payload = _require_auth(request)
     actor_id = payload["sub"]
 
-    # No permitir reaccionar a los propios posts
+    # Verificar que el post existe, está activo, y no es propio
     from app.db.supabase import get_supabase as _gs
-    post_check = _gs().table("posts").select("user_id").eq("id", post_id).maybe_single().execute()
-    if post_check.data and post_check.data.get("user_id") == actor_id:
+    post_check = _gs().table("posts").select("user_id,status").eq("id", post_id).maybe_single().execute()
+    if not post_check.data:
+        raise HTTPException(404, "Post no encontrado")
+    if post_check.data.get("status") != "active":
+        raise HTTPException(404, "Post no disponible")
+    if post_check.data.get("user_id") == actor_id:
         raise HTTPException(400, "No podés reaccionar a tus propios posts")
 
     result   = feed_service.toggle_reaction(post_id, actor_id, body.type)
@@ -606,6 +610,10 @@ async def toggle_save(post_id: str, request: Request):
     user_id = payload["sub"]
     from app.db.supabase import get_supabase
     db = get_supabase()
+    # Verificar que el post existe y está activo
+    post_r = db.table("posts").select("status").eq("id", post_id).maybe_single().execute()
+    if not post_r.data or post_r.data.get("status") != "active":
+        raise HTTPException(404, "Post no encontrado o no disponible")
     # Verificar si ya está guardado (para el toggle)
     existing = db.table("post_saves").select("id").eq("user_id", user_id).eq("post_id", post_id).maybe_single().execute()
     is_saved = bool(existing.data)
