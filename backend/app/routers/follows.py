@@ -277,8 +277,16 @@ async def get_followers(
     offset: int = Query(0, ge=0),
 ):
     """Lista de usuarios que siguen a user_id."""
-    _require_auth(request)
+    payload = _require_auth(request)
+    viewer_id = payload["sub"]
     db = get_supabase()
+    # Cuentas privadas: solo el dueño o sus seguidores ven la lista
+    if viewer_id != user_id:
+        profile_r = db.table("users").select("is_private").eq("id", user_id).maybe_single().execute()
+        if profile_r.data and profile_r.data.get("is_private"):
+            is_follower = db.table("user_follows").select("id").eq("follower_id", viewer_id).eq("following_id", user_id).maybe_single().execute()
+            if not is_follower.data:
+                raise HTTPException(403, "Este perfil es privado")
     result = db.table("user_follows").select(
         "follower_id, users!user_follows_follower_id_fkey(id,first_name,last_name,profile_photo_url,province)"
     ).eq("following_id", user_id).order("created_at", desc=True).range(offset, offset + limit - 1).execute()
@@ -296,8 +304,16 @@ async def get_following(
     offset: int = Query(0, ge=0),
 ):
     """Lista de usuarios a los que sigue user_id."""
-    _require_auth(request)
+    payload = _require_auth(request)
+    viewer_id = payload["sub"]
     db = get_supabase()
+    # Cuentas privadas: solo el dueño o sus seguidores ven la lista
+    if viewer_id != user_id:
+        profile_r = db.table("users").select("is_private").eq("id", user_id).maybe_single().execute()
+        if profile_r.data and profile_r.data.get("is_private"):
+            is_follower = db.table("user_follows").select("id").eq("follower_id", viewer_id).eq("following_id", user_id).maybe_single().execute()
+            if not is_follower.data:
+                raise HTTPException(403, "Este perfil es privado")
     result = db.table("user_follows").select(
         "following_id, users!user_follows_following_id_fkey(id,first_name,last_name,profile_photo_url,province)"
     ).eq("follower_id", user_id).order("created_at", desc=True).range(offset, offset + limit - 1).execute()
