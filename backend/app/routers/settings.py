@@ -71,6 +71,18 @@ async def update_setting(key: str, body: SettingUpdateBody, request: Request):
     if key not in SETTABLE_KEYS:
         raise HTTPException(403, f"Setting '{key}' no es modificable")
 
+    # Validar rangos para precios e influencer pct
+    PRICE_KEYS = {k for k in SETTABLE_KEYS if "price" in k or "pct" in k}
+    if key in PRICE_KEYS:
+        try:
+            v = float(body.value)
+        except (TypeError, ValueError):
+            raise HTTPException(400, f"'{key}' debe ser un número")
+        if "pct" in key and not (0 <= v <= 100):
+            raise HTTPException(400, "El porcentaje debe estar entre 0 y 100")
+        if "price" in key and v <= 0:
+            raise HTTPException(400, "El precio debe ser mayor que 0")
+
     db = get_supabase()
     existing = db.table("system_settings").select("value").eq("key", key).execute()
     if not existing.data:
