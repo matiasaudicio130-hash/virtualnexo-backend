@@ -243,7 +243,7 @@ class FeedService:
 
         q = db.table("posts").select(
             "id,user_id,media_url,storage_path,created_at,expires_at,extra_data,"
-            "users!posts_user_id_fkey(id,first_name,last_name,profile_photo_url,username,is_shadow_banned)"
+            "users!posts_user_id_fkey(id,first_name,last_name,profile_photo_url,username,is_shadow_banned,is_private)"
         ).eq("type", "story").eq("status", "active").gt("created_at", cutoff).order("created_at", desc=True)
 
         if province:
@@ -280,6 +280,9 @@ class FeedService:
 
             # Audience gate (skip own stories)
             if uid != viewer_id:
+                # Cuentas privadas: solo seguidores ven sus stories
+                if user.get("is_private") and uid not in viewer_follows:
+                    continue
                 audience = (p.get("extra_data") or {}).get("audience", "all")
                 if audience == "followers" and uid not in viewer_follows:
                     continue

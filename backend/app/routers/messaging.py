@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 import uuid
 
 from app.core.security import require_auth as _require_auth
+from app.core.limiter import limiter
 from app.services.messaging_service import messaging_service
 
 router = APIRouter(prefix="/messages", tags=["messages"])
@@ -453,6 +454,7 @@ async def mark_view_once(message_id: str, request: Request):
 
 
 @router.post("/conversations/{conv_id}/typing")
+@limiter.limit("20/minute")
 async def set_typing(conv_id: str, body: TypingBody, request: Request):
     """Actualiza el indicador de escritura."""
     payload = _require_auth(request)
@@ -473,16 +475,18 @@ async def set_typing(conv_id: str, body: TypingBody, request: Request):
 
 @router.get("/conversations/{conv_id}/typing")
 async def get_typing(conv_id: str, request: Request):
-    """Devuelve quién está escribiendo en la conversación."""
+    """Devuelve quién está escribiendo en la conversación (ignora entradas >10s de antigüedad)."""
     payload = _require_auth(request)
     from app.db.supabase import get_supabase
     db = get_supabase()
     conv = db.table("conversations").select("participant_a,participant_b").eq("id", conv_id).execute()
     if not conv.data or payload["sub"] not in (conv.data[0]["participant_a"], conv.data[0]["participant_b"]):
         raise HTTPException(403, "No tenés acceso a esta conversación")
+    # TTL de 10 segundos: ignorar indicadores stale (cliente crasheado, etc.)
+    ttl_cutoff = (datetime.now(timezone.utc) - __import__("datetime").timedelta(seconds=10)).isoformat()
     r = db.table("typing_indicators").select("user_id,updated_at").eq(
         "conversation_id", conv_id
-    ).neq("user_id", payload["sub"]).execute()
+    ).neq("user_id", payload["sub"]).gte("updated_at", ttl_cutoff).execute()
     return {"typing": [row["user_id"] for row in r.data]}
 
 
