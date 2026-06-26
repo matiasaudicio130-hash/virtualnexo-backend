@@ -19,6 +19,20 @@ class TravelPlanBody(BaseModel):
     description: Optional[str] = None
     looking_for: Optional[str] = None
 
+    @field_validator("description", "looking_for", mode="before")
+    @classmethod
+    def limit_text(cls, v: Optional[str]) -> Optional[str]:
+        if v and len(v) > 500:
+            raise ValueError("El texto no puede superar los 500 caracteres")
+        return v
+
+    @field_validator("dest_city", "dest_province", mode="before")
+    @classmethod
+    def limit_city(cls, v: str) -> str:
+        if v and len(v) > 100:
+            raise ValueError("El campo no puede superar los 100 caracteres")
+        return v
+
     @field_validator("arrival_date")
     @classmethod
     def arrival_not_past(cls, v: str) -> str:

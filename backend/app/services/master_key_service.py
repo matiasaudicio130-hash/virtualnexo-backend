@@ -35,18 +35,20 @@ class MasterKeyService:
         }
 
     def consume(self, code: str) -> bool:
-        """Incrementa el contador de usos de una key."""
+        """Incrementa el contador de usos de una key (atomic — previene TOCTOU)."""
         db = get_supabase()
         result = db.table("master_keys").select("id,uses_count,max_uses").eq("code", code).execute()
         if not result.data:
             return False
         key = result.data[0]
         new_count = key["uses_count"] + 1
-        db.table("master_keys").update({
+        # Update condicional: solo si uses_count no cambió desde que lo leímos
+        # Si otra request ya consumió la key, este update devuelve 0 filas → False
+        updated = db.table("master_keys").update({
             "uses_count": new_count,
             "is_active": new_count < key["max_uses"],
-        }).eq("id", key["id"]).execute()
-        return True
+        }).eq("id", key["id"]).eq("uses_count", key["uses_count"]).execute()
+        return bool(updated.data)
 
     def create(self, data: dict, admin_id: str) -> dict:
         db = get_supabase()

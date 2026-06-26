@@ -9,6 +9,11 @@ export default function CheckoutSuccess() {
   const { refreshUser } = useAuthStore();
 
   useEffect(() => {
+    // Redirigir si llegaron sin session_id (acceso directo a la URL sin pagar)
+    if (!params.get("session_id")) {
+      navigate("/checkout", { replace: true });
+      return;
+    }
     // El webhook de Stripe puede tardar unos segundos en procesar.
     // Refrescamos inmediatamente y de nuevo a los 3s para capturar el estado final.
     refreshUser?.();
@@ -28,11 +33,6 @@ export default function CheckoutSuccess() {
           <p className="text-text-secondary">
             Tu membresía en <span className="text-accent-purple font-semibold">{APP_CONFIG.name}</span> está activa.
           </p>
-          {params.get("session_id") && (
-            <p className="text-text-muted text-xs mt-2">
-              Ref: {params.get("session_id")?.slice(0, 20)}…
-            </p>
-          )}
         </div>
 
         <div className="bg-bg-card border border-status-success/20 rounded-2xl p-4 text-sm text-text-secondary">

@@ -76,6 +76,9 @@ def _divider() -> str:
 
 def _send(to: str, subject: str, html: str) -> None:
     """Envía email via SMTP. En dev sin credenciales, loguea."""
+    # Sanitizar CRLF para prevenir email header injection
+    to = to.replace("\r", "").replace("\n", "").strip()
+    subject = subject.replace("\r", "").replace("\n", "").strip()
     if not settings.SMTP_USER:
         logger.info(f"[EMAIL SIMULADO] To:{to} | Subject:{subject}")
         logger.info(html[:200])

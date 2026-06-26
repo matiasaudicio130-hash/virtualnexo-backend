@@ -23,6 +23,10 @@ from pillow_heif import register_heif_opener
 # de iPhone) — sin esto, Pillow lanza UnidentifiedImageError con esos archivos.
 register_heif_opener()
 
+# Límite anti-decompression-bomb: imágenes que expanden a más de 50MP son rechazadas
+# (una imagen 4K es ~8MP, 50MP ≈ 7680×6480px)
+Image.MAX_IMAGE_PIXELS = 50_000_000
+
 
 # ── Constantes ────────────────────────────────────────────────
 WM_COLOR        = (255, 255, 255, 180)   # Blanco 70% opacidad
