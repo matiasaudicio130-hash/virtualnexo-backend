@@ -254,16 +254,6 @@ export default function Feed() {
 
   const posts = (feedData?.pages.flatMap(p => p.posts) ?? []).filter(p => !removedIds.has(p.id));
 
-  // Infinite scroll
-  useEffect(() => {
-    if (!sentinelRef.current) return;
-    const obs = new IntersectionObserver(([entry]) => {
-      if (entry.isIntersecting && hasMore && !loadingMore && !loading) fetchNextPage();
-    }, { threshold: 0.1 });
-    obs.observe(sentinelRef.current);
-    return () => obs.disconnect();
-  }, [hasMore, loadingMore, loading, fetchNextPage]);
-
   function removePost(id: string) {
     setRemovedIds(prev => new Set([...prev, id]));
   }
@@ -273,6 +263,16 @@ export default function Feed() {
   }, [queryClient]);
 
   const { dist: pullDist, refreshing: pullRefreshing } = usePullToRefresh(handlePullRefresh);
+
+  // Infinite scroll — no disparar mientras el pull-to-refresh está activo
+  useEffect(() => {
+    if (!sentinelRef.current) return;
+    const obs = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting && hasMore && !loadingMore && !loading && !pullRefreshing) fetchNextPage();
+    }, { threshold: 0.1 });
+    obs.observe(sentinelRef.current);
+    return () => obs.disconnect();
+  }, [hasMore, loadingMore, loading, fetchNextPage, pullRefreshing]);
 
   // Frecuencia de ads según membresía
   const adsEvery = user?.membership_type && user.membership_type !== "none"
@@ -917,6 +917,9 @@ function StoryViewer({
               alt=""
               draggable={false}
               onContextMenu={e => e.preventDefault()}
+              onLoad={() => setPaused(false)}
+              onLoadStart={() => setPaused(true)}
+              onError={() => advance()}
               className="w-full h-full object-contain pointer-events-none"
             />
           )

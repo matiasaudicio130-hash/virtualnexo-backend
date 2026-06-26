@@ -148,10 +148,14 @@ async def verify_email(body: VerifyEmailRequest):
 
     user_id = verif["user_id"]
 
-    # Marcar token como usado
-    db.table("email_verifications").update(
-        {"used_at": datetime.now(timezone.utc).isoformat()}
-    ).eq("id", verif["id"]).execute()
+    # Eliminar token (GDPR + previene reutilización) — usado_at como backup
+    try:
+        db.table("email_verifications").delete().eq("id", verif["id"]).execute()
+    except Exception:
+        # Si el delete falla, al menos marcarlo como usado
+        db.table("email_verifications").update(
+            {"used_at": datetime.now(timezone.utc).isoformat()}
+        ).eq("id", verif["id"]).execute()
 
     # Obtener usuario para ver si usó master key
     user_result = db.table("users").select("*").eq("id", user_id).execute()
