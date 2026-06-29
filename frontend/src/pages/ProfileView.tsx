@@ -267,7 +267,14 @@ export default function ProfileView() {
     try {
       await albumsApi.requestAccess(albumId);
       setAlbums(prev => prev.map(a => a.id === albumId ? { ...a, my_request_status: "pending" } : a));
-    } catch { /* ignore */ }
+      toast.success("Solicitud enviada. El usuario recibirá una notificación.");
+    } catch (err: any) {
+      const detail = err?.response?.data?.detail;
+      const msg = typeof detail === "string"
+        ? detail
+        : "No se pudo enviar la solicitud. Intentá de nuevo.";
+      toast.error(msg);
+    }
   }
 
   async function openFollowList(type: "followers" | "following") {

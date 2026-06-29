@@ -124,18 +124,34 @@ async def list_user_albums(user_id: str, request: Request):
     is_owner = payload["sub"] == user_id
     db = get_supabase()
 
-    albums = db.table("albums").select(
-        "id,title,description,is_private,cover_blur_url,photos_count,access_requests_count,created_at"
-    ).eq("user_id", user_id).order("created_at", desc=False).execute().data
+    try:
+        albums = db.table("albums").select(
+            "id,title,description,is_private,cover_blur_url,photos_count,access_requests_count,created_at"
+        ).eq("user_id", user_id).order("created_at", desc=False).execute().data
+    except Exception:
+        # Fallback sin access_requests_count si la columna no existe aún
+        try:
+            albums = db.table("albums").select(
+                "id,title,description,is_private,cover_blur_url,photos_count,created_at"
+            ).eq("user_id", user_id).order("created_at", desc=False).execute().data
+            for a in albums:
+                a.setdefault("access_requests_count", 0)
+        except Exception:
+            return []
 
     result = []
     for a in albums:
         if a["is_private"] and not is_owner:
-            # Verificar si tiene acceso aprobado
-            req = db.table("album_access_requests").select("status").eq("album_id", a["id"]).eq("requester_id", payload["sub"]).execute()
-            approved = any(r["status"] == "approved" for r in req.data)
-            a["has_access"] = approved
-            a["my_request_status"] = req.data[0]["status"] if req.data else None
+            try:
+                req = db.table("album_access_requests").select("status").eq(
+                    "album_id", a["id"]
+                ).eq("requester_id", payload["sub"]).execute()
+                approved = any(r["status"] == "approved" for r in req.data)
+                a["has_access"] = approved
+                a["my_request_status"] = req.data[0]["status"] if req.data else None
+            except Exception:
+                a["has_access"] = False
+                a["my_request_status"] = None
         else:
             a["has_access"] = True
             a["my_request_status"] = None
@@ -278,30 +294,48 @@ async def request_access(album_id: str, request: Request):
             "album_id": album_id,
             "requester_id": requester_id,
         }).execute()
+        if not r.data:
+            raise HTTPException(409, "Ya enviaste una solicitud para este album.")
+    except HTTPException:
+        raise
     except Exception:
         raise HTTPException(409, "Ya enviaste una solicitud para este album.")
 
-    # Notificar al dueño
-    db.table("albums").update({
-        "access_requests_count": db.table("album_access_requests").select("id", count="exact").eq("album_id", album_id).eq("status", "pending").execute().count or 1
-    }).eq("id", album_id).execute()
-
-    req_user = db.table("users").select("first_name, last_name, username").eq("id", requester_id).execute().data
-    name = req_user[0].get("username") or f"{req_user[0]['first_name']}" if req_user else "Alguien"
-    display = f"@{name}" if req_user and req_user[0].get("username") else name
+    # Notificaciones y contador — errores aquí no deben romper la respuesta
     try:
+        try:
+            pending_count = db.table("album_access_requests").select(
+                "id", count="exact"
+            ).eq("album_id", album_id).eq("status", "pending").execute().count or 1
+            db.table("albums").update(
+                {"access_requests_count": pending_count}
+            ).eq("id", album_id).execute()
+        except Exception:
+            pass  # columna puede no existir todavía
+
+        req_user = db.table("users").select(
+            "first_name,last_name,username"
+        ).eq("id", requester_id).execute().data
+        if req_user:
+            u = req_user[0]
+            name = u.get("username") or u.get("first_name") or "Alguien"
+            display = f"@{name}" if u.get("username") else name
+        else:
+            display = "Alguien"
+
         db.table("notifications").insert({
             "user_id": a["user_id"],
             "type": "album_access_request",
             "title": "Solicitud de acceso exclusivo",
-            "body": f"{display} quiere ver tu album '{a['title']}'",
+            "body": f"{display} quiere ver tu álbum '{a['title']}'",
             "data": {"album_id": album_id, "requester_id": requester_id},
         }).execute()
+
         from app.services.push_service import send_push
         send_push(
             user_id=a["user_id"],
             title="Solicitud de acceso exclusivo",
-            body=f"{display} quiere ver tu album '{a['title']}'",
+            body=f"{display} quiere ver tu álbum '{a['title']}'",
             url="/dashboard",
         )
     except Exception:
@@ -397,11 +431,17 @@ async def record_view(user_id: str, request: Request):
     if viewer_id == user_id:
         return {"recorded": False}
     db = get_supabase()
-    db.table("profile_views").upsert(
-        {"viewed_id": user_id, "viewer_id": viewer_id, "viewed_at": datetime.now(timezone.utc).isoformat()},
-        on_conflict="viewer_id,viewed_id",
-    ).execute()
-    db.rpc("increment_profile_views", {"p_user_id": user_id}).execute()
+    try:
+        db.table("profile_views").upsert(
+            {"viewed_id": user_id, "viewer_id": viewer_id, "viewed_at": datetime.now(timezone.utc).isoformat()},
+            on_conflict="viewer_id,viewed_id",
+        ).execute()
+    except Exception:
+        pass
+    try:
+        db.rpc("increment_profile_views", {"p_user_id": user_id}).execute()
+    except Exception:
+        pass
     return {"recorded": True}
 
 

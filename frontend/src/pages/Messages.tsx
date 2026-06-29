@@ -32,6 +32,8 @@ function ChatWindow({
 }: { conv: any; currentUserId: string; onClose: () => void }) {
   const navigate                          = useNavigate();
   const [messages, setMessages]           = useState<any[]>([]);
+  const [messagesLoading, setMessagesLoading] = useState(true);
+  const [messagesError, setMessagesError] = useState(false);
   const [sending, setSending]             = useState(false);
   const [blocked, setBlocked]             = useState(conv.blocked_me);
   const [replyTo, setReplyTo]             = useState<any>(null);
@@ -44,13 +46,21 @@ function ChatWindow({
   const pollTimer                         = useRef<any>(null);
   const other                             = conv.other_user;
 
-  const load = useCallback(() => {
+  const load = useCallback((isInitial = false) => {
+    if (isInitial) { setMessagesLoading(true); setMessagesError(false); }
     messagingApi.getMessages(conv.id)
-      .then(r => setMessages(Array.isArray(r.data) ? r.data : []))
-      .catch(() => toast.error("No se pudieron cargar los mensajes"));
+      .then(r => {
+        setMessages(Array.isArray(r.data) ? r.data : []);
+        setMessagesError(false);
+      })
+      .catch(() => {
+        if (isInitial) setMessagesError(true);
+        else toast.error("No se pudieron cargar los mensajes");
+      })
+      .finally(() => { if (isInitial) setMessagesLoading(false); });
   }, [conv.id]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { load(true); }, [load]);
 
   // Supabase Realtime — nuevos mensajes y actualizaciones de read_at
   useEffect(() => {
@@ -229,7 +239,26 @@ function ChatWindow({
       <div className="flex-1 overflow-y-auto px-3 py-4"
         onClick={() => {}}>
 
-        {visibleMessages.map((msg, idx) => {
+        {messagesLoading && (
+          <div className="flex flex-col items-center justify-center h-full gap-3 py-16">
+            <div className="w-6 h-6 border-2 border-accent-purple/30 border-t-accent-purple rounded-full animate-spin"/>
+            <p className="text-xs text-text-muted">Cargando mensajes…</p>
+          </div>
+        )}
+
+        {!messagesLoading && messagesError && (
+          <div className="flex flex-col items-center justify-center h-full gap-3 py-16 px-6 text-center">
+            <p className="text-sm text-text-muted">No se pudieron cargar los mensajes.</p>
+            <button
+              onClick={() => load(true)}
+              className="px-4 py-2 rounded-xl bg-accent-purple/10 text-accent-purple text-xs font-medium hover:bg-accent-purple/20 transition-colors"
+            >
+              Reintentar
+            </button>
+          </div>
+        )}
+
+        {!messagesLoading && !messagesError && visibleMessages.map((msg, idx) => {
           const prev = visibleMessages[idx - 1];
           const showDate = !prev || new Date(msg.created_at).toDateString() !== new Date(prev.created_at).toDateString();
           return (
@@ -349,6 +378,7 @@ export default function Messages() {
     if (senderId) notificationsApi.markConversationRead(senderId).catch(() => {});
   }
   const [loading, setLoading]             = useState(true);
+  const [openingConv, setOpeningConv]     = useState(false);
   const [matchesLoading, setMatchesLoading] = useState(false);
   const [requestAction, setRequestAction] = useState<string | null>(null);
   const [requestSentMsg, setRequestSentMsg] = useState("");
@@ -374,17 +404,24 @@ export default function Messages() {
     const startUser = params.get("start");
     const target    = withUser || startUser;
     if (target && user) {
+      setOpeningConv(true);
       messagingApi.startConversation(target)
         .then(r => {
           if (r.data.status === "request_sent") {
             setRequestSentMsg("Tu solicitud fue enviada. Si te acepta, podrán chatear.");
           } else if (r.data.status === "active" || r.data.id) {
-            // also marks notifs from this sender as read
             notificationsApi.markConversationRead(target).catch(() => {});
             setActiveConv(r.data);
           }
         })
-        .catch(() => {});
+        .catch((err: any) => {
+          const detail = err?.response?.data?.detail;
+          const msg = typeof detail === "string"
+            ? detail
+            : "No se pudo abrir la conversación. El usuario puede no estar disponible.";
+          toast.error(msg);
+        })
+        .finally(() => setOpeningConv(false));
     }
   }, []);
 
@@ -463,6 +500,14 @@ export default function Messages() {
             ))}
           </div>
         </header>
+      )}
+
+      {/* Abriendo conversación (desde ?with= URL param) */}
+      {openingConv && !activeConv && (
+        <div className="flex items-center justify-center py-16 gap-3">
+          <div className="w-5 h-5 border-2 border-accent-purple/30 border-t-accent-purple rounded-full animate-spin"/>
+          <p className="text-sm text-text-muted">Abriendo conversación…</p>
+        </div>
       )}
 
       {/* Chat activo */}
